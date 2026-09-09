@@ -1,0 +1,28 @@
+# Entornos y cachés
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Configuración local y secretos
+.env
+.claude/settings.local.json
+
+# Datos del usuario: NUNCA se versionan (transacciones, precios, cartera real)
+*.db
+*.db-wal
+*.db-shm
+
+# Logs
+/logs/
+*.log
+
+# Despliegue: el .plist real lleva rutas y usuario de la máquina.
+# La plantilla versionada es deploy/tablero-refresh.plist
+deploy/com.*.plist
+
+# macOS
+.DS_Store

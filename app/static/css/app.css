@@ -1,0 +1,173 @@
+/* Tokens de color.
+ *
+ * Los valores salen de una paleta validada: cada color de serie pasó los seis
+ * checks (banda de luminosidad, croma, separación bajo daltonismo, suelo de
+ * visión normal y contraste) contra la superficie sobre la que se dibuja.
+ * La superficie oscura es #1a1a19 y las tarjetas usan exactamente ese color:
+ * validar contra una superficie distinta de la real no significa nada.
+ *
+ * Modo oscuro por defecto. El claro NO es un volteo automático: son los mismos
+ * ocho tonos re-escalonados para la superficie clara, validados por separado.
+ */
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #111110;
+  --surface-1: #1a1a19; /* superficie de gráfico: la que se validó */
+  --surface-2: #232322;
+  --surface-3: #2b2b29;
+  --border: #32322f;
+  --border-strong: #45453f;
+
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8a8a80;
+
+  /* Categóricos (columna dark de la paleta de referencia) */
+  --series-1: #3987e5; /* azul */
+  --series-2: #d95926; /* naranja */
+  --series-3: #199e70; /* aqua */
+  --series-4: #c98500; /* amarillo */
+  --series-5: #d55181; /* magenta */
+  --series-6: #008300; /* verde */
+  --series-7: #9085e9; /* violeta */
+  --series-8: #e66767; /* rojo */
+
+  /* Estado: fijos, nunca tematizados. Siempre acompañados de icono o signo. */
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f2f1ee;
+  --surface-1: #fcfcfb;
+  --surface-2: #f0efec;
+  --surface-3: #e6e5e0;
+  --border: #dedcd6;
+  --border-strong: #c5c3ba;
+
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7973;
+
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+/* Cifras alineadas verticalmente en las tablas: sin esto las columnas de
+ * dinero bailan y comparar de un vistazo se vuelve imposible. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* --- Skeletons de carga --------------------------------------------------
+ * Preferidos a un spinner porque preservan la geometría de la página: el
+ * contenido no salta cuando llegan los datos. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    var(--surface-3) 37%,
+    var(--surface-2) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  * { transition: none !important; }
+}
+
+/* --- Barras de factor ----------------------------------------------------
+ * Extremo redondeado 4px en el lado del dato, cuadrado en la línea base.
+ * La pista es un escalón por encima de la superficie: recesiva, nunca compite
+ * con el dato. */
+.meter-track {
+  background: var(--surface-3);
+  border-radius: 2px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- Toasts --------------------------------------------------------------- */
+.toast-enter {
+  animation: toast-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Foco visible siempre: el dashboard se navega con teclado. */
+:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 5px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+/* Toasts y panel lateral comparten la esquina superior derecha.
+ *
+ * Los toasts van en z-[60], por ENCIMA de los modales, y así debe seguir
+ * siendo: una notificación oculta tras un panel es peor que una descolocada.
+ * Lo que se corrige es el estorbo: con el glosario abierto, un aviso tapaba
+ * justo las pestañas y dejaba al usuario sin poder cambiar de sección durante
+ * los ocho segundos que dura el toast.
+ *
+ * Solo se aparta cuando hay sitio. Por debajo de 1024px el panel ocupa todo
+ * el ancho y no existe ninguna posición libre: ahí el toast se superpone, que
+ * es lo correcto cuando no se puede tener las dos cosas.
+ */
+@media (min-width: 1024px) {
+  body.drawer-open .toast-stack {
+    right: calc(32rem + 1.5rem);
+  }
+}

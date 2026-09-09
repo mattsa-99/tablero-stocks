@@ -1,0 +1,672 @@
+{% extends "base.html" %}
+{% from "partials/symbol_combobox.html" import symbol_combobox %}
+{% block title %}Portafolio · Tablero{% endblock %}
+{% block scripts %}
+<script src="{{ static_url('/static/js/combobox.js') }}"></script>
+<script src="{{ static_url('/static/js/portfolio.js') }}"></script>
+<script src="{{ static_url('/static/js/simulation.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div x-data="portfolioView()"
+     @transaction-created.window="load()"
+     @market-data-updated.window="load()">
+
+  <!-- ================= Cabecera ================= -->
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-semibold tracking-tight" x-text="summary?.name ?? 'Portafolio'"></h1>
+      <p class="mt-1 text-xs text-ink-mute">
+        <template x-if="summary">
+          <span>
+            Valorado en <span x-text="summary.base_currency"></span> ·
+            actualizado <span x-text="$fmt.dateTime(summary.as_of)"></span>
+          </span>
+        </template>
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button @click="refreshPositions()" :disabled="refreshing || loading"
+              class="flex items-center gap-2 rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm
+                     text-ink-soft transition-colors hover:border-line-strong hover:text-ink
+                     disabled:opacity-50">
+        <svg class="h-3.5 w-3.5" :class="refreshing && 'animate-spin'" fill="none"
+             stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 11A8 8 0 0 0 6.3 5.7L4 8m0 0V3m0 5h5m-5 5a8 8 0 0 0 13.7 5.3L20 16m0 0v5m0-5h-5"/>
+        </svg>
+        <span x-text="refreshing ? 'Actualizando…' : 'Actualizar'"></span>
+      </button>
+
+      <button @click="$dispatch('open-simulation')"
+              class="flex items-center gap-2 rounded-lg border border-s7/50 bg-s7/10 px-3 py-2
+                     text-sm text-ink transition-colors hover:bg-s7/20">
+        <svg class="h-3.5 w-3.5 text-s7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4m0 0L4 20h16L15 7m-6 0h6m0-4v4"/>
+        </svg>
+        Simular
+      </button>
+
+      <button @click="$dispatch('open-transaction-modal')"
+              class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
+        Nueva transacción
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= Estado: error ================= -->
+  <template x-if="error">
+    <div class="mb-6 flex items-start gap-3 rounded-xl border border-bad/40 bg-bad/10 p-4">
+      <svg class="mt-0.5 h-4 w-4 shrink-0 text-bad" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v5m0 3h.01"/>
+      </svg>
+      <div class="flex-1">
+        <p class="text-sm font-medium text-bad">No se pudo cargar el portafolio</p>
+        <p class="mt-0.5 text-xs text-ink-soft" x-text="error"></p>
+      </div>
+      <button @click="load()" class="shrink-0 rounded-lg border border-bad/40 px-3 py-1.5 text-xs text-bad transition-colors hover:bg-bad/10">
+        Reintentar
+      </button>
+    </div>
+  </template>
+
+  <!-- ================= KPIs ================= -->
+  <!-- Cifras sueltas, no un gráfico de barras de un solo valor: un número es
+       su propia mejor representación. -->
+  <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <template x-for="i in skeletonCount" :key="'kpi-sk-' + i">
+      <div class="rounded-xl border border-line bg-surf p-4">
+        <div class="skeleton mb-3 h-3 w-20"></div>
+        <div class="skeleton h-7 w-28"></div>
+      </div>
+    </template>
+
+    <template x-for="kpi in kpis" :key="kpi.label">
+      <div class="rounded-xl border border-line bg-surf p-4">
+        <p class="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-mute" x-text="kpi.label"></p>
+        <!-- Un grado menos en móvil: a 390px una cifra COP de nueve dígitos
+             llega justo al borde de la tarjeta con text-2xl. -->
+        <p class="tabular text-xl font-semibold sm:text-2xl"
+           :class="kpi.kind === 'money' ? 'text-ink' : $fmt.pnlClass(kpi.value)"
+           x-text="kpi.kind === 'money' ? $fmt.money(kpi.value, currency)
+                 : kpi.kind === 'pct'   ? $fmt.signedPct(kpi.value)
+                 : $fmt.signed(kpi.value, currency)"></p>
+      </div>
+    </template>
+  </div>
+
+  <!-- Desglose secundario -->
+  <div class="mb-6 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4" x-show="breakdown.length" x-cloak>
+    <template x-for="item in breakdown" :key="item.label">
+      <div class="rounded-lg border border-line bg-surf px-3.5 py-2.5">
+        <p class="mb-1 text-ink-mute" x-text="item.label"></p>
+        <p class="tabular text-sm font-medium"
+           :class="item.signed ? $fmt.pnlClass(item.value) : 'text-ink'"
+           x-text="item.signed ? $fmt.signed(item.value, currency) : $fmt.money(item.value, currency)"></p>
+      </div>
+    </template>
+  </div>
+
+  <!-- ================= Estado vacío ================= -->
+  <template x-if="isEmpty">
+    <div class="rounded-2xl border border-line bg-surf p-12 text-center">
+      <div class="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-surf-2 text-ink-mute">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 15l4-4 3 3 5-6"/>
+        </svg>
+      </div>
+      <h2 class="mb-1.5 text-base font-semibold"
+          x-text="isBrandNew ? 'Este portafolio está vacío' : 'No hay posiciones abiertas'"></h2>
+      <p class="mx-auto mb-6 max-w-sm text-sm leading-relaxed text-ink-soft"
+         x-text="isBrandNew
+           ? 'Registra un depósito y tu primera compra para ver aquí posiciones, rendimiento y distribución.'
+           : 'Vendiste todo lo que tenías. El P&L realizado de arriba conserva el resultado de esas operaciones.'"></p>
+      <button @click="$dispatch('open-transaction-modal')"
+              class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
+        Registrar transacción
+      </button>
+    </div>
+  </template>
+
+  <!-- ================= Tabla + gráfico ================= -->
+  <div x-show="loading || (!isEmpty && !error)" class="grid gap-5 xl:grid-cols-[1fr_360px]">
+
+    <!-- --------- Posiciones --------- -->
+    <section class="overflow-hidden rounded-xl border border-line bg-surf">
+      <header class="flex items-center justify-between border-b border-line px-4 py-3">
+        <h2 class="text-sm font-semibold">Posiciones</h2>
+        <span class="text-xs text-ink-mute" x-show="!loading" x-text="`${positions.length} activo${positions.length === 1 ? '' : 's'}`"></span>
+      </header>
+
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[820px] text-sm">
+          <thead>
+            <tr class="border-b border-line text-left text-[11px] uppercase tracking-wider text-ink-mute">
+              <template x-for="col in [
+                  { key: 'symbol',          label: 'Activo',      align: 'text-left'  },
+                  { key: 'quantity',        label: 'Cantidad',    align: 'text-right' },
+                  { key: 'average_cost',    label: 'Coste medio', align: 'text-right' },
+                  { key: 'current_price',   label: 'Precio',      align: 'text-right' },
+                  { key: 'market_value',    label: 'Valor',       align: 'text-right' },
+                  { key: 'unrealized_pnl',  label: 'P&L no real.',align: 'text-right' },
+                  { key: 'realized_pnl',    label: 'P&L real.',   align: 'text-right' },
+                  { key: 'weight_pct',      label: 'Peso',        align: 'text-right' }
+                ]" :key="col.key">
+                <th :class="col.align" class="px-4 py-2.5 font-medium">
+                  <button @click="sortBy(col.key)" class="inline-flex items-center gap-1 transition-colors hover:text-ink">
+                    <span x-text="col.label"></span>
+                    <span x-show="sortKey === col.key" class="text-ink" x-text="sortDesc ? '↓' : '↑'"></span>
+                  </button>
+                </th>
+              </template>
+            </tr>
+          </thead>
+
+          <tbody>
+            <!-- Skeleton: conserva la geometría de la tabla para que el
+                 contenido no salte al llegar los datos. -->
+            <template x-for="i in skeletonCount" :key="'row-sk-' + i">
+              <tr class="border-b border-line/60">
+                <template x-for="j in 8" :key="j">
+                  <td class="px-4 py-3.5"><div class="skeleton h-3.5" :class="j === 1 ? 'w-20' : 'w-16 ml-auto'"></div></td>
+                </template>
+              </tr>
+            </template>
+
+            <template x-for="p in rows" :key="p.symbol">
+                <tr class="border-b border-line/60 transition-colors last:border-0 hover:bg-surf-2/60">
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium" x-text="p.symbol"></span>
+                      <!-- Icono + tooltip, no solo color: el dato obsoleto se
+                           marca de forma legible sin depender del tono. -->
+                      <span x-show="p.is_stale" x-cloak class="text-warn" title="Precio obsoleto" aria-label="Precio obsoleto">
+                        <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                          <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/>
+                        </svg>
+                      </span>
+                    </div>
+                    <p class="mt-0.5 truncate text-[11px] text-ink-mute"
+                       x-text="[p.name, p.sector].filter(Boolean).join(' · ') || p.currency"></p>
+                  </td>
+                  <td class="tabular px-4 py-3 text-right text-ink-soft" x-text="$fmt.qty(p.quantity)"></td>
+                  <td class="tabular px-4 py-3 text-right text-ink-soft" x-text="$fmt.money(p.average_cost, currency)"></td>
+                  <td class="tabular px-4 py-3 text-right">
+                    <span class="text-ink-soft" x-text="p.current_price ? $fmt.money(p.current_price, p.currency) : '—'"></span>
+                    <p x-show="p.day_change_pct !== null" x-cloak class="tabular mt-0.5 text-[11px]"
+                       :class="$fmt.pnlClass(p.day_change_pct)" x-text="$fmt.signedPct(p.day_change_pct, 2)"></p>
+                  </td>
+                  <td class="tabular px-4 py-3 text-right font-medium" x-text="$fmt.money(p.market_value, currency)"></td>
+                  <td class="tabular px-4 py-3 text-right" :class="$fmt.pnlClass(p.unrealized_pnl)">
+                    <span x-text="$fmt.signed(p.unrealized_pnl, currency)"></span>
+                    <p x-show="p.unrealized_return_pct !== null" x-cloak class="tabular mt-0.5 text-[11px] opacity-80"
+                       x-text="$fmt.signedPct(p.unrealized_return_pct)"></p>
+                  </td>
+                  <td class="tabular px-4 py-3 text-right" :class="$fmt.pnlClass(p.realized_pnl)"
+                      x-text="$fmt.signed(p.realized_pnl, currency)"></td>
+                  <td class="tabular px-4 py-3 text-right text-ink-soft" x-text="$fmt.pct(p.weight_pct, 1)"></td>
+                </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- --------- Distribución --------- -->
+    <section class="rounded-xl border border-line bg-surf">
+      <header class="flex items-center justify-between border-b border-line px-4 py-3">
+        <h2 class="text-sm font-semibold">Distribución</h2>
+        <div class="flex rounded-lg border border-line bg-surf-2 p-0.5 text-xs" role="group" aria-label="Agrupar distribución por">
+          <template x-for="mode in [{ id: 'symbol', label: 'Símbolo' }, { id: 'sector', label: 'Sector' }]" :key="mode.id">
+            <button @click="setChartMode(mode.id)" :aria-pressed="chartMode === mode.id"
+                    class="rounded-md px-2.5 py-1 transition-colors"
+                    :class="chartMode === mode.id ? 'bg-surf-3 font-medium text-ink' : 'text-ink-mute hover:text-ink'"
+                    x-text="mode.label"></button>
+          </template>
+        </div>
+      </header>
+
+      <div class="p-4">
+        <template x-if="loading">
+          <div class="mx-auto skeleton h-[200px] w-[200px] rounded-full"></div>
+        </template>
+
+        <div x-show="!loading && legend.length" x-cloak>
+          <div class="relative mx-auto h-[220px]">
+            <canvas x-ref="donut" role="img" aria-label="Distribución del portafolio"></canvas>
+          </div>
+
+          <!-- Leyenda con valor y porcentaje por fila.
+               Es lo que permite comparar magnitudes parecidas: la geometría
+               del donut no lo resuelve, así que el número lo hace explícito.
+               El texto va en tokens de texto; la identidad la porta el punto
+               de color, nunca la tipografía coloreada. -->
+          <ul class="mt-5 space-y-1.5">
+            <template x-for="row in legend" :key="row.label">
+              <li class="flex items-center gap-2.5 text-xs">
+                <span class="h-2.5 w-2.5 shrink-0 rounded-sm" :style="`background:${row.color}`" aria-hidden="true"></span>
+                <span class="flex-1 truncate text-ink-soft" x-text="row.label"></span>
+                <span class="tabular shrink-0 text-ink-mute" x-text="$fmt.compact(row.value, currency)"></span>
+                <span class="tabular w-12 shrink-0 text-right font-medium text-ink" x-text="row.share.toFixed(1) + '%'"></span>
+              </li>
+            </template>
+          </ul>
+        </div>
+
+        <template x-if="!loading && !legend.length">
+          <p class="py-14 text-center text-xs leading-relaxed text-ink-mute">
+            No hay posiciones valoradas.<br>La distribución necesita precio de mercado.
+          </p>
+        </template>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= Panel lateral: Modo Simulación ================= -->
+  <!-- Panel lateral y no modal a propósito: el usuario compara con lo que ya
+       tiene en pantalla, y un modal centrado taparía justo la tabla y el
+       gráfico contra los que quiere contrastar. -->
+  <div x-data="simulationPanel()" @open-simulation.window="open()" x-cloak>
+    <div x-show="isOpen" class="fixed inset-0 z-50 flex justify-end bg-black/50"
+         @click.self="close()" @keydown.escape.window="close()" x-transition.opacity
+         role="dialog" aria-modal="true" aria-labelledby="sim-title">
+      <aside class="flex h-full w-full max-w-2xl flex-col overflow-y-auto border-l border-line bg-bg shadow-2xl"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0">
+
+        <header class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-line bg-bg/95 px-5 py-4 backdrop-blur">
+          <div>
+            <h2 id="sim-title" class="flex items-center gap-2 text-base font-semibold">
+              <span class="h-2 w-2 rounded-full bg-s7" aria-hidden="true"></span>
+              Modo simulación
+            </h2>
+            <p class="mt-0.5 text-xs text-ink-mute">
+              Nada de esto se guarda hasta que pulses «Aplicar».
+            </p>
+          </div>
+          <button @click="close()" class="text-ink-mute transition-colors hover:text-ink" aria-label="Cerrar">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </header>
+
+        <div class="flex-1 space-y-5 px-5 py-5">
+
+          <!-- ---- Alta de operación virtual ---- -->
+          <section class="rounded-xl border border-line bg-surf p-4">
+            <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-mute">
+              Añadir operación
+            </h3>
+            <form @submit.prevent="addTrade()" class="space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label for="sim-type" class="mb-1 block text-[11px] text-ink-soft">Tipo</label>
+                  <select id="sim-type" x-model="draft.type"
+                          class="w-full rounded-lg border border-line bg-surf-2 px-2.5 py-1.5 text-sm outline-none focus:border-s7">
+                    <option value="BUY">Comprar</option>
+                    <option value="SELL">Vender</option>
+                    <option value="DEPOSIT">Depositar</option>
+                    <option value="WITHDRAWAL">Retirar</option>
+                  </select>
+                </div>
+              </div>
+
+              <div x-show="needsAsset">
+                {{ symbol_combobox("sim-symbol", "Símbolo", "var(--series-7)", "applySymbol($event.detail)") }}
+              </div>
+
+              <div x-show="needsQuantity" class="grid grid-cols-2 gap-3">
+                <div>
+                  <label for="sim-qty" class="mb-1 block text-[11px] text-ink-soft">Cantidad</label>
+                  <input id="sim-qty" type="number" step="any" min="0" x-model="draft.quantity" :required="needsQuantity"
+                         class="w-full rounded-lg border border-line bg-surf-2 px-2.5 py-1.5 text-sm outline-none focus:border-s7">
+                </div>
+                <div>
+                  <label for="sim-price" class="mb-1 block text-[11px] text-ink-soft">Precio</label>
+                  <input id="sim-price" type="number" step="any" min="0" x-model="draft.price" :required="needsQuantity"
+                         class="w-full rounded-lg border border-line bg-surf-2 px-2.5 py-1.5 text-sm outline-none focus:border-s7">
+                </div>
+              </div>
+
+              <!-- Referencia de mercado: de cuándo es el precio y a qué
+                   distancia está el que se va a simular. Un 15% por encima
+                   suele ser un dedazo, y verlo evita leer mal el resultado. -->
+              <div x-show="needsQuantity && marketPrice !== null" x-cloak
+                   class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+                <span class="text-ink-mute">Mercado:</span>
+                <span class="tabular font-medium text-ink"
+                      x-text="$fmt.money(marketPrice, draft.currency)"></span>
+                <button type="button" @click="useMarketPrice()"
+                        class="rounded border border-line px-1.5 py-0.5 text-ink-soft transition-colors hover:border-line-strong hover:text-ink">
+                  usar
+                </button>
+                <span x-show="priceGapPct !== null && Math.abs(priceGapPct) >= 0.05" x-cloak
+                      class="tabular"
+                      :class="Math.abs(priceGapPct) > 10 ? 'text-warn' : 'text-ink-mute'"
+                      x-text="(priceGapPct > 0 ? '+' : '−') + Math.abs(priceGapPct).toFixed(1) + '% vs mercado'"></span>
+                <span x-show="marketPriceIsStale" x-cloak class="flex items-center gap-1 text-warn">
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/>
+                  </svg>
+                  <span x-text="'de ' + $fmt.dateTime(marketPriceAsOf)"></span>
+                </span>
+              </div>
+
+              <div x-show="needsCash">
+                <label for="sim-cash" class="mb-1 block text-[11px] text-ink-soft">Importe</label>
+                <input id="sim-cash" type="number" step="any" min="0" x-model="draft.cash_amount" :required="needsCash"
+                       class="w-full rounded-lg border border-line bg-surf-2 px-2.5 py-1.5 text-sm outline-none focus:border-s7">
+              </div>
+
+              <div class="grid grid-cols-3 gap-3">
+                <div>
+                  <label for="sim-ccy" class="mb-1 block text-[11px] text-ink-soft">Divisa</label>
+                  <select id="sim-ccy" x-model="draft.currency"
+                          class="w-full rounded-lg border border-line bg-surf-2 px-2.5 py-1.5 text-sm outline-none focus:border-s7">
+                    <option>USD</option><option>COP</option><option>EUR</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="sim-fx" class="mb-1 block text-[11px] text-ink-soft">Cambio</label>
+                  <input id="sim-fx" type="number" step="any" min="0" x-model="draft.fx_rate_to_base" placeholder="auto"
+                         class="w-full rounded-lg border border-line bg-surf-2 px-2.5 py-1.5 text-sm outline-none focus:border-s7">
+                </div>
+                <div x-show="needsAsset">
+                  <label for="sim-sector" class="mb-1 block text-[11px] text-ink-soft">Sector</label>
+                  <input id="sim-sector" x-model="draft.sector" placeholder="si es nuevo"
+                         class="w-full rounded-lg border border-line bg-surf-2 px-2.5 py-1.5 text-sm outline-none focus:border-s7">
+                </div>
+              </div>
+
+              <button type="submit"
+                      class="w-full rounded-lg bg-s7 px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
+                Añadir a la simulación
+              </button>
+            </form>
+          </section>
+
+          <!-- ---- Operaciones propuestas ---- -->
+          <section x-show="trades.length">
+            <div class="mb-2 flex items-center justify-between">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-ink-mute">
+                Operaciones propuestas
+              </h3>
+              <button @click="reset()" class="text-[11px] text-ink-mute transition-colors hover:text-ink">
+                Limpiar
+              </button>
+            </div>
+            <ul class="space-y-1.5">
+              <template x-for="(trade, index) in trades" :key="index">
+                <li class="flex items-center gap-2 rounded-lg border border-line bg-surf px-3 py-2">
+                  <span class="h-1.5 w-1.5 shrink-0 rounded-full"
+                        :class="trade.type === 'SELL' || trade.type === 'WITHDRAWAL' ? 'bg-s2' : 'bg-s7'"
+                        aria-hidden="true"></span>
+                  <span class="flex-1 text-xs text-ink-soft" x-text="tradeLabel(trade)"></span>
+                  <button @click="removeTrade(index)" class="text-ink-mute transition-colors hover:text-bad"
+                          :aria-label="`Quitar ${tradeLabel(trade)}`">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </li>
+              </template>
+            </ul>
+          </section>
+
+          <!-- ---- Error ---- -->
+          <div x-show="error" x-cloak
+               class="flex items-start gap-2.5 rounded-xl border border-bad/40 bg-bad/10 p-3.5">
+            <svg class="mt-0.5 h-4 w-4 shrink-0 text-bad" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v5m0 3h.01"/>
+            </svg>
+            <p class="text-xs leading-relaxed text-bad" x-text="error"></p>
+          </div>
+
+          <!-- ---- Cargando ---- -->
+          <div x-show="loading" class="space-y-3">
+            <div class="skeleton h-24 w-full rounded-xl"></div>
+            <div class="skeleton h-40 w-full rounded-xl"></div>
+          </div>
+
+          <!-- ---- Estado vacío ---- -->
+          <div x-show="!trades.length && !loading" class="rounded-xl border border-dashed border-line px-5 py-10 text-center">
+            <p class="text-sm text-ink-soft">Añade una operación para ver su impacto</p>
+            <p class="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-ink-mute">
+              Se calcula sobre tu cartera real sin escribir nada en la base de datos.
+            </p>
+          </div>
+
+          <!-- ---- Resultado ---- -->
+          <template x-if="hasResult">
+            <div class="space-y-5">
+
+              <!-- Métricas antes/después -->
+              <section class="overflow-hidden rounded-xl border border-line bg-surf">
+                <table class="w-full text-xs">
+                  <thead>
+                    <tr class="border-b border-line text-left text-[10px] uppercase tracking-wider text-ink-mute">
+                      <th class="px-3.5 py-2 font-medium">Métrica</th>
+                      <th class="px-3.5 py-2 text-right font-medium">Ahora</th>
+                      <th class="px-3.5 py-2 text-right font-medium">Después</th>
+                      <th class="px-3.5 py-2 text-right font-medium">Cambio</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="m in headlineMetrics" :key="m.label">
+                      <tr class="border-b border-line/60 last:border-0">
+                        <td class="px-3.5 py-2 text-ink-soft" x-text="m.label"></td>
+                        <td class="tabular px-3.5 py-2 text-right text-ink-mute"
+                            x-text="formatMetric(m.before, m.kind)"></td>
+                        <td class="tabular px-3.5 py-2 text-right font-medium"
+                            x-text="formatMetric(m.after, m.kind)"></td>
+                        <td class="tabular px-3.5 py-2 text-right font-medium"
+                            :class="deltaClass(m.delta, m.label)"
+                            x-text="formatDelta(m.delta, m.kind)"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </section>
+
+              <!-- Desplazamiento por sector: la frase que pide el requisito -->
+              <section x-show="sectorShifts.length" class="rounded-xl border border-line bg-surf p-4">
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-mute">
+                  Exposición por sector
+                </h3>
+                <ul class="space-y-2.5">
+                  <template x-for="s in sectorShifts" :key="s.sector">
+                    <li>
+                      <div class="mb-1 flex items-baseline justify-between gap-2 text-xs">
+                        <span class="text-ink-soft" x-text="s.sector"></span>
+                        <span class="tabular text-ink-mute">
+                          <span x-text="s.before.toFixed(1) + '%'"></span>
+                          <span class="mx-1 text-ink-mute">→</span>
+                          <span class="font-medium text-ink" x-text="s.after.toFixed(1) + '%'"></span>
+                          <span class="ml-1.5" :class="s.delta > 0 ? 'text-s7' : s.delta < 0 ? 'text-s2' : ''"
+                                x-text="s.delta === 0 ? '' : (s.delta > 0 ? '+' : '−') + Math.abs(s.delta).toFixed(1) + ' pp'"></span>
+                        </span>
+                      </div>
+                      <!-- Dos pistas apiladas: la de abajo el estado actual, la
+                           de arriba el simulado. Comparar longitudes es más
+                           directo que leer dos porcentajes. -->
+                      <div class="space-y-0.5">
+                        <div class="meter-track h-1.5">
+                          <div class="meter-fill" :style="`width:${Math.min(100, s.before)}%;background:var(--text-muted)`"></div>
+                        </div>
+                        <div class="meter-track h-1.5">
+                          <div class="meter-fill" :style="`width:${Math.min(100, s.after)}%;background:var(--series-7)`"></div>
+                        </div>
+                      </div>
+                    </li>
+                  </template>
+                </ul>
+                <p class="mt-3 flex items-center gap-3 text-[10px] text-ink-mute">
+                  <span class="flex items-center gap-1.5">
+                    <span class="h-1.5 w-3 rounded-sm bg-[var(--text-muted)]" aria-hidden="true"></span> ahora
+                  </span>
+                  <span class="flex items-center gap-1.5">
+                    <span class="h-1.5 w-3 rounded-sm bg-s7" aria-hidden="true"></span> simulado
+                  </span>
+                </p>
+              </section>
+
+              <!-- Donuts antes/después -->
+              <section class="rounded-xl border border-line bg-surf p-4">
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-mute">
+                  Distribución por sector
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <p class="mb-2 text-center text-[11px] text-ink-mute">Ahora</p>
+                    <div class="relative h-[150px]">
+                      <canvas x-ref="beforeChart" role="img" aria-label="Distribución actual por sector"></canvas>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="mb-2 text-center text-[11px] text-ink-mute">Después</p>
+                    <div class="relative h-[150px]">
+                      <canvas x-ref="afterChart" role="img" aria-label="Distribución simulada por sector"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </template>
+        </div>
+
+        <!-- ---- Acciones ---- -->
+        <footer class="sticky bottom-0 flex items-center justify-between gap-3 border-t border-line bg-bg/95 px-5 py-4 backdrop-blur">
+          <p class="text-[11px] text-ink-mute">
+            <span x-show="!trades.length">Sin operaciones propuestas</span>
+            <span x-show="trades.length" x-cloak>
+              <span x-text="trades.length"></span> operación(es) · nada guardado aún
+            </span>
+          </p>
+          <div class="flex gap-2">
+            <button @click="close()"
+                    class="rounded-lg px-3 py-2 text-sm text-ink-soft transition-colors hover:bg-surf-2 hover:text-ink">
+              Cerrar
+            </button>
+            <button @click="commit()" :disabled="!trades.length || loading || error"
+                    class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity
+                           hover:opacity-90 disabled:opacity-40">
+              Aplicar de verdad
+            </button>
+          </div>
+        </footer>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ================= Modal: nueva transacción ================= -->
+  <div x-data="transactionModal()" @open-transaction-modal.window="open()" x-cloak>
+    <div x-show="isOpen" class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4"
+         @click.self="close()" @keydown.escape.window="close()" x-transition.opacity
+         role="dialog" aria-modal="true" aria-labelledby="tx-modal-title">
+      <div class="w-full max-w-lg rounded-2xl border border-line bg-surf p-6 shadow-2xl">
+        <h2 id="tx-modal-title" class="mb-5 text-base font-semibold">Nueva transacción</h2>
+
+        <form @submit.prevent="submit()" class="space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="tx-type" class="mb-1.5 block text-xs font-medium text-ink-soft">Tipo</label>
+              <select id="tx-type" x-model="form.type"
+                      class="w-full rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm outline-none focus:border-s1">
+                <option value="BUY">Compra</option>
+                <option value="SELL">Venta</option>
+                <option value="DIVIDEND">Dividendo</option>
+                <option value="DEPOSIT">Depósito</option>
+                <option value="WITHDRAWAL">Retiro</option>
+              </select>
+            </div>
+            <div>
+              <label for="tx-date" class="mb-1.5 block text-xs font-medium text-ink-soft">Fecha y hora</label>
+              <input id="tx-date" type="datetime-local" x-model="form.executed_at" required
+                     class="w-full rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm outline-none focus:border-s1">
+            </div>
+          </div>
+
+          <div x-show="needsAsset">
+            {{ symbol_combobox("tx-symbol", "Símbolo", "var(--series-1)", "applySymbol($event.detail)") }}
+          </div>
+
+          <div x-show="needsQuantity" class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="tx-qty" class="mb-1.5 block text-xs font-medium text-ink-soft">Cantidad</label>
+              <input id="tx-qty" type="number" step="any" min="0" x-model="form.quantity" :required="needsQuantity"
+                     class="w-full rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm outline-none focus:border-s1">
+            </div>
+            <div>
+              <label for="tx-price" class="mb-1.5 block text-xs font-medium text-ink-soft">Precio unitario</label>
+              <input id="tx-price" type="number" step="any" min="0" x-model="form.price" :required="needsQuantity"
+                     class="w-full rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm outline-none focus:border-s1">
+            </div>
+          </div>
+
+          <!-- El precio NO se prellena aquí: la fecha puede ser pasada y el
+               precio de hoy sería un dato falso en el coste base. Se ofrece a
+               un clic, con su fecha visible para que se vea si encaja. -->
+          <div x-show="needsQuantity && marketPrice !== null" x-cloak
+               class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+            <span class="text-ink-mute">Precio de mercado:</span>
+            <span class="tabular font-medium text-ink"
+                  x-text="$fmt.money(marketPrice, form.currency)"></span>
+            <button type="button" @click="useMarketPrice()"
+                    class="rounded border border-line px-1.5 py-0.5 text-ink-soft transition-colors hover:border-line-strong hover:text-ink">
+              usar
+            </button>
+            <span class="text-ink-mute" :class="marketPriceIsStale && 'text-warn'"
+                  x-text="'· ' + $fmt.dateTime(marketPriceAsOf)"></span>
+          </div>
+
+          <div x-show="needsCash">
+            <label for="tx-cash" class="mb-1.5 block text-xs font-medium text-ink-soft">Importe bruto</label>
+            <input id="tx-cash" type="number" step="any" min="0" x-model="form.cash_amount" :required="needsCash"
+                   class="w-full rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm outline-none focus:border-s1">
+          </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label for="tx-fees" class="mb-1.5 block text-xs font-medium text-ink-soft">Comisiones</label>
+              <input id="tx-fees" type="number" step="any" min="0" x-model="form.fees"
+                     class="w-full rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm outline-none focus:border-s1">
+            </div>
+            <div>
+              <label for="tx-ccy" class="mb-1.5 block text-xs font-medium text-ink-soft">Divisa</label>
+              <select id="tx-ccy" x-model="form.currency"
+                      class="w-full rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm outline-none focus:border-s1">
+                <option>USD</option><option>COP</option><option>EUR</option>
+              </select>
+            </div>
+            <div>
+              <label for="tx-fx" class="mb-1.5 block text-xs font-medium text-ink-soft">Tipo de cambio</label>
+              <input id="tx-fx" type="number" step="any" min="0" x-model="form.fx_rate_to_base" placeholder="auto"
+                     class="w-full rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm outline-none focus:border-s1">
+            </div>
+          </div>
+
+          <p class="text-[11px] leading-relaxed text-ink-mute">
+            Si dejas el tipo de cambio vacío se toma de los datos de mercado en esa fecha.
+            Si no hay ninguno, la operación se rechaza en lugar de asumir paridad.
+          </p>
+
+          <p x-show="error" x-cloak x-text="error"
+             class="rounded-lg border border-bad/40 bg-bad/10 px-3 py-2 text-xs leading-relaxed text-bad"></p>
+
+          <div class="flex justify-end gap-2 pt-1">
+            <button type="button" @click="close()"
+                    class="rounded-lg px-4 py-2 text-sm text-ink-soft transition-colors hover:bg-surf-2 hover:text-ink">
+              Cancelar
+            </button>
+            <button type="submit" :disabled="saving"
+                    class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50">
+              <span x-text="saving ? 'Guardando…' : 'Registrar'"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

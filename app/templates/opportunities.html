@@ -1,0 +1,635 @@
+{% extends "base.html" %}
+{% block title %}Oportunidades · Tablero{% endblock %}
+{% block scripts %}
+<script src="{{ static_url('/static/js/opportunities.js') }}"></script>
+<script src="{{ static_url('/static/js/suggestion.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div x-data="opportunitiesView()">
+
+  <!-- ================= Cabecera y filtros ================= -->
+  <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-semibold tracking-tight">Oportunidades</h1>
+      <p class="mt-1 max-w-2xl text-xs leading-relaxed text-ink-mute">
+        Ranking relativo dentro del universo evaluado, con el desglose de cada factor.
+      </p>
+    </div>
+
+    <!-- Los filtros van en una fila sobre el contenido, no dispersos. -->
+    <form @submit.prevent="load()" class="flex flex-wrap items-end gap-2">
+      <div>
+        <label for="op-symbols" class="mb-1.5 block text-xs font-medium text-ink-soft">Candidatos adicionales</label>
+        <input id="op-symbols" x-model="symbolsInput" placeholder="NVDA, KO, JNJ"
+               class="h-9 w-full rounded-lg border border-line bg-surf-2 px-3 text-sm uppercase outline-none
+                      transition-colors focus:border-s1 sm:w-64">
+      </div>
+      <div>
+        <label for="op-limit" class="mb-1.5 block text-xs font-medium text-ink-soft">Mostrar</label>
+        <select id="op-limit" x-model.number="limit" @change="load()"
+                class="h-9 rounded-lg border border-line bg-surf-2 px-3 text-sm outline-none focus:border-s1">
+          <option :value="5">5</option>
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+          <option :value="200">200</option>
+        </select>
+      </div>
+      <button type="submit" :disabled="loading"
+              class="h-9 rounded-lg border border-line bg-surf-2 px-4 text-sm text-ink-soft
+                     transition-colors hover:border-line-strong hover:text-ink disabled:opacity-50">
+        <span x-text="loading ? 'Calculando…' : 'Evaluar'"></span>
+      </button>
+
+      <!-- Acción destacada: responde la pregunta que el ranking deja abierta,
+           «¿y cuál compro?». -->
+      <button type="button" @click="$dispatch('open-suggestion')"
+              class="flex h-9 items-center gap-2 rounded-lg bg-s7 px-4 text-sm font-medium
+                     text-white transition-opacity hover:opacity-90">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m12 3 1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3ZM18 15l.8 2.2 2.2.8-2.2.8L18 21l-.8-2.2-2.2-.8 2.2-.8L18 15Z"/>
+        </svg>
+        Sugerencia óptima
+      </button>
+    </form>
+  </div>
+
+  <!-- ================= Aviso de calidad del universo ================= -->
+  <!-- Va ARRIBA del todo y antes del ranking a propósito: es la respuesta a
+       "¿hay algo bueno aquí?", y leerla después de ver un #1 con score 75 ya
+       sería tarde. -->
+  <template x-if="qualityWarning">
+    <div class="mb-5 flex items-start gap-3 rounded-xl border border-warn/40 bg-warn/10 p-4">
+      <svg class="mt-0.5 h-4 w-4 shrink-0 text-warn" fill="none" stroke="currentColor"
+           stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 3h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>
+      </svg>
+      <div>
+        <p class="text-sm font-medium text-warn">El primer puesto no es una buena opción</p>
+        <p class="mt-0.5 text-xs leading-relaxed text-ink-soft" x-text="qualityWarning"></p>
+      </div>
+    </div>
+  </template>
+
+  <!-- ================= Filtros: calidad y mercado =================
+       Los recuentos son SIEMPRE los del universo completo, no los del
+       resultado filtrado. Si reflejaran el filtro activo, al seleccionar
+       «Muy buena» los demás chips marcarían 0 y el usuario no tendría forma
+       de saber qué le queda por explorar. -->
+  <template x-if="data && gradeSummary.length">
+    <div class="mb-5 space-y-2.5 rounded-xl border border-line bg-surf px-4 py-3">
+
+      <!-- Calidad -->
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="mr-1 w-20 shrink-0 text-xs text-ink-mute">Calidad</span>
+        <template x-for="g in gradeSummary" :key="g.grade">
+          <button type="button" @click="toggleTier(g.grade)"
+                  :aria-pressed="activeTiers.includes(g.grade)"
+                  :title="`Filtrar por calificación ${g.label}`"
+                  class="flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px]
+                         transition-colors focus-visible:outline-none focus-visible:ring-2
+                         focus-visible:ring-s1"
+                  :class="tierChipClass(g.grade)">
+            <span class="tabular font-semibold" x-text="g.count"></span>
+            <span x-text="g.label"></span>
+          </button>
+        </template>
+        <span class="ml-auto text-[11px] text-ink-mute" x-show="data.benchmark_symbol" x-cloak>
+          Referencia: <span class="text-ink-soft" x-text="data.benchmark_symbol"></span>
+          · P/E <span class="tabular" x-text="data.benchmark_pe?.toFixed(1)"></span>
+        </span>
+      </div>
+
+      <!-- Mercado / región -->
+      <div class="flex flex-wrap items-center gap-2 border-t border-line pt-2.5">
+        <span class="mr-1 w-20 shrink-0 text-xs text-ink-mute">Mercado</span>
+        <button type="button" @click="activeRegions = []; localStorage.removeItem('tablero:regions'); load()"
+                :aria-pressed="activeRegions.length === 0"
+                class="rounded-lg border px-2 py-1 text-[11px] transition-colors
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1"
+                :class="activeRegions.length === 0
+                          ? 'border-s1 bg-s1/10 text-s1 ring-1 ring-inset ring-s1/30'
+                          : 'border-line bg-transparent text-ink-mute hover:border-line-strong hover:text-ink-soft'">
+          Todos
+        </button>
+        <template x-for="r in regionSummary" :key="r.region">
+          <button type="button" @click="toggleRegion(r.region)"
+                  :aria-pressed="activeRegions.includes(r.region)"
+                  :disabled="r.count === 0"
+                  :title="`Filtrar por ${r.label}`"
+                  class="flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px]
+                         transition-colors focus-visible:outline-none focus-visible:ring-2
+                         focus-visible:ring-s1 disabled:cursor-not-allowed disabled:opacity-40"
+                  :class="regionChipClass(r.region)">
+            <span class="tabular font-semibold" x-text="r.count"></span>
+            <span x-text="r.label"></span>
+          </button>
+        </template>
+
+        <button type="button" x-show="hasFilters" x-cloak @click="clearFilters()"
+                class="ml-auto flex items-center gap-1 rounded-lg border border-line px-2 py-1
+                       text-[11px] text-ink-soft transition-colors hover:border-line-strong hover:text-ink
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1">
+          <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+          </svg>
+          Limpiar filtros
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- ================= Fórmula ================= -->
+  <template x-if="data">
+    <div class="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-line bg-surf px-4 py-3">
+      <code class="tabular text-xs text-ink-soft" x-text="data.formula"></code>
+      <!-- Con filtros activos hay TRES números distintos y conviene no
+           confundirlos: los que se muestran, los evaluados (el universo sobre
+           el que se calculó el percentil) y los pedidos. El score sigue siendo
+           relativo al universo EVALUADO aunque el filtro enseñe menos. -->
+      <!-- Tres cifras distintas que no hay que confundir: lo que se ve, lo
+           que pasa el filtro y lo que se ha evaluado. Antes, con el límite en
+           10, la pantalla mostraba diez tarjetas y en ningún sitio decía que
+           había 480 más: parecía el ranking entero. -->
+      <span class="text-xs text-ink-mute">
+        Mostrando <span class="text-ink" x-text="visibleCount"></span>
+        de <span class="text-ink" x-text="matchedCount"></span>
+        <span x-show="hasFilters" x-cloak>que pasan el filtro</span>
+        <span x-show="isTruncated" x-cloak class="opacity-70">
+          (sube «Mostrar» para ver más)
+        </span>
+        · <span x-text="data.universe_size"></span> evaluados de
+        <span x-text="data.universe_requested"></span>
+      </span>
+      <!-- Leyenda de factores: identidad por punto de color junto al texto,
+           nunca coloreando el texto. -->
+      <ul class="ml-auto flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
+        <template x-for="f in factors" :key="f.key">
+          <li class="flex items-center gap-1.5 text-[11px] text-ink-soft">
+            <span class="h-2 w-2 rounded-sm" :style="`background:${f.color}`" aria-hidden="true"></span>
+            <span x-text="f.label"></span>
+          </li>
+        </template>
+      </ul>
+    </div>
+  </template>
+
+  <!-- ================= Estado: cargando ================= -->
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" x-show="loading">
+    <template x-for="i in skeletonCount" :key="'sk-' + i">
+      <div class="rounded-xl border border-line bg-surf p-5">
+        <div class="mb-4 flex items-start justify-between">
+          <div class="flex-1">
+            <div class="skeleton mb-2 h-4 w-24"></div>
+            <div class="skeleton h-3 w-32"></div>
+          </div>
+          <div class="skeleton h-12 w-12 rounded-full"></div>
+        </div>
+        <template x-for="j in 4" :key="j">
+          <div class="mb-3">
+            <div class="skeleton mb-1.5 h-2.5 w-20"></div>
+            <div class="skeleton h-1.5 w-full"></div>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+
+  <!-- ================= Estado: universo insuficiente ================= -->
+  <!-- No es un error del sistema sino el estado esperado en una instalación
+       nueva, así que la pantalla ofrece la acción que lo resuelve. -->
+  <template x-if="insufficient">
+    <div class="mx-auto max-w-lg rounded-2xl border border-line bg-surf p-10 text-center">
+      <div class="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-surf-2 text-ink-mute">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3.5-3.5"/>
+        </svg>
+      </div>
+      <h2 class="mb-2 text-base font-semibold">Faltan candidatos para comparar</h2>
+      <p class="mx-auto mb-5 max-w-md text-sm leading-relaxed text-ink-soft" x-text="insufficient"></p>
+      <p class="mb-5 text-xs leading-relaxed text-ink-mute">
+        El score es un ranking <em>relativo</em>: con menos de cinco candidatos los rangos
+        percentiles son ruido —con dos, los scores serían 25 y 75 sin importar los valores—.
+      </p>
+      <button @click="symbolsInput = 'AAPL, MSFT, NVDA, KO, JNJ, XOM'; load()"
+              class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
+        Probar con seis candidatos de ejemplo
+      </button>
+    </div>
+  </template>
+
+  <!-- ================= Estado: error ================= -->
+  <template x-if="error">
+    <div class="mx-auto flex max-w-lg items-start gap-3 rounded-xl border border-bad/40 bg-bad/10 p-4">
+      <svg class="mt-0.5 h-4 w-4 shrink-0 text-bad" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v5m0 3h.01"/>
+      </svg>
+      <div class="flex-1">
+        <p class="text-sm font-medium text-bad">No se pudo calcular el ranking</p>
+        <p class="mt-0.5 text-xs text-ink-soft" x-text="error"></p>
+      </div>
+      <button @click="load()" class="shrink-0 rounded-lg border border-bad/40 px-3 py-1.5 text-xs text-bad transition-colors hover:bg-bad/10">
+        Reintentar
+      </button>
+    </div>
+  </template>
+
+  <!-- ================= Tarjetas ================= -->
+  <div x-show="hasResults" x-cloak class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <template x-for="row in results" :key="row.symbol">
+      <article class="flex flex-col rounded-xl border border-line bg-surf p-5 transition-colors hover:border-line-strong">
+
+        <!-- Cabecera: rango, símbolo y score como cifra protagonista -->
+        <div class="mb-5 flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="tabular rounded-md bg-surf-2 px-1.5 py-0.5 text-[11px] font-medium text-ink-mute"
+                    x-text="'#' + row.rank"></span>
+              <h3 class="truncate text-base font-semibold" x-text="row.symbol"></h3>
+            </div>
+            <p class="mt-1 truncate text-xs text-ink-mute" x-text="row.name ?? '—'"></p>
+
+            <!-- La CALIFICACIÓN va aquí, junto al nombre y por delante de
+                 cualquier cifra: es la respuesta a "¿esto es bueno?", que es
+                 distinta de "¿qué puesto ocupa?". -->
+            <p class="mt-1.5">
+              <span class="inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[11px] font-medium"
+                    :class="[gradeStyle(row.assessment.grade).ring, gradeStyle(row.assessment.grade).bg, gradeStyle(row.assessment.grade).text]">
+                <span x-text="row.assessment.label"></span>
+                <span class="tabular font-normal opacity-70"
+                      x-show="row.assessment.max_points > 0"
+                      x-text="row.assessment.points + '/' + row.assessment.max_points"></span>
+              </span>
+
+              <!-- Mercado. Es el DOMICILIO de la empresa, no su bolsa: CIB
+                   cotiza en Nueva York y es Colombia. Se puede pulsar para
+                   filtrar por ese mercado. -->
+              <button type="button" @click="toggleRegion(row.market_region)"
+                      :title="`Ver solo ${regionLabel(row.market_region)}`"
+                      class="ml-1 inline-flex items-center rounded-lg border px-2 py-0.5 text-[11px]
+                             transition-colors focus-visible:outline-none focus-visible:ring-2
+                             focus-visible:ring-s1"
+                      :class="regionChipClass(row.market_region)"
+                      x-text="regionLabel(row.market_region)"></button>
+            </p>
+
+            <p class="mt-1.5 text-[11px] text-ink-mute">
+              <span x-text="row.exposure_bucket"></span>
+              <span x-show="row.exposure_is_assumed" class="opacity-70" title="Supuesto: fondo sin sector declarado">(supuesto)</span>
+              <template x-if="row.current_price !== null">
+                <span> · <span class="tabular" x-text="$fmt.money(row.current_price, row.currency)"></span></span>
+              </template>
+            </p>
+          </div>
+
+          <!-- El score es la cifra protagonista; un anillo de un solo tono
+               refuerza la magnitud sin insinuar un juicio de semáforo. -->
+          <div class="relative grid h-14 w-14 shrink-0 place-items-center">
+            <svg class="absolute inset-0 -rotate-90" viewBox="0 0 44 44" aria-hidden="true">
+              <circle cx="22" cy="22" r="19" fill="none" stroke="var(--surface-3)" stroke-width="4"/>
+              <circle cx="22" cy="22" r="19" fill="none" :stroke="scoreColor(row.score)" stroke-width="4"
+                      stroke-linecap="round" :stroke-dasharray="`${(row.score / 100) * 119.4} 119.4`"/>
+            </svg>
+            <span class="tabular text-sm font-semibold" x-text="row.score.toFixed(1)"></span>
+          </div>
+        </div>
+
+        <!-- Desglose: una barra por factor, cada una con nombre y puntos.
+             La etiqueta de texto es la codificación secundaria que hace que el
+             color nunca porte el significado solo. -->
+        <div class="space-y-2.5">
+          <template x-for="f in factors" :key="f.key">
+            <div>
+              <div class="mb-1 flex items-baseline justify-between gap-2 text-[11px]">
+                <span class="flex items-center gap-1.5 text-ink-soft">
+                  <span x-text="f.label"></span>
+                  <!-- Dato imputado: se declara en vez de disimularlo. -->
+                  <span x-show="!row[f.key].available" x-cloak
+                        class="rounded bg-surf-2 px-1 text-[10px] text-ink-mute"
+                        title="Sin dato: se imputó el valor neutro (50)">imputado</span>
+                </span>
+                <span class="tabular font-medium"
+                      :class="row[f.key].contribution < 0 ? 'text-ink-soft' : 'text-ink'"
+                      x-text="contribution(row, f.key) + ' pts'"></span>
+              </div>
+              <div class="meter-track">
+                <div class="meter-fill" :style="`width:${barWidth(row, f.key)};background:${f.color}`"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Penalización activa: se muestra INLINE, no plegada.
+             Es la explicación de por qué esta tarjeta baja en el ranking, y
+             esconderla detrás de un desplegable la vuelve inútil. -->
+        <div x-show="row.sector_weight_pct > data.sector_threshold_pct" x-cloak
+             class="mt-3.5 flex items-start gap-2 rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-2">
+          <svg class="mt-px h-3 w-3 shrink-0 text-warn" fill="none" stroke="currentColor"
+               stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 3h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>
+          </svg>
+          <p class="text-[11px] leading-relaxed text-ink-soft">
+            <span x-text="row.sector"></span> ya pesa
+            <span class="tabular font-medium" x-text="row.sector_weight_pct.toFixed(1) + '%'"></span>
+            de tu cartera (umbral <span x-text="data.sector_threshold_pct.toFixed(0) + '%'"></span>):
+            la diversificación penaliza este candidato.
+          </p>
+        </div>
+
+        <!-- Pie: verificación aritmética y confianza -->
+        <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-3 text-[11px] text-ink-mute">
+          <span class="tabular">
+            base +<span x-text="row.baseline.toFixed(1)"></span>
+            → <span class="text-ink-soft" x-text="reconstructed(row)"></span>
+          </span>
+          <span>·</span>
+          <span>
+            confianza
+            <span :class="row.confidence === 'low' ? 'text-warn' : 'text-ink-soft'"
+                  x-text="confidenceLabel(row.confidence)"></span>
+          </span>
+          <template x-if="row.sector_weight_pct > 0">
+            <span class="tabular">· sector <span x-text="row.sector_weight_pct.toFixed(1) + '%'"></span> en cartera</span>
+          </template>
+        </div>
+
+        <!-- Notas y métricas observadas, plegadas por defecto -->
+        <div class="mt-3" x-show="row.notes.length || true">
+          <button @click="toggle(row.symbol)"
+                  class="flex items-center gap-1 text-[11px] text-ink-mute transition-colors hover:text-ink"
+                  :aria-expanded="expanded[row.symbol] ? 'true' : 'false'">
+            <svg class="h-3 w-3 transition-transform" :class="expanded[row.symbol] && 'rotate-90'"
+                 fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7"/>
+            </svg>
+            Métricas observadas
+          </button>
+
+          <div x-show="expanded[row.symbol]" x-cloak x-collapse class="mt-2.5 space-y-2.5">
+
+            <!-- Por qué esa calificación. Cada señal con su punto y el dato
+                 concreto que la justifica. -->
+            <div class="rounded-lg border border-line bg-surf-2/50 p-2.5">
+              <p class="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-mute">
+                Por qué «<span x-text="row.assessment.label"></span>»
+              </p>
+              <ul class="space-y-1.5">
+                <template x-for="s in ratedSignals(row)" :key="s.name">
+                  <li class="flex items-start gap-2 text-[11px]">
+                    <span class="tabular w-6 shrink-0 text-right font-medium"
+                          :class="signalClass(s.points)" x-text="signalSign(s.points)"></span>
+                    <span class="w-20 shrink-0 text-ink-soft" x-text="s.label"></span>
+                    <span class="flex-1 leading-relaxed text-ink-mute" x-text="s.detail"></span>
+                  </li>
+                </template>
+                <template x-for="s in unratedSignals(row)" :key="s.name">
+                  <li class="flex items-start gap-2 text-[11px] opacity-60">
+                    <span class="w-6 shrink-0 text-right text-ink-mute">—</span>
+                    <span class="w-20 shrink-0 text-ink-mute" x-text="s.label"></span>
+                    <span class="flex-1 text-ink-mute" x-text="s.detail"></span>
+                  </li>
+                </template>
+              </ul>
+              <template x-for="note in row.assessment.notes" :key="note">
+                <p class="mt-2 border-t border-line pt-1.5 text-[10px] leading-relaxed text-ink-mute"
+                   x-text="note"></p>
+              </template>
+            </div>
+
+            <template x-for="f in factors" :key="f.key">
+              <div x-show="hasInputs(row, f.key)">
+                <p class="mb-1 text-[10px] font-medium uppercase tracking-wider text-ink-mute" x-text="f.label"></p>
+                <dl class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
+                  <template x-for="[key, value] in presentInputs(row, f.key)" :key="key">
+                    <div class="flex justify-between gap-2">
+                      <dt class="truncate text-ink-mute" x-text="key"></dt>
+                      <dd class="tabular shrink-0 text-ink-soft" x-text="Number(value).toFixed(3)"></dd>
+                    </div>
+                  </template>
+                </dl>
+              </div>
+            </template>
+
+            <ul class="space-y-1 border-t border-line pt-2" x-show="row.notes.length">
+              <template x-for="note in row.notes" :key="note">
+                <li class="text-[11px] leading-relaxed text-ink-mute" x-text="'· ' + note"></li>
+              </template>
+            </ul>
+          </div>
+        </div>
+      </article>
+    </template>
+  </div>
+
+  <!-- ================= Excluidos y aviso ================= -->
+  <template x-if="data && Object.keys(data.excluded ?? {}).length">
+    <div class="mt-5 rounded-xl border border-line bg-surf p-4">
+      <h2 class="mb-2 text-xs font-semibold text-ink-soft">Candidatos excluidos</h2>
+      <ul class="space-y-1">
+        <template x-for="[symbol, reason] in Object.entries(data.excluded)" :key="symbol">
+          <li class="text-[11px] text-ink-mute">
+            <span class="font-medium text-ink-soft" x-text="symbol"></span>
+            — <span x-text="reason"></span>
+          </li>
+        </template>
+      </ul>
+    </div>
+  </template>
+
+
+  <!-- ================= Modal: Sugerencia óptima ================= -->
+  <div x-data="suggestionModal()" @open-suggestion.window="open()" x-cloak>
+    <div x-show="isOpen" class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4"
+         @click.self="close()" @keydown.escape.window="close()" x-transition.opacity
+         role="dialog" aria-modal="true" aria-labelledby="sug-title">
+      <div class="w-full max-w-xl rounded-2xl border border-s7/40 bg-surf shadow-2xl">
+
+        <header class="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div>
+            <h2 id="sug-title" class="flex items-center gap-2 text-base font-semibold">
+              <svg class="h-4 w-4 text-s7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m12 3 1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3Z"/>
+              </svg>
+              Sugerencia óptima
+            </h2>
+            <p class="mt-0.5 text-xs text-ink-mute">
+              La mejor siguiente compra para <em>esta</em> cartera, no en abstracto.
+            </p>
+          </div>
+          <button @click="close()" class="text-ink-mute transition-colors hover:text-ink" aria-label="Cerrar">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </header>
+
+        <div class="px-5 py-5">
+          <div x-show="loading" class="space-y-3">
+            <div class="skeleton h-6 w-40"></div>
+            <div class="skeleton h-16 w-full rounded-lg"></div>
+            <div class="skeleton h-24 w-full rounded-lg"></div>
+          </div>
+
+          <div x-show="error" x-cloak class="flex items-start gap-2.5 rounded-xl border border-bad/40 bg-bad/10 p-3.5">
+            <svg class="mt-0.5 h-4 w-4 shrink-0 text-bad" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v5m0 3h.01"/>
+            </svg>
+            <div class="flex-1">
+              <p class="text-xs leading-relaxed text-bad" x-text="error"></p>
+              <button @click="load()" class="mt-1.5 text-[11px] text-ink-soft underline hover:text-ink">
+                Reintentar
+              </button>
+            </div>
+          </div>
+
+          <!-- Sin sugerencia: resultado honesto, no un fallo -->
+          <div x-show="isEmpty" x-cloak class="py-6 text-center">
+            <div class="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surf-2 text-ink-mute">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M9 9h.01M15 9h.01M9 15h6"/>
+              </svg>
+            </div>
+            <p class="text-sm font-medium">Hoy no hay nada que sugerir</p>
+            <p class="mx-auto mt-1.5 max-w-sm text-xs leading-relaxed text-ink-soft"
+               x-text="data?.no_suggestion_reason"></p>
+          </div>
+
+          <template x-if="pick">
+            <div class="space-y-4">
+              <p class="text-sm leading-relaxed" x-text="pick.headline"></p>
+
+              <div class="flex items-start justify-between gap-4 rounded-xl border border-line bg-surf-2 p-4">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-lg font-semibold" x-text="pick.symbol"></span>
+                    <span class="rounded-lg border px-2 py-0.5 text-[11px] font-medium"
+                          :class="gradeStyle(pick.grade)" x-text="pick.grade_label"></span>
+                  </div>
+                  <p class="mt-0.5 truncate text-xs text-ink-mute" x-text="pick.name ?? ''"></p>
+                  <p class="mt-1 text-[11px] text-ink-mute">
+                    <span x-text="pick.exposure_bucket"></span>
+                    <template x-if="pick.current_price !== null">
+                      <span> &middot; <span class="tabular" x-text="$fmt.money(pick.current_price, pick.currency)"></span></span>
+                    </template>
+                  </p>
+                </div>
+                <div class="shrink-0 text-right">
+                  <p class="text-[10px] uppercase tracking-wider text-ink-mute">Encaje</p>
+                  <p class="tabular text-2xl font-semibold text-s7"
+                     x-text="pick.factors.final_score.toFixed(1)"></p>
+                </div>
+              </div>
+
+              <template x-if="pick.volatility_impact">
+                <div class="rounded-xl border border-line p-3.5">
+                  <p class="mb-2 text-[10px] font-medium uppercase tracking-wider text-ink-mute">
+                    Impacto en el riesgo de tu cartera
+                  </p>
+                  <div class="flex items-center gap-3 text-sm">
+                    <span class="tabular text-ink-mute"
+                          x-text="pick.volatility_impact.current_volatility_pct.toFixed(1) + '%'"></span>
+                    <span class="text-ink-mute">&rarr;</span>
+                    <span class="tabular font-medium"
+                          x-text="pick.volatility_impact.simulated_volatility_pct.toFixed(1) + '%'"></span>
+                    <span class="tabular text-xs font-medium"
+                          :class="pick.volatility_impact.delta_pct < 0 ? 'text-good' : 'text-warn'"
+                          x-text="(pick.volatility_impact.delta_pct > 0 ? '+' : '-') + Math.abs(pick.volatility_impact.delta_pct).toFixed(1) + '%'"></span>
+                  </div>
+                  <!-- El supuesto se declara: el impacto depende del peso. -->
+                  <p class="mt-1.5 text-[10px] text-ink-mute">
+                    Volatilidad anualizada suponiendo una compra del
+                    <span x-text="pick.volatility_impact.weight_pct + '%'"></span>
+                    &middot; medido sobre <span x-text="pick.volatility_impact.overlap_days"></span> días comunes
+                  </p>
+                </div>
+              </template>
+
+              <div>
+                <p class="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-mute">Por qué</p>
+                <ul class="space-y-1.5">
+                  <template x-for="reason in pick.reasons" :key="reason">
+                    <li class="flex items-start gap-2 text-xs leading-relaxed text-ink-soft">
+                      <span class="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-good" aria-hidden="true"></span>
+                      <span x-text="reason"></span>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+
+              <!-- Las salvedades nunca se ocultan. -->
+              <div x-show="pick.caveats.length" x-cloak>
+                <p class="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-mute">A tener en cuenta</p>
+                <ul class="space-y-1.5">
+                  <template x-for="caveat in pick.caveats" :key="caveat">
+                    <li class="flex items-start gap-2 text-xs leading-relaxed text-ink-mute">
+                      <span class="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-warn" aria-hidden="true"></span>
+                      <span x-text="caveat"></span>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+
+              <!-- La formula, verificable a ojo -->
+              <div class="rounded-xl border border-line bg-surf-2/50 p-3">
+                <p class="mb-2 text-[10px] font-medium uppercase tracking-wider text-ink-mute">Cómo sale el encaje</p>
+                <ul class="space-y-1">
+                  <template x-for="row in factorRows(pick)" :key="row.label">
+                    <li class="flex items-baseline justify-between gap-2 text-[11px]">
+                      <span class="text-ink-soft" x-text="row.label"></span>
+                      <span class="flex items-baseline gap-2">
+                        <span class="text-ink-mute" x-text="row.note"></span>
+                        <span class="tabular w-14 text-right font-medium text-ink" x-text="row.value"></span>
+                      </span>
+                    </li>
+                  </template>
+                </ul>
+                <p class="mt-2 border-t border-line pt-1.5 text-right text-[11px] text-ink-soft">
+                  = <span class="tabular font-semibold text-ink" x-text="pick.factors.final_score.toFixed(2)"></span>
+                </p>
+              </div>
+
+              <div x-show="runnersUp.length" x-cloak>
+                <p class="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-mute">Otras opciones</p>
+                <ul class="space-y-1">
+                  <template x-for="alt in runnersUp" :key="alt.symbol">
+                    <li class="flex items-center gap-2 rounded-lg border border-line px-2.5 py-1.5 text-[11px]">
+                      <span class="w-16 font-medium" x-text="alt.symbol"></span>
+                      <span class="flex-1 truncate text-ink-mute" x-text="alt.exposure_bucket"></span>
+                      <span class="rounded border px-1.5 py-0.5" :class="gradeStyle(alt.grade)" x-text="alt.grade_label"></span>
+                      <span class="tabular w-12 text-right text-ink-soft" x-text="alt.factors.final_score.toFixed(1)"></span>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+
+              <p class="border-t border-line pt-3 text-[10px] leading-relaxed text-ink-mute"
+                 x-text="data.disclaimer"></p>
+            </div>
+          </template>
+        </div>
+
+        <footer class="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
+          <button @click="close()" class="rounded-lg px-3 py-2 text-sm text-ink-soft transition-colors hover:bg-surf-2 hover:text-ink">
+            Cerrar
+          </button>
+          <!-- Encadena con el simulador: la compra viaja por sessionStorage
+               porque el simulador vive en la otra vista. -->
+          <a x-show="pick" href="/" @click="handoffToSimulator()"
+             class="rounded-lg bg-s7 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
+            Simular compra
+          </a>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <!-- El aviso viaja en cada respuesta de la API y se muestra, no se esconde:
+       el score es un ranking relativo, no una recomendación de inversión. -->
+  <template x-if="data">
+    <p class="mx-auto mt-6 max-w-3xl text-center text-[11px] leading-relaxed text-ink-mute"
+       x-text="data.disclaimer"></p>
+  </template>
+</div>
+{% endblock %}

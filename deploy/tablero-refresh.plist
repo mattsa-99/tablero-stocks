@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  PLANTILLA. Agente launchd que refresca los datos de mercado del Tablero
+  cuatro veces por dia habil, sin abrir la app.
+
+  1. Copia este archivo y reemplaza:
+       __USUARIO__       tu usuario de macOS (ej. la salida de `whoami`)
+       __RUTA_PROYECTO__ ruta absoluta a este repo (ej. la salida de `pwd`)
+     El Label puede quedarse como esta o personalizarse.
+
+  2. Instala:
+       cp deploy/tablero-refresh.plist \
+          ~/Library/LaunchAgents/com.tablero.refresh.plist
+       # (edita las rutas dentro del archivo copiado)
+       launchctl load ~/Library/LaunchAgents/com.tablero.refresh.plist
+
+  3. Recarga tras un cambio:
+       launchctl unload ~/Library/LaunchAgents/com.tablero.refresh.plist
+       launchctl load   ~/Library/LaunchAgents/com.tablero.refresh.plist
+
+  4. Prueba una corrida ahora:
+       launchctl start com.tablero.refresh
+       tail -f ~/Library/Logs/tablero-refresh.log
+
+  Horas en la zona local de la maquina. Estas cuatro (America/Bogota, sin
+  horario de verano) caen en la franja correcta de Nueva York todo el ano:
+    07:30  pre-market
+    09:50  apertura
+    13:00  media sesion
+    18:00  cierre (sincronizacion completa)
+
+  scripts/scheduled_refresh.py decide que hacer segun la hora del Este; los
+  fines de semana sale sin tocar la red, y launchd ejecuta la corrida perdida
+  al despertar el equipo.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.tablero.refresh</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__RUTA_PROYECTO__/.venv/bin/python</string>
+        <string>-m</string>
+        <string>scripts.scheduled_refresh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__RUTA_PROYECTO__</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>30</integer></dict>
+        <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>50</integer></dict>
+        <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/Users/__USUARIO__/Library/Logs/tablero-refresh.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/__USUARIO__/Library/Logs/tablero-refresh.log</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>LowPriorityIO</key>
+    <true/>
+</dict>
+</plist>

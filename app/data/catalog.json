@@ -1,0 +1,7135 @@
+{
+ "_comment": "Catálogo semilla para BUSCAR, no para ingestar. Cada símbolo está verificado contra Yahoo (precio y divisa) por scripts/build_catalog.py; regenerar con `python scripts/build_catalog.py`. El sector va en null salvo donde Yahoo lo da: inventar clasificaciones sería fabricar datos. La divisa SÍ se declara porque un activo internacional sembrado como USD se valoraría con el tipo de cambio equivocado hasta el primer refresco.",
+ "assets": [
+  {
+   "symbol": "ABBNY",
+   "name": "ABB Ltd",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ABEV",
+   "name": "Ambev S.A.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ADDYY",
+   "name": "adidas AG",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "OQX",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ALIZY",
+   "name": "Allianz SE",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "AMX",
+   "name": "América Móvil, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ASML",
+   "name": "ASML Holding N.V.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ASR",
+   "name": "Grupo Aeroportuario del Sureste, S. A. B. de C. V.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "AVAL",
+   "name": "Grupo Aval Acciones y Valores S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "AZN",
+   "name": "AstraZeneca PLC",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BABA",
+   "name": "Alibaba Group Holding Limited",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BASFY",
+   "name": "BASF SE",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "USD",
+   "exchange": "OQX",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BAYRY",
+   "name": "Bayer Aktiengesellschaft",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "OQX",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BBD",
+   "name": "Banco Bradesco S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BBVA",
+   "name": "Banco Bilbao Vizcaya Argentaria, S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BCH",
+   "name": "Banco de Chile",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BCS",
+   "name": "Barclays PLC",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BHP",
+   "name": "BHP Group Limited",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BIDU",
+   "name": "Baidu, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BMA",
+   "name": "Banco Macro S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BP",
+   "name": "BP p.l.c.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BSAC",
+   "name": "Banco Santander-Chile",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BUD",
+   "name": "Anheuser-Busch InBev SA/NV",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CFRUY",
+   "name": "Compagnie Financière Richemont SA",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CIB",
+   "name": "Grupo Cibest S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CIG",
+   "name": "Companhia Energética de Minas Gerais - CEMIG",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CX",
+   "name": "CEMEX, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "DEO",
+   "name": "Diageo plc",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "DSDVY",
+   "name": "DSV A/S",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "DTEGY",
+   "name": "Deutsche Telekom AG",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "OQX",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "E",
+   "name": "Eni S.p.A.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "EADSY",
+   "name": "Airbus SE",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "EC",
+   "name": "Ecopetrol S.A.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ENIC",
+   "name": "Enel Chile S.A.",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ENLAY",
+   "name": "Enel SpA",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "EQNR",
+   "name": "Equinor ASA",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ERIC",
+   "name": "Telefonaktiebolaget LM Ericsson (publ)",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "FMX",
+   "name": "Fomento Económico Mexicano, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "GGAL",
+   "name": "Grupo Financiero Galicia S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NCM",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "GGB",
+   "name": "Gerdau S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "GSK",
+   "name": "GSK plc",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "HDB",
+   "name": "HDFC Bank Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "HMC",
+   "name": "Honda Motor Co., Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "HSBC",
+   "name": "HSBC Holdings plc",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "IBDRY",
+   "name": "Iberdrola, S.A.",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "USD",
+   "exchange": "OID",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "IBN",
+   "name": "ICICI Bank Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "INFY",
+   "name": "Infosys Limited",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ING",
+   "name": "ING Groep N.V.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ITUB",
+   "name": "Itaú Unibanco Holding S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "JD",
+   "name": "JD.com, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "KOF",
+   "name": "Coca-Cola FEMSA, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "LI",
+   "name": "Li Auto Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "LTM",
+   "name": "LATAM Airlines Group S.A.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "LVMUY",
+   "name": "LVMH Moët Hennessy - Louis Vuitton, Société Européenne",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "LYG",
+   "name": "Lloyds Banking Group plc",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MBGYY",
+   "name": "Mercedes-Benz Group AG",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MC",
+   "name": "Moelis & Company",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MUFG",
+   "name": "Mitsubishi UFJ Financial Group, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NIO",
+   "name": "NIO Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NOK",
+   "name": "Nokia Oyj",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NPSNY",
+   "name": "Naspers Limited",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NSRGY",
+   "name": "Nestlé S.A.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "OID",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NTES",
+   "name": "NetEase, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NTTYY",
+   "name": "NTT, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NVO",
+   "name": "Novo Nordisk A/S",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NVS",
+   "name": "Novartis AG",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "OMAB",
+   "name": "Grupo Aeroportuario del Centro Norte, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PAC",
+   "name": "Grupo Aeroportuario del Pacífico, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PAM",
+   "name": "Pampa Energía S.A.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PBR",
+   "name": "Petróleo Brasileiro S.A. - Petrobras",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PDD",
+   "name": "PDD Holdings Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PHG",
+   "name": "Koninklijke Philips N.V.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PRNDY",
+   "name": "Pernod Ricard SA",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "RACE",
+   "name": "Ferrari N.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "RHHBY",
+   "name": "Roche Holding AG",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "OQX",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "RIO",
+   "name": "Rio Tinto Group",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SAN",
+   "name": "Banco Santander, S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SAP",
+   "name": "SAP SE",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SBS",
+   "name": "Companhia de Saneamento Básico do Estado de São Paulo - SABESP",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SFTBY",
+   "name": "SoftBank Group Corp.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SHEL",
+   "name": "Shell plc",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SIEGY",
+   "name": "Siemens Aktiengesellschaft",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SMFG",
+   "name": "Sumitomo Mitsui Financial Group, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SNY",
+   "name": "Sanofi",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SONY",
+   "name": "Sony Group Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "STLA",
+   "name": "Stellantis N.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TCEHY",
+   "name": "Tencent Holdings Limited",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TGS",
+   "name": "Transportadora de Gas del Sur S.A.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TM",
+   "name": "Toyota Motor Corporation",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TSM",
+   "name": "Taiwan Semiconductor Manufacturing Company Limited",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TTE",
+   "name": "TotalEnergies SE",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TV",
+   "name": "Grupo Televisa, S.A.B.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "UBS",
+   "name": "UBS Group AG",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "UL",
+   "name": "Unilever PLC",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "VALE",
+   "name": "Vale S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "VLVLY",
+   "name": "AB Volvo (publ)",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "VOD",
+   "name": "Vodafone Group Public Limited Company",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "VWAGY",
+   "name": "Volkswagen AG",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "PNK",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "WIT",
+   "name": "Wipro Limited",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "XPEV",
+   "name": "XPeng Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "YPF",
+   "name": "YPF Sociedad Anónima",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "adr_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "0002.HK",
+   "name": "CLP Holdings Limited",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "0005.HK",
+   "name": "HSBC Holdings plc",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "000660.KS",
+   "name": "SK hynix Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "KRW",
+   "exchange": "KSC",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "0016.HK",
+   "name": "Sun Hung Kai Properties Limited",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "005380.KS",
+   "name": "Hyundai Motor Company",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "KRW",
+   "exchange": "KSC",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "005930.KS",
+   "name": "Samsung Electronics Co., Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "KRW",
+   "exchange": "KSC",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "035420.KS",
+   "name": "NAVER Corporation",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "KRW",
+   "exchange": "KSC",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "0388.HK",
+   "name": "Hong Kong Exchanges and Clearing Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "051910.KS",
+   "name": "LG Chem, Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "KRW",
+   "exchange": "KSC",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "0700.HK",
+   "name": "Tencent Holdings Limited",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "0883.HK",
+   "name": "CNOOC Limited",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "0939.HK",
+   "name": "China Construction Bank Corporation",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "0941.HK",
+   "name": "China Mobile Limited",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "1299.HK",
+   "name": "AIA Group Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "1398.HK",
+   "name": "Industrial and Commercial Bank of China Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "1810.HK",
+   "name": "Xiaomi Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "207940.KS",
+   "name": "Samsung Biologics Co.,Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "KRW",
+   "exchange": "KSC",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "2308.TW",
+   "name": "Delta Electronics, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "TWD",
+   "exchange": "TAI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "2317.TW",
+   "name": "Hon Hai Precision Industry Co., Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "TWD",
+   "exchange": "TAI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "2318.HK",
+   "name": "Ping An Insurance (Group) Company of China, Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "2330.TW",
+   "name": "Taiwan Semiconductor Manufacturing Company Limited",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "TWD",
+   "exchange": "TAI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "2454.TW",
+   "name": "MediaTek Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "TWD",
+   "exchange": "TAI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "2882.TW",
+   "name": "Cathay Financial Holding Co., Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "TWD",
+   "exchange": "TAI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "3690.HK",
+   "name": "Meituan",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "4063.T",
+   "name": "Shin-Etsu Chemical Co., Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "4502.T",
+   "name": "Takeda Pharmaceutical Company Limited",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "6098.T",
+   "name": "Recruit Holdings Co., Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "6273.T",
+   "name": "SMC Corporation",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "6367.T",
+   "name": "Daikin Industries,Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "6501.T",
+   "name": "Hitachi, Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "6758.T",
+   "name": "Sony Group Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "6857.T",
+   "name": "Advantest Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "6902.T",
+   "name": "DENSO Corporation",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "6981.T",
+   "name": "Murata Manufacturing Co., Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "7203.T",
+   "name": "Toyota Motor Corporation",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "7267.T",
+   "name": "Honda Motor Co., Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "7974.T",
+   "name": "Nintendo Co., Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "8031.T",
+   "name": "Mitsui & Co., Ltd.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "8035.T",
+   "name": "Tokyo Electron Limited",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "8058.T",
+   "name": "Mitsubishi Corporation",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "8306.T",
+   "name": "Mitsubishi UFJ Financial Group, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "9432.T",
+   "name": "NTT, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "9433.T",
+   "name": "KDDI Corporation",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "9618.HK",
+   "name": "JD.com, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "9984.T",
+   "name": "SoftBank Group Corp.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "JPY",
+   "exchange": "JPX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "9988.HK",
+   "name": "Alibaba Group Holding Limited",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "HKD",
+   "exchange": "HKG",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ANZ.AX",
+   "name": "ANZ Group Holdings Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "AUD",
+   "exchange": "ASX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "BHARTIARTL.NS",
+   "name": "Bharti Airtel Limited",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "INR",
+   "exchange": "NSI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "BHP.AX",
+   "name": "BHP Group Limited",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "AUD",
+   "exchange": "ASX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "CBA.AX",
+   "name": "Commonwealth Bank of Australia",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "AUD",
+   "exchange": "ASX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "CSL.AX",
+   "name": "CSL Limited",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "AUD",
+   "exchange": "ASX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "D05.SI",
+   "name": "DBS Group Holdings Ltd",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "SGD",
+   "exchange": "SES",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "HDFCBANK.NS",
+   "name": "HDFC Bank Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "INR",
+   "exchange": "NSI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "HINDUNILVR.NS",
+   "name": "Hindustan Unilever Limited",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "INR",
+   "exchange": "NSI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ICICIBANK.NS",
+   "name": "ICICI Bank Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "INR",
+   "exchange": "NSI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "INFY.NS",
+   "name": "Infosys Limited",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "INR",
+   "exchange": "NSI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ITC.NS",
+   "name": "ITC Limited",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "INR",
+   "exchange": "NSI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "LT.NS",
+   "name": "Larsen & Toubro Limited",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "INR",
+   "exchange": "NSI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "MQG.AX",
+   "name": "Macquarie Group Limited",
+   "asset_type": "STOCK",
+   "sector": null,
+   "currency": "AUD",
+   "exchange": "ASX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "NAB.AX",
+   "name": "National Australia Bank Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "AUD",
+   "exchange": "ASX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "O39.SI",
+   "name": "Oversea-Chinese Banking Corporation Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "SGD",
+   "exchange": "SES",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "RELIANCE.NS",
+   "name": "Reliance Industries Limited",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "INR",
+   "exchange": "NSI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "RIO.AX",
+   "name": "Rio Tinto Group",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "AUD",
+   "exchange": "ASX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SBIN.NS",
+   "name": "State Bank of India",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "INR",
+   "exchange": "NSI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "TCS.NS",
+   "name": "Tata Consultancy Services Limited",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "INR",
+   "exchange": "NSI",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "U11.SI",
+   "name": "United Overseas Bank Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "SGD",
+   "exchange": "SES",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "WBC.AX",
+   "name": "Westpac Banking Corporation",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "AUD",
+   "exchange": "ASX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "WES.AX",
+   "name": "Wesfarmers Limited",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "AUD",
+   "exchange": "ASX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "WOW.AX",
+   "name": "Woolworths Group Limited",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "AUD",
+   "exchange": "ASX",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "Z74.SI",
+   "name": "Singapore Telecommunications Limited",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "SGD",
+   "exchange": "SES",
+   "group": "asia_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "AGG",
+   "name": "iShares Core U.S. Aggregate Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "BIL",
+   "name": "State Street SPDR Bloomberg 1-3 Month T-Bill ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "BND",
+   "name": "Vanguard Total Bond Market Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "BNDX",
+   "name": "Vanguard Total International Bond Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "BWX",
+   "name": "State Street SPDR Bloomberg International Treasury Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EMB",
+   "name": "iShares J.P. Morgan USD Emerging Markets Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "FLOT",
+   "name": "iShares Floating Rate Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "GOVT",
+   "name": "iShares U.S. Treasury Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "HYG",
+   "name": "iShares iBoxx $ High Yield Corporate Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IEF",
+   "name": "iShares 7-10 Year Treasury Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IEI",
+   "name": "iShares 3-7 Year Treasury Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IGOV",
+   "name": "iShares International Treasury Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "JNK",
+   "name": "State Street SPDR Bloomberg High Yield Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "LQD",
+   "name": "iShares iBoxx $ Investment Grade Corporate Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "MINT",
+   "name": "PIMCO Enhanced Short Maturity Active Exchange-Traded Fund",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "MUB",
+   "name": "iShares National Muni Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "PCY",
+   "name": "Invesco Emerging Markets Sovereign Debt ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SCHP",
+   "name": "Schwab U.S. TIPS ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SGOV",
+   "name": "iShares 0-3 Month Treasury Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SHV",
+   "name": "iShares 0–1 Year Treasury Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SHY",
+   "name": "iShares 1-3 Year Treasury Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SJNK",
+   "name": "State Street SPDR Bloomberg Short Term High Yield Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "STIP",
+   "name": "iShares 0-5 Year TIPS Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "TIP",
+   "name": "iShares TIPS Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "TLT",
+   "name": "iShares 20+ Year Treasury Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "USHY",
+   "name": "iShares Broad USD High Yield Corporate Bond ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VCIT",
+   "name": "Vanguard Intermediate-Term Corporate Bond Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VCSH",
+   "name": "Vanguard Short-Term Corporate Bond Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VTEB",
+   "name": "Vanguard Tax-Exempt Bond Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VTIP",
+   "name": "Vanguard Short-Term Inflation-Protected Securities Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VWOB",
+   "name": "Vanguard Emerging Markets Government Bond Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "bond_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "BOGOTA.CL",
+   "name": "Banco de Bogotá S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BVC.CL",
+   "name": "Bolsa de Valores de Colombia S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CELSIA.CL",
+   "name": "CELSIA S.A. E.S.P.",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CEMARGOS.CL",
+   "name": "Cementos Argos S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "CNEC.CL",
+   "name": "Canacol Energy Ltd",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CONCONCRET.CL",
+   "name": "Constructora Conconcreto S.A.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CORFICOLCF.CL",
+   "name": "Corporación Financiera Colombiana S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ECOPETROL.CL",
+   "name": "Ecopetrol S.A.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ETB.CL",
+   "name": "Empresa de Telecomunicaciones de Bogotá S.A. E.S.P.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "GRUPOARGOS.CL",
+   "name": "Grupo Argos S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "GRUPOAVAL.CL",
+   "name": "Grupo Aval Acciones y Valores S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "GRUPOSURA.CL",
+   "name": "Grupo de Inversiones Suramericana S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ISA.CL",
+   "name": "Interconexión Eléctrica S.A. E.S.P.",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MINEROS.CL",
+   "name": "Mineros S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NUTRESA.CL",
+   "name": "Grupo Nutresa S. A.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PFAVAL.CL",
+   "name": "Grupo Aval Acciones y Valores S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PFCEMARGOS.CL",
+   "name": "Cementos Argos S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PFDAVVNDA.CL",
+   "name": "Banco Davivienda S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PFGRUPOARG.CL",
+   "name": "Grupo Argos S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PFGRUPSURA.CL",
+   "name": "Grupo de Inversiones Suramericana S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PROMIGAS.CL",
+   "name": "Promigas S.A. E.S.P.",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TERPEL.CL",
+   "name": "Organización Terpel S.A.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BNO",
+   "name": "United States Brent Oil Fund, LP",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "COMT",
+   "name": "iShares GSCI Commodity Dynamic Roll Strategy ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "CORN",
+   "name": "Teucrium Corn Fund",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "DBA",
+   "name": "Invesco DB Agriculture Fund",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "DBC",
+   "name": "Invesco DB Commodity Index Tracking Fund",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "DJP",
+   "name": "iPath Bloomberg Commodity Index Total Return(SM) ETN",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "GDX",
+   "name": "VanEck Gold Miners ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "GDXJ",
+   "name": "VanEck Junior Gold Miners ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "GLD",
+   "name": "SPDR Gold Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "GLDM",
+   "name": "SPDR Gold MiniShares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "GSG",
+   "name": "iShares S&P GSCI Commodity-Indexed Trust",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IAU",
+   "name": "iShares Gold Trust",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "PALL",
+   "name": "abrdn Physical Palladium Shares ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "PDBC",
+   "name": "Invesco Optimum Yield Diversified Commodity Strategy No K-1 ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "PHYS",
+   "name": "Sprott Physical Gold Trust",
+   "asset_type": "STOCK",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "ASE",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "PPLT",
+   "name": "abrdn Physical Platinum Shares ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "RING",
+   "name": "iShares MSCI Global Gold Miners ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SGOL",
+   "name": "abrdn Physical Gold Shares ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SIL",
+   "name": "Global X Silver Miners ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SIVR",
+   "name": "abrdn Physical Silver Shares ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SLV",
+   "name": "iShares Silver Trust",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SOYB",
+   "name": "Teucrium Soybean Fund",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "UNG",
+   "name": "United States Natural Gas Fund, LP",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "USO",
+   "name": "United States Oil Fund, LP",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "WEAT",
+   "name": "Teucrium Wheat Fund",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "commodity_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "ACWI",
+   "name": "iShares MSCI ACWI ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "ARGT",
+   "name": "Global X MSCI Argentina ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "ASHR",
+   "name": "Xtrackers Harvest CSI 300 China A-Shares ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "DXJ",
+   "name": "WisdomTree Japan Hedged Equity Fund",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "ECH",
+   "name": "iShares MSCI Chile ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EEM",
+   "name": "iShares MSCI Emerging Markets ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EFA",
+   "name": "iShares MSCI EAFE ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EIDO",
+   "name": "iShares MSCI Indonesia ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EIS",
+   "name": "iShares MSCI Israel ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EMXC",
+   "name": "iShares MSCI Emerging Markets ex China ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EPOL",
+   "name": "iShares MSCI Poland ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EPU",
+   "name": "iShares MSCI Peru ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWA",
+   "name": "iShares MSCI Australia ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWC",
+   "name": "iShares MSCI Canada ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWD",
+   "name": "iShares MSCI Sweden ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWG",
+   "name": "iShares MSCI Germany ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWH",
+   "name": "iShares MSCI Hong Kong ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWI",
+   "name": "iShares MSCI Italy ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWJ",
+   "name": "iShares MSCI Japan ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWK",
+   "name": "iShares MSCI Belgium ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWL",
+   "name": "iShares MSCI Switzerland ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWM",
+   "name": "iShares MSCI Malaysia ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWN",
+   "name": "iShares MSCI Netherlands ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWO",
+   "name": "iShares MSCI Austria ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWP",
+   "name": "iShares MSCI Spain ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWQ",
+   "name": "iShares MSCI France ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWS",
+   "name": "iShares MSCI Singapore ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWT",
+   "name": "iShares MSCI Taiwan ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWU",
+   "name": "iShares MSCI United Kingdom ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWW",
+   "name": "iShares MSCI Mexico ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWY",
+   "name": "iShares MSCI South Korea ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EWZ",
+   "name": "iShares MSCI Brazil ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EZA",
+   "name": "iShares MSCI South Africa ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "EZU",
+   "name": "iShares MSCI Eurozone ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "FEZ",
+   "name": "State Street SPDR EURO STOXX 50 ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "FXI",
+   "name": "iShares China Large-Cap ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "GXG",
+   "name": "Global X MSCI Colombia ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IEFA",
+   "name": "iShares Core MSCI EAFE ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IEMG",
+   "name": "iShares Core MSCI Emerging Markets ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IEV",
+   "name": "iShares Europe ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "ILF",
+   "name": "iShares Latin America 40 ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "INDA",
+   "name": "iShares MSCI India ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "INDY",
+   "name": "iShares India 50 ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "KWEB",
+   "name": "KraneShares CSI China Internet ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "MCHI",
+   "name": "iShares MSCI China ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SCHE",
+   "name": "Schwab Emerging Markets Equity ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SPEM",
+   "name": "State Street SPDR Portfolio Emerging Markets ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SPGM",
+   "name": "State Street SPDR Portfolio MSCI Global Stock Market ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "THD",
+   "name": "iShares MSCI Thailand ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "TUR",
+   "name": "iShares MSCI Turkey ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "URTH",
+   "name": "iShares MSCI World ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VEA",
+   "name": "Vanguard FTSE Developed Markets Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VEU",
+   "name": "Vanguard FTSE All-World ex-US Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VGK",
+   "name": "Vanguard FTSE Europe ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VT",
+   "name": "Vanguard Total World Stock Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VWO",
+   "name": "Vanguard FTSE Emerging Markets Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VXUS",
+   "name": "Vanguard Total International Stock Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "country_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "ADA-USD",
+   "name": "Cardano USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "APT-USD",
+   "name": "Apricot Finance USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "ARB-USD",
+   "name": "ARbit USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "ARKB",
+   "name": "ARK 21Shares Bitcoin ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "ATOM-USD",
+   "name": "Cosmos USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "AVAX-USD",
+   "name": "Avalanche USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "BCH-USD",
+   "name": "Bitcoin Cash USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "BITB",
+   "name": "Bitwise Bitcoin ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "BNB-USD",
+   "name": "BNB USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "BTC-USD",
+   "name": "Bitcoin USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "DOGE-USD",
+   "name": "Dogecoin USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "DOT-USD",
+   "name": "Polkadot USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "ETH-USD",
+   "name": "Ethereum USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "ETHA",
+   "name": "iShares Ethereum Trust ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "FBTC",
+   "name": "Fidelity Wise Origin Bitcoin Fund",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "FIL-USD",
+   "name": "Filecoin USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "GBTC",
+   "name": "Grayscale Bitcoin Trust ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "IBIT",
+   "name": "iShares Bitcoin Trust ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "ICP-USD",
+   "name": "Internet Computer USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "LINK-USD",
+   "name": "Chainlink USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "LTC-USD",
+   "name": "Litecoin USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "MATIC-USD",
+   "name": "Polygon USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "NEAR-USD",
+   "name": "NEAR Protocol USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "OP-USD",
+   "name": "Optimism USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "SOL-USD",
+   "name": "Solana USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "UNI-USD",
+   "name": "UNICORN Token USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "XLM-USD",
+   "name": "Stellar USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "XRP-USD",
+   "name": "XRP USD",
+   "asset_type": "CRYPTO",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CCC",
+   "group": "crypto",
+   "universe": true
+  },
+  {
+   "symbol": "AAL.L",
+   "name": "Anglo American plc",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ABBN.SW",
+   "name": "ABB Ltd",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "CHF",
+   "exchange": "EBS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ACA.PA",
+   "name": "Crédit Agricole S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "AD.AS",
+   "name": "Koninklijke Ahold Delhaize N.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "EUR",
+   "exchange": "AMS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ADS.DE",
+   "name": "adidas AG",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "AI.PA",
+   "name": "L'Air Liquide S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "AIR.PA",
+   "name": "Airbus SE",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ALV.DE",
+   "name": "Allianz SE",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "AMS.MC",
+   "name": "Amadeus IT Group, S.A.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "EUR",
+   "exchange": "MCE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ASML.AS",
+   "name": "ASML Holding N.V.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "EUR",
+   "exchange": "AMS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ASSA-B.ST",
+   "name": "ASSA ABLOY AB (publ)",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "SEK",
+   "exchange": "STO",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ATCO-A.ST",
+   "name": "Atlas Copco AB (publ)",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "SEK",
+   "exchange": "STO",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "AZN.L",
+   "name": "AstraZeneca PLC",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "BARC.L",
+   "name": "Barclays PLC",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "BAS.DE",
+   "name": "BASF SE",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "BATS.L",
+   "name": "British American Tobacco p.l.c.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "BAYN.DE",
+   "name": "Bayer Aktiengesellschaft",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "BBVA.MC",
+   "name": "Banco Bilbao Vizcaya Argentaria, S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "MCE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "BMW.DE",
+   "name": "Bayerische Motoren Werke Aktiengesellschaft",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "BNP.PA",
+   "name": "BNP Paribas SA",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "BP.L",
+   "name": "BP p.l.c.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "CAP.PA",
+   "name": "Capgemini SE",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "CFR.SW",
+   "name": "Compagnie Financière Richemont SA",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "CHF",
+   "exchange": "EBS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "CPG.L",
+   "name": "Compass Group PLC",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "CS.PA",
+   "name": "AXA SA",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "DB1.DE",
+   "name": "Deutsche Börse AG",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "DBK.DE",
+   "name": "Deutsche Bank Aktiengesellschaft",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "DG.PA",
+   "name": "Vinci SA",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "DGE.L",
+   "name": "Diageo plc",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "DNB.OL",
+   "name": "DNB Bank ASA",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "NOK",
+   "exchange": "OSL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "DSFIR.AS",
+   "name": "DSM-Firmenich AG",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "EUR",
+   "exchange": "AMS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "DSV.CO",
+   "name": "DSV A/S",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "DKK",
+   "exchange": "CPH",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "DTE.DE",
+   "name": "Deutsche Telekom AG",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "EL.PA",
+   "name": "EssilorLuxottica Société anonyme",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ENEL.MI",
+   "name": "Enel SpA",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "EUR",
+   "exchange": "MIL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ENI.MI",
+   "name": "Eni S.p.A.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "EUR",
+   "exchange": "MIL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "EOAN.DE",
+   "name": "E.ON SE",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "EQNR.OL",
+   "name": "Equinor ASA",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "NOK",
+   "exchange": "OSL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ERIC-B.ST",
+   "name": "Telefonaktiebolaget LM Ericsson (publ)",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "SEK",
+   "exchange": "STO",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "FER.MC",
+   "name": "Ferrovial N.V.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "EUR",
+   "exchange": "MCE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "FRE.DE",
+   "name": "Fresenius SE & Co. KGaA",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "G.MI",
+   "name": "Assicurazioni Generali S.p.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "MIL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "GLEN.L",
+   "name": "Glencore plc",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "GSK.L",
+   "name": "GSK plc",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "HEI.DE",
+   "name": "Heidelberg Materials AG",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "HEIA.AS",
+   "name": "Heineken N.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "EUR",
+   "exchange": "AMS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "HEN3.DE",
+   "name": "Henkel AG & Co. KGaA",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "HM-B.ST",
+   "name": "H & M Hennes & Mauritz AB (publ)",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "SEK",
+   "exchange": "STO",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "HSBA.L",
+   "name": "HSBC Holdings plc",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "IBE.MC",
+   "name": "Iberdrola, S.A.",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "EUR",
+   "exchange": "MCE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "IFX.DE",
+   "name": "Infineon Technologies AG",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "IMB.L",
+   "name": "Imperial Brands PLC",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "INGA.AS",
+   "name": "ING Groep N.V.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "AMS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "INVE-B.ST",
+   "name": "Investor AB (publ)",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "SEK",
+   "exchange": "STO",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ISP.MI",
+   "name": "Intesa Sanpaolo S.p.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "MIL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ITX.MC",
+   "name": "Industria de Diseño Textil, S.A.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "MCE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "KER.PA",
+   "name": "Kering SA",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "LLOY.L",
+   "name": "Lloyds Banking Group plc",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "LONN.SW",
+   "name": "Lonza Group AG",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "CHF",
+   "exchange": "EBS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "LSEG.L",
+   "name": "London Stock Exchange Group plc",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "MBG.DE",
+   "name": "Mercedes-Benz Group AG",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "MC.PA",
+   "name": "LVMH Moët Hennessy - Louis Vuitton, Société Européenne",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ML.PA",
+   "name": "Compagnie Générale des Établissements Michelin Société en commandite par actions",
+   "asset_type": "STOCK",
+   "sector": null,
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "MRK.DE",
+   "name": "Merck KGaA",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "MUV2.DE",
+   "name": "Münchener Rückversicherungs-Gesellschaft Aktiengesellschaft in München",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "NESN.SW",
+   "name": "Nestlé S.A.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "CHF",
+   "exchange": "EBS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "NG.L",
+   "name": "National Grid plc",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "NHY.OL",
+   "name": "Norsk Hydro ASA",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "NOK",
+   "exchange": "OSL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "NOKIA.HE",
+   "name": "Nokia Oyj",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "EUR",
+   "exchange": "HEL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "NOVN.SW",
+   "name": "Novartis AG",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "CHF",
+   "exchange": "EBS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "NOVO-B.CO",
+   "name": "Novo Nordisk A/S",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "DKK",
+   "exchange": "CPH",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "OR.PA",
+   "name": "L'Oréal S.A.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ORA.PA",
+   "name": "Orange S.A.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ORSTED.CO",
+   "name": "Ørsted A/S",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "DKK",
+   "exchange": "CPH",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "PHIA.AS",
+   "name": "Koninklijke Philips N.V.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "EUR",
+   "exchange": "AMS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "PRU.L",
+   "name": "Prudential plc",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "RACE.MI",
+   "name": "Ferrari N.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "MIL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "REL.L",
+   "name": "RELX PLC",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "REP.MC",
+   "name": "Repsol, S.A.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "EUR",
+   "exchange": "MCE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "RIO.L",
+   "name": "Rio Tinto Group",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "RMS.PA",
+   "name": "Hermès International Société en commandite par actions",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "RWE.DE",
+   "name": "RWE Aktiengesellschaft",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SAMPO.HE",
+   "name": "Sampo Oyj",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "HEL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SAN.MC",
+   "name": "Banco Santander, S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "MCE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SAN.PA",
+   "name": "Sanofi",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SAND.ST",
+   "name": "Sandvik AB (publ)",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "SEK",
+   "exchange": "STO",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SAP.DE",
+   "name": "SAP SE",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SEB-A.ST",
+   "name": "Skandinaviska Enskilda Banken AB (publ)",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "SEK",
+   "exchange": "STO",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SGO.PA",
+   "name": "Compagnie de Saint-Gobain S.A.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SHEL.L",
+   "name": "Shell plc",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SIE.DE",
+   "name": "Siemens Aktiengesellschaft",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SIKA.SW",
+   "name": "Sika AG",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "CHF",
+   "exchange": "EBS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "STLAM.MI",
+   "name": "Stellantis N.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "MIL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "STLAP.PA",
+   "name": "Stellantis N.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "SU.PA",
+   "name": "Schneider Electric S.E.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "TEF.MC",
+   "name": "Telefónica, S.A.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "EUR",
+   "exchange": "MCE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "TEL.OL",
+   "name": "Telenor ASA",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "NOK",
+   "exchange": "OSL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "TSCO.L",
+   "name": "Tesco PLC",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "TTE.PA",
+   "name": "TotalEnergies SE",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "UBSG.SW",
+   "name": "UBS Group AG",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "CHF",
+   "exchange": "EBS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "UCG.MI",
+   "name": "UniCredit S.p.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "EUR",
+   "exchange": "MIL",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ULVR.L",
+   "name": "Unilever PLC",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "VIE.PA",
+   "name": "Veolia Environnement SA",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "EUR",
+   "exchange": "PAR",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "VOD.L",
+   "name": "Vodafone Group Public Limited Company",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "GBP",
+   "exchange": "LSE",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "VOLV-B.ST",
+   "name": "AB Volvo (publ)",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "SEK",
+   "exchange": "STO",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "VOW3.DE",
+   "name": "Volkswagen AG",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "EUR",
+   "exchange": "GER",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "WKL.AS",
+   "name": "Wolters Kluwer N.V.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "EUR",
+   "exchange": "AMS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ZURN.SW",
+   "name": "Zurich Insurance Group AG",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "CHF",
+   "exchange": "EBS",
+   "group": "europe_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "ABEV3.SA",
+   "name": "Ambev S.A.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "AMXB.MX",
+   "name": "América Móvil, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "ASURB.MX",
+   "name": "Grupo Aeroportuario del Sureste, S. A. B. de C. V.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "B3SA3.SA",
+   "name": "B3 S.A. - Brasil, Bolsa, Balcão",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "BBAS3.SA",
+   "name": "Banco do Brasil S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "BBDC4.SA",
+   "name": "Banco Bradesco S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "BIMBOA.MX",
+   "name": "Grupo Bimbo, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "BSANTANDER.SN",
+   "name": "Banco Santander-Chile",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "CLP",
+   "exchange": "SGO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "CEMEXCPO.MX",
+   "name": "CEMEX, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "CENCOSUD.SN",
+   "name": "Cencosud S.A.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "CLP",
+   "exchange": "SGO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "CHILE.SN",
+   "name": "Banco de Chile",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "CLP",
+   "exchange": "SGO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "CMPC.SN",
+   "name": "Empresas CMPC S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "CLP",
+   "exchange": "SGO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "COLBUN.SN",
+   "name": "Colbún S.A.",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "CLP",
+   "exchange": "SGO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "COPEC.SN",
+   "name": "Empresas Copec S.A.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "CLP",
+   "exchange": "SGO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "ENELCHILE.SN",
+   "name": "Enel Chile S.A.",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "CLP",
+   "exchange": "SGO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "EQTL3.SA",
+   "name": "Equatorial S.A.",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "FALABELLA.SN",
+   "name": "Falabella S.A.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "CLP",
+   "exchange": "SGO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "FEMSAUBD.MX",
+   "name": "Fomento Económico Mexicano, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "GAPB.MX",
+   "name": "Grupo Aeroportuario del Pacífico, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "GFNORTEO.MX",
+   "name": "Grupo Financiero Banorte, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "GMEXICOB.MX",
+   "name": "Grupo México, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "ITUB4.SA",
+   "name": "Itaú Unibanco Holding S.A.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "KIMBERA.MX",
+   "name": "Kimberly-Clark de México, S. A. B. de C. V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "LREN3.SA",
+   "name": "Lojas Renner S.A.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "PETR4.SA",
+   "name": "Petróleo Brasileiro S.A. - Petrobras",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "PRIO3.SA",
+   "name": "Prio S.A.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "RADL3.SA",
+   "name": "Raia Drogasil S.A.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "RENT3.SA",
+   "name": "Localiza Rent a Car S.A.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "SQM-B.SN",
+   "name": "Sociedad Química y Minera de Chile S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "CLP",
+   "exchange": "SGO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "SUZB3.SA",
+   "name": "Suzano S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "TLEVISACPO.MX",
+   "name": "Grupo Televisa, S.A.B.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "VALE3.SA",
+   "name": "Vale S.A.",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "WALMEX.MX",
+   "name": "Wal-Mart de México, S.A.B. de C.V.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "MXN",
+   "exchange": "MEX",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "WEGE3.SA",
+   "name": "WEG S.A.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "BRL",
+   "exchange": "SAO",
+   "group": "foreign_primary",
+   "universe": false
+  },
+  {
+   "symbol": "BZ=F",
+   "name": "Brent Crude Oil Last Day Financial Futures",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYM",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "CC=F",
+   "name": "Cocoa Dec 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYB",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "CL=F",
+   "name": "Crude Oil Oct 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYM",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "CT=F",
+   "name": null,
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYM",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "ES=F",
+   "name": "E-Mini S&P 500 Sep 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CME",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "GC=F",
+   "name": "Gold Dec 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CMX",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "HG=F",
+   "name": "Copper Dec 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CMX",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "KC=F",
+   "name": "Coffee Dec 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYB",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "NG=F",
+   "name": "Natural Gas Oct 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYM",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "NQ=F",
+   "name": "Nasdaq 100 Sep 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CME",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "PA=F",
+   "name": "Palladium Dec 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYM",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "PL=F",
+   "name": "Platinum Oct 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYM",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "RTY=F",
+   "name": "E-mini Russell 2000 Index Futur",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CME",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "SB=F",
+   "name": "Sugar #11 Oct 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NYB",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "SI=F",
+   "name": "Silver Dec 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CMX",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "YM=F",
+   "name": "Mini Dow Jones Indus.-$5 Sep 26",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CBT",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "ZB=F",
+   "name": "U.S. Treasury Bond Futures,Dec-",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CBT",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "ZC=F",
+   "name": "Corn Futures,Dec-2026",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CBT",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "ZN=F",
+   "name": "10-Year T-Note Futures,Dec-2026",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CBT",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "ZS=F",
+   "name": "Soybean Futures,Nov-2026",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CBT",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "ZW=F",
+   "name": "Chicago SRW Wheat Futures,Dec-2",
+   "asset_type": "OTHER",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "CBT",
+   "group": "futures",
+   "universe": true
+  },
+  {
+   "symbol": "COPX",
+   "name": "Global X Copper Miners ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "COWZ",
+   "name": "Pacer US Cash Cows 100 ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "DIA",
+   "name": "State Street SPDR Dow Jones Industrial Average ETF Trust",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "DVY",
+   "name": "iShares Select Dividend ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IBB",
+   "name": "iShares Biotechnology ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "ICLN",
+   "name": "iShares Global Clean Energy ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IGV",
+   "name": "iShares Expanded Tech-Software Sector ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "ITA",
+   "name": "iShares U.S. Aerospace & Defense ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IVV",
+   "name": "iShares Core S&P 500 ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IWB",
+   "name": "iShares Russell 1000 ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IWD",
+   "name": "iShares Russell 1000 Value ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IWF",
+   "name": "iShares Russell 1000 Growth ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "IWM",
+   "name": "iShares Russell 2000 ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "JETS",
+   "name": "U.S. Global Jets ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "KRE",
+   "name": "State Street SPDR S&P Regional Banking ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "LIT",
+   "name": "Global X Lithium & Battery Tech ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "MDY",
+   "name": "State Street SPDR S&P MIDCAP 400 ETF Trust",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "MTUM",
+   "name": "iShares MSCI USA Momentum Factor ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "NOBL",
+   "name": "ProShares S&P 500 Dividend Aristocrats ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "OIH",
+   "name": "VanEck Oil Services ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "QQQ",
+   "name": "Invesco QQQ Trust",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "QUAL",
+   "name": "iShares MSCI USA Quality Factor ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "REMX",
+   "name": "VanEck Rare Earth and Strategic Metals ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "RSP",
+   "name": "Invesco S&P 500 Equal Weight ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SCHD",
+   "name": "Schwab U.S. Dividend Equity ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SIZE",
+   "name": "iShares MSCI USA Size Factor ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SMH",
+   "name": "VanEck Semiconductor ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SOXX",
+   "name": "iShares Semiconductor ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SPLV",
+   "name": "Invesco S&P 500 Low Volatility ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "SPY",
+   "name": "State Street SPDR S&P 500 ETF Trust",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "TAN",
+   "name": "Invesco Solar ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "USMV",
+   "name": "iShares MSCI USA Min Vol Factor ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VAW",
+   "name": "Vanguard Materials Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VB",
+   "name": "Vanguard Morningstar Small-Cap ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VCR",
+   "name": "Vanguard Consumer Discretionary Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VDC",
+   "name": "Vanguard Consumer Staples Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VDE",
+   "name": "Vanguard Energy Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VFH",
+   "name": "Vanguard Financials Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VGT",
+   "name": "Vanguard Information Technology Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VHT",
+   "name": "Vanguard Health Care Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VIS",
+   "name": "Vanguard Industrials Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VLUE",
+   "name": "iShares MSCI USA Value Factor ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "BTS",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VNQ",
+   "name": "Vanguard Real Estate Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VO",
+   "name": "Vanguard Morningstar Mid-Cap ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VOO",
+   "name": "Vanguard S&P 500 ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VPU",
+   "name": "Vanguard Utilities Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VTI",
+   "name": "Vanguard Morningstar Total Stock Market ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VTV",
+   "name": "Vanguard Morningstar Value ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VUG",
+   "name": "Vanguard Morningstar Growth ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "VYM",
+   "name": "Vanguard High Dividend Yield Index Fund ETF Shares",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XAR",
+   "name": "State Street SPDR S&P Aerospace & Defense ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XBI",
+   "name": "State Street SPDR S&P Biotech ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLB",
+   "name": "State Street Materials Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLC",
+   "name": "State Street Communication Services Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLE",
+   "name": "State Street Energy Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLF",
+   "name": "State Street Financial Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLI",
+   "name": "State Street Industrial Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLK",
+   "name": "State Street Technology Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLP",
+   "name": "State Street Consumer Staples Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLRE",
+   "name": "State Street Real Estate Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLU",
+   "name": "State Street Utilities Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLV",
+   "name": "State Street Health Care Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XLY",
+   "name": "State Street Consumer Discretionary Select Sector SPDR ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "XOP",
+   "name": "State Street SPDR S&P Oil & Gas Exploration & Production ETF",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "USD",
+   "exchange": "PCX",
+   "group": "us_etfs",
+   "universe": true
+  },
+  {
+   "symbol": "AAPL",
+   "name": "Apple Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ABBV",
+   "name": "AbbVie Inc.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ABNB",
+   "name": "Airbnb, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ABT",
+   "name": "Abbott Laboratories",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ACN",
+   "name": "Accenture plc",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ADBE",
+   "name": "Adobe Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ADI",
+   "name": "Analog Devices, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ADP",
+   "name": "Automatic Data Processing, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "AMD",
+   "name": "Advanced Micro Devices, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "AMGN",
+   "name": "Amgen Inc.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "AMT",
+   "name": "American Tower Corporation",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "AMZN",
+   "name": "Amazon.com, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ANET",
+   "name": "Arista Networks, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "APH",
+   "name": "Amphenol Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "AVB",
+   "name": "AvalonBay Communities Inc",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "AVGO",
+   "name": "Broadcom Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "AXP",
+   "name": "American Express Company",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "AZO",
+   "name": "AutoZone, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BA",
+   "name": "The Boeing Company",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BAC",
+   "name": "Bank of America Corporation",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BKNG",
+   "name": "Booking Holdings Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BLK",
+   "name": "BlackRock, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BRK-B",
+   "name": "Berkshire Hathaway Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "BSX",
+   "name": "Boston Scientific Corporation",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "C",
+   "name": "Citigroup Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CAT",
+   "name": "Caterpillar Inc.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CB",
+   "name": "Chubb Limited",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CCI",
+   "name": "Crown Castle Inc.",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CDNS",
+   "name": "Cadence Design Systems, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CI",
+   "name": "The Cigna Group",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CL",
+   "name": "Colgate-Palmolive Company",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CMCSA",
+   "name": "Comcast Corporation",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CME",
+   "name": "CME Group Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "COIN",
+   "name": "Coinbase Global, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "COST",
+   "name": "Costco Wholesale Corporation",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CRM",
+   "name": "Salesforce, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CRWD",
+   "name": "CrowdStrike Holdings, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CSCO",
+   "name": "Cisco Systems, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CSX",
+   "name": "CSX Corporation",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "CVX",
+   "name": "Chevron Corporation",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "DASH",
+   "name": "DoorDash, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "DDOG",
+   "name": "Datadog, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "DE",
+   "name": "Deere & Company",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "DHR",
+   "name": "Danaher Corporation",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "DIS",
+   "name": "The Walt Disney Company",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "DLR",
+   "name": "Digital Realty Trust, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "DUK",
+   "name": "Duke Energy Corporation",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ELV",
+   "name": "Elevance Health, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "EOG",
+   "name": "EOG Resources, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "EQIX",
+   "name": "Equinix, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "EQR",
+   "name": "Equity Residential",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ETN",
+   "name": "Eaton Corporation plc",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "F",
+   "name": "Ford Motor Company",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "FDX",
+   "name": "FedEx Corporation",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "GD",
+   "name": "General Dynamics Corporation",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "GE",
+   "name": "GE Aerospace",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "GILD",
+   "name": "Gilead Sciences, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "GM",
+   "name": "General Motors Company",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "GOOG",
+   "name": "Alphabet Inc.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": false
+  },
+  {
+   "symbol": "GOOGL",
+   "name": "Alphabet Inc.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "HD",
+   "name": "The Home Depot, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "HON",
+   "name": "Honeywell International Inc.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "HOOD",
+   "name": "Robinhood Markets, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "IBM",
+   "name": "International Business Machines Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ICE",
+   "name": "Intercontinental Exchange, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "INTU",
+   "name": "Intuit Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ISRG",
+   "name": "Intuitive Surgical, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ITW",
+   "name": "Illinois Tool Works Inc.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "JNJ",
+   "name": "Johnson & Johnson",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "JPM",
+   "name": "JPMorgan Chase & Co.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "KLAC",
+   "name": "KLA Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "KO",
+   "name": "The Coca-Cola Company",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "LIN",
+   "name": "Linde plc",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "LLY",
+   "name": "Eli Lilly and Company",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "LMT",
+   "name": "Lockheed Martin Corporation",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "LOW",
+   "name": "Lowe's Companies, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "LRCX",
+   "name": "Lam Research Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "LULU",
+   "name": "lululemon athletica inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MA",
+   "name": "Mastercard Incorporated",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MCD",
+   "name": "McDonald's Corporation",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MCK",
+   "name": "McKesson Corporation",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MDB",
+   "name": "MongoDB, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NGM",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MDLZ",
+   "name": "Mondelez International, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MDT",
+   "name": "Medtronic plc",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MELI",
+   "name": "MercadoLibre, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "META",
+   "name": "Meta Platforms, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MO",
+   "name": "Altria Group, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MPC",
+   "name": "Marathon Petroleum Corporation",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MRK",
+   "name": "Merck & Co., Inc.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MSFT",
+   "name": "Microsoft Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MSI",
+   "name": "Motorola Solutions, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "MU",
+   "name": "Micron Technology, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NEE",
+   "name": "NextEra Energy, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NET",
+   "name": "Cloudflare, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NFLX",
+   "name": "Netflix, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NKE",
+   "name": "NIKE, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NOC",
+   "name": "Northrop Grumman Corporation",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NOW",
+   "name": "ServiceNow, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "NVDA",
+   "name": "NVIDIA Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "O",
+   "name": "Realty Income Corporation",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ORCL",
+   "name": "Oracle Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ORLY",
+   "name": "O'Reilly Automotive, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "OXY",
+   "name": "Occidental Petroleum Corporation",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PANW",
+   "name": "Palo Alto Networks, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PEP",
+   "name": "PepsiCo, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PFE",
+   "name": "Pfizer Inc.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PG",
+   "name": "The Procter & Gamble Company",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PGR",
+   "name": "The Progressive Corporation",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PH",
+   "name": "Parker-Hannifin Corporation",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PLD",
+   "name": "Prologis, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PM",
+   "name": "Philip Morris International Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PSA",
+   "name": "Public Storage",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PSX",
+   "name": "Phillips 66",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "PYPL",
+   "name": "PayPal Holdings, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "QCOM",
+   "name": "QUALCOMM Incorporated",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "REGN",
+   "name": "Regeneron Pharmaceuticals, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "RIVN",
+   "name": "Rivian Automotive, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ROST",
+   "name": "Ross Stores, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "RTX",
+   "name": "RTX Corporation",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SBUX",
+   "name": "Starbucks Corporation",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SCHW",
+   "name": "The Charles Schwab Corporation",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SHOP",
+   "name": "Shopify Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SHW",
+   "name": "The Sherwin-Williams Company",
+   "asset_type": "STOCK",
+   "sector": "Basic Materials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SLB",
+   "name": "SLB N.V.",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SNOW",
+   "name": "Snowflake Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SNPS",
+   "name": "Synopsys, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SO",
+   "name": "The Southern Company",
+   "asset_type": "STOCK",
+   "sector": "Utilities",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SPG",
+   "name": "Simon Property Group, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SPGI",
+   "name": "S&P Global Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "SYK",
+   "name": "Stryker Corporation",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "T",
+   "name": "AT&T Inc.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TEAM",
+   "name": "Atlassian Corporation",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TGT",
+   "name": "Target Corporation",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TJX",
+   "name": "The TJX Companies, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TMO",
+   "name": "Thermo Fisher Scientific Inc.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TSLA",
+   "name": "Tesla, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Cyclical",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "TXN",
+   "name": "Texas Instruments Incorporated",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "UBER",
+   "name": "Uber Technologies, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "UNH",
+   "name": "UnitedHealth Group Incorporated",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "UNP",
+   "name": "Union Pacific Corporation",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "UPS",
+   "name": "United Parcel Service, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "V",
+   "name": "Visa Inc.",
+   "asset_type": "STOCK",
+   "sector": "Financial Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "VLO",
+   "name": "Valero Energy Corporation",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "VRTX",
+   "name": "Vertex Pharmaceuticals Incorporated",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "VTR",
+   "name": "Ventas, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "VZ",
+   "name": "Verizon Communications Inc.",
+   "asset_type": "STOCK",
+   "sector": "Communication Services",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "WDAY",
+   "name": "Workday, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "WELL",
+   "name": "Welltower Inc.",
+   "asset_type": "STOCK",
+   "sector": "Real Estate",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "WM",
+   "name": "Waste Management, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Industrials",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "WMT",
+   "name": "Walmart Inc.",
+   "asset_type": "STOCK",
+   "sector": "Consumer Defensive",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "XOM",
+   "name": "ExxonMobil Holdings Corporation",
+   "asset_type": "STOCK",
+   "sector": "Energy",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ZS",
+   "name": "Zscaler, Inc.",
+   "asset_type": "STOCK",
+   "sector": "Technology",
+   "currency": "USD",
+   "exchange": "NMS",
+   "group": "us_stocks",
+   "universe": true
+  },
+  {
+   "symbol": "ZTS",
+   "name": "Zoetis Inc.",
+   "asset_type": "STOCK",
+   "sector": "Healthcare",
+   "currency": "USD",
+   "exchange": "NYQ",
+   "group": "us_stocks",
+   "universe": true
+  }
+ ]
+}

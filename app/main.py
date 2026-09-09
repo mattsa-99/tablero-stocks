@@ -1,0 +1,131 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager, suppress
+from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+
+from app.core import scheduler
+from app.core.config import settings
+from app.core.exceptions import (
+    DuplicateError,
+    InsufficientUniverse,
+    InvalidLedgerOperation,
+    NotFoundError,
+    ProviderError,
+    SymbolNotFound,
+)
+from app.db import registry  # noqa: F401  -- registra los modelos
+from app.routers import (
+    market,
+    market_data,
+    opportunities,
+    portfolios,
+    suggestion,
+    transactions,
+    views,
+)
+
+logging.basicConfig(
+    level=settings.log_level,
+    format="%(asctime)s %(levelname)-7s [%(name)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    scheduler.start_scheduler()
+
+    # La recuperación va en una tarea aparte: si la última sincronización es
+    # antigua puede tardar minutos, y el arranque de la API no debe esperarla.
+    catchup: asyncio.Task | None = None
+    if settings.enable_background_refresh:
+        catchup = asyncio.create_task(scheduler.run_catchup_in_background())
+    try:
+        yield
+    finally:
+        if catchup is not None:
+            catchup.cancel()
+            with suppress(asyncio.CancelledError):
+                await catchup
+        scheduler.shutdown_scheduler()
+
+
+app = FastAPI(
+    title="Tablero de Inversiones",
+    description=(
+        "API de gestión de portafolios, cálculo de rendimiento y detección de "
+        "oportunidades. Los scores NO son recomendaciones de inversión."
+    ),
+    version="0.2.0",
+    lifespan=lifespan,
+)
+
+
+# ----------------------------------------------------------------------
+# Traducción de errores de dominio a HTTP.
+# Es el ÚNICO punto donde el dominio toca el transporte: los services no
+# importan FastAPI y por eso son testeables sin cliente HTTP.
+# ----------------------------------------------------------------------
+
+_STATUS_BY_EXCEPTION: list[tuple[type[Exception], int]] = [
+    (NotFoundError, 404),
+    (DuplicateError, 409),
+    (InvalidLedgerOperation, 422),
+    (InsufficientUniverse, 422),
+    (SymbolNotFound, 422),
+]
+
+
+def _register_handler(exception_type: type[Exception], status_code: int) -> None:
+    @app.exception_handler(exception_type)
+    async def handler(request: Request, exc: Exception) -> JSONResponse:  # noqa: ARG001
+        return JSONResponse(
+            status_code=status_code,
+            content={"detail": str(exc), "type": type(exc).__name__},
+        )
+
+
+for exception_type, status_code in _STATUS_BY_EXCEPTION:
+    _register_handler(exception_type, status_code)
+
+
+@app.exception_handler(ProviderError)
+async def provider_error_handler(request: Request, exc: ProviderError) -> JSONResponse:
+    """503 solo para fallos del proveedor que llegan sin absorber.
+
+    Los caminos de lectura los capturan antes y los degradan a avisos, así que
+    llegar aquí significa que la petición pedía explícitamente datos frescos.
+    """
+    logger.warning("Fallo del proveedor sin absorber: %s", exc)
+    return JSONResponse(
+        status_code=503,
+        content={"detail": str(exc), "type": type(exc).__name__},
+    )
+
+
+app.mount(
+    "/static",
+    StaticFiles(directory=str(Path(__file__).resolve().parent / "static")),
+    name="static",
+)
+
+app.include_router(portfolios.router)
+app.include_router(transactions.router)
+app.include_router(opportunities.router)
+app.include_router(market.router)
+app.include_router(market_data.router)
+app.include_router(suggestion.router)
+# El último: sus rutas de página no deben ensombrecer ningún prefijo /api.
+app.include_router(views.router)
+
+
+@app.get("/api/health", tags=["health"])
+def health() -> dict[str, str]:
+    return {"status": "ok", "version": app.version}
