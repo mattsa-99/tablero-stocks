@@ -164,16 +164,20 @@ def _build_reasons(candidate: SuggestionCandidate, base_currency: str) -> None:
 
     impact = candidate.volatility
     if impact is not None:
-        if impact.delta_pct < -0.05:
+        # En puntos porcentuales y con el "antes → después" explícito: "un X%"
+        # sobre una cantidad que ya es un porcentaje se lee como puntos y no
+        # como cambio relativo, y la diferencia es enorme (6% relativo != 6 pp).
+        if impact.delta_pp <= -0.1:
             candidate.reasons.append(
-                f"Añadir un {impact.weight:.0%} reduciría la volatilidad anual de "
-                f"tu cartera un {abs(impact.delta_pct):.1f}% "
-                f"(de {impact.current_volatility:.1%} a {impact.simulated_volatility:.1%})."
+                f"Añadir un {impact.weight:.0%} bajaría la volatilidad anual de tu "
+                f"cartera de {impact.current_pct:.1f}% a {impact.simulated_pct:.1f}%: "
+                f"{abs(impact.delta_pp):.1f} puntos porcentuales menos."
             )
-        elif impact.delta_pct > 0.05:
+        elif impact.delta_pp >= 0.1:
             candidate.caveats.append(
-                f"Añadir un {impact.weight:.0%} subiría la volatilidad de tu "
-                f"cartera un {impact.delta_pct:.1f}%."
+                f"Añadir un {impact.weight:.0%} subiría la volatilidad anual de tu "
+                f"cartera de {impact.current_pct:.1f}% a {impact.simulated_pct:.1f}%: "
+                f"{impact.delta_pp:.1f} puntos porcentuales más."
             )
 
     grade = candidate.opportunity.assessment

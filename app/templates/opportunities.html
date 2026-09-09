@@ -534,8 +534,8 @@
                     <span class="tabular font-medium"
                           x-text="pick.volatility_impact.simulated_volatility_pct.toFixed(1) + '%'"></span>
                     <span class="tabular text-xs font-medium"
-                          :class="pick.volatility_impact.delta_pct < 0 ? 'text-good' : 'text-warn'"
-                          x-text="(pick.volatility_impact.delta_pct > 0 ? '+' : '-') + Math.abs(pick.volatility_impact.delta_pct).toFixed(1) + '%'"></span>
+                          :class="pick.volatility_impact.delta_pp < 0 ? 'text-good' : 'text-warn'"
+                          x-text="(pick.volatility_impact.delta_pp > 0 ? '+' : '−') + Math.abs(pick.volatility_impact.delta_pp).toFixed(1) + ' pp'"></span>
                   </div>
                   <!-- El supuesto se declara: el impacto depende del peso. -->
                   <p class="mt-1.5 text-[10px] text-ink-mute">

@@ -37,6 +37,23 @@ class VolatilityImpact:
     weight: float
     overlap_days: int
 
+    # Los tres valores que se ENSEÑAN, ya redondeados a un decimal. El delta se
+    # deriva de esos mismos redondeos y no de la precisión interna: si en
+    # pantalla se ve "de 29,7% a 27,9%", la bajada tiene que ser 1,8 puntos
+    # exactos, no 1,87 que el ojo no puede cuadrar con lo que lee.
+    @property
+    def current_pct(self) -> float:
+        return round(self.current_volatility * 100, 1)
+
+    @property
+    def simulated_pct(self) -> float:
+        return round(self.simulated_volatility * 100, 1)
+
+    @property
+    def delta_pp(self) -> float:
+        """Cambio en puntos porcentuales. Negativo = baja el riesgo."""
+        return round(self.simulated_pct - self.current_pct, 1)
+
 
 def to_returns(prices: list[float]) -> list[float]:
     """Retornos simples entre precios consecutivos."""

@@ -325,6 +325,25 @@ def test_perfectly_correlated_addition_does_not_reduce_risk():
     assert impact.delta_pct == pytest.approx(0.0, abs=0.01)
 
 
+def test_the_shown_volatility_numbers_are_mutually_consistent():
+    """Los tres números que ve el usuario tienen que cuadrar entre sí.
+
+    Antes se mostraba «de 29,7% a 27,9%» junto a «−6,3%»: el delta salía de la
+    precisión interna y 27,9/29,7 daba −6,1%, no −6,3%. Ahora el delta es en
+    puntos y se deriva de los mismos valores redondeados que se enseñan.
+    """
+    base = [0.012 * ((-1) ** i) + 0.0003 * i for i in range(200)]
+    hedge = [-0.9 * v for v in base]
+
+    impact = corr.volatility_impact(base, hedge, weight=0.10)
+    assert impact is not None
+    assert impact.delta_pp == pytest.approx(
+        round(impact.simulated_pct - impact.current_pct, 1)
+    )
+    # La resta de lo que se muestra da exactamente el delta que se muestra.
+    assert round(impact.current_pct - impact.simulated_pct, 1) == abs(impact.delta_pp)
+
+
 def test_correlation_factor_bounds():
     assert correlation_factor(1.0) == pytest.approx(0.5)
     assert correlation_factor(0.0) == pytest.approx(1.0)
@@ -406,6 +425,19 @@ def test_suggestion_endpoint_returns_a_justified_pick(client, portfolio_id, db_o
 
     assert pick["headline"].startswith("Te sugerimos ")
     assert pick["reasons"], "Debe justificarse con cifras"
+
+    vi = pick["volatility_impact"]
+    if vi is not None:
+        # El delta mostrado es la resta exacta de los dos valores mostrados.
+        assert vi["delta_pp"] == pytest.approx(
+            round(vi["simulated_volatility_pct"] - vi["current_volatility_pct"], 1)
+        )
+        vol_reason = next((r for r in pick["reasons"] if "volatilidad" in r), None)
+        if vol_reason is not None:
+            assert "puntos porcentuales" in vol_reason, (
+                "el impacto en volatilidad se expresa en puntos, no como % relativo"
+            )
+
     assert body["assumed_weight_pct"] == 5.0
     assert body["concentration_threshold_pct"] == 25.0
     assert "NO es asesoramiento financiero" in body["disclaimer"]

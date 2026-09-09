@@ -37,8 +37,11 @@ def _to_read(candidate: suggestion_service.SuggestionCandidate) -> SuggestionRea
             f": ocupa el puesto #{opportunity.rank} y «{opportunity.exposure_bucket}» "
             f"pesa {candidate.bucket_weight * 100:.1f}%"
         )
-    if impact is not None and impact.delta_pct < -0.05:
-        headline += f" y reduciría la volatilidad de tu cartera un {abs(impact.delta_pct):.1f}%"
+    if impact is not None and impact.delta_pp <= -0.1:
+        headline += (
+            f" y bajaría la volatilidad de tu cartera de {impact.current_pct:.1f}% "
+            f"a {impact.simulated_pct:.1f}%"
+        )
     headline += "."
 
     rho = candidate.correlation
@@ -62,9 +65,9 @@ def _to_read(candidate: suggestion_service.SuggestionCandidate) -> SuggestionRea
         volatility_impact=(
             VolatilityImpactRead(
                 weight_pct=round(impact.weight * 100, 2),
-                current_volatility_pct=round(impact.current_volatility * 100, 2),
-                simulated_volatility_pct=round(impact.simulated_volatility * 100, 2),
-                delta_pct=round(impact.delta_pct, 2),
+                current_volatility_pct=impact.current_pct,
+                simulated_volatility_pct=impact.simulated_pct,
+                delta_pp=impact.delta_pp,
                 overlap_days=impact.overlap_days,
             )
             if impact

@@ -14,8 +14,11 @@ class VolatilityImpactRead(BaseModel):
 
     weight_pct: float = Field(description="Peso hipotético de la compra, en %")
     current_volatility_pct: float = Field(description="Volatilidad anual actual, en %")
-    simulated_volatility_pct: float
-    delta_pct: float = Field(description="Variación relativa. Negativa = reduce riesgo")
+    simulated_volatility_pct: float = Field(description="Volatilidad anual con la compra, en %")
+    delta_pp: float = Field(
+        description="Cambio en puntos porcentuales (negativo = baja el riesgo). "
+        "Cuadra con la resta de los dos valores mostrados."
+    )
     overlap_days: int = Field(description="Días con datos en ambas series")
 
 
