@@ -21,7 +21,7 @@ TEMPLATES = Path(__file__).resolve().parents[1] / "app" / "templates"
 STATIC_JS = Path(__file__).resolve().parents[1] / "app" / "static" / "js"
 
 
-@pytest.mark.parametrize("path", ["/", "/oportunidades"])
+@pytest.mark.parametrize("path", ["/", "/oportunidades", "/diario"])
 def test_pages_render(client, path):
     response = client.get(path)
     assert response.status_code == 200

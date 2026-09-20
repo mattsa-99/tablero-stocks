@@ -220,3 +220,27 @@ def test_the_examples_are_consistent_with_the_scoring_formula():
     ):
         assert label in source, f"El glosario no menciona el peso {label}"
         assert round(weight * 100) == int(label.rstrip("%"))
+
+
+def test_the_glossary_scope_matches_what_the_ui_actually_renders():
+    """Fija POR QUÉ el test de arriba mira solo a `opportunities.py`.
+
+    En la tarjeta se pintan dos cosas distintas y solo una lleva cifras:
+
+    - `FactorDetail.inputs` (de `opportunities.py`) SÍ se pintan, una por una,
+      con su nombre técnico. Por eso todas tienen que estar en el glosario.
+    - `SignalDetail.inputs` (de `grading.py`) NO se pintan: de cada señal solo
+      se muestran `label`, `points` y `detail`, que ya son texto en español.
+
+    Si algún día se empiezan a pintar, este test falla y avisa de que hay que
+    ampliar el alcance del anterior a `grading.py`, donde hoy viven claves sin
+    documentar (`market_pe`, `debt_to_equity_x`...) que nadie ve.
+    """
+    template = (ROOT / "app" / "templates" / "opportunities.html").read_text(
+        encoding="utf-8"
+    )
+    signals_block = template.split("ratedSignals(row)")[1].split("</template>")[0]
+    assert "inputs" not in signals_block, (
+        "Se están pintando los `inputs` de las señales: amplía "
+        "test_every_factor_input_shown_in_the_ui_is_explained a grading.py"
+    )

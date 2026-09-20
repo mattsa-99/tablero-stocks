@@ -132,6 +132,28 @@ const GLOSSARY = {
           },
         ],
       },
+      {
+        title: "Importar operaciones",
+        entries: [
+          {
+            term: "Importar CSV (plantilla fija, todo o nada)",
+            definition:
+              "Carga muchas operaciones de una vez desde un CSV con la plantilla " +
+              "del Tablero. No adivina formatos de broker: cada uno exporta " +
+              "columnas, fechas y decimales distintos y adivinar mal corrompe el " +
+              "coste medio. Primero se REVISA todo sin escribir nada; si hay un " +
+              "solo error no se importa ninguna fila.",
+            example:
+              "Una compra: <b>2026-01-20,BUY,AAPL,2,185.50,,1.00,USD,4150.25</b> " +
+              "(fecha, tipo, símbolo, cantidad, precio, importe, comisión, divisa, " +
+              "tipo de cambio). Volver a importar el mismo archivo no duplica nada.",
+            caveat:
+              "Punto decimal y sin separador de miles. Una fecha sin hora se " +
+              "guarda al mediodía de Bogotá. Si vendes y compras el mismo día, " +
+              "escribe la hora para fijar el orden.",
+          },
+        ],
+      },
     ],
   },
 
@@ -319,6 +341,144 @@ const GLOSSARY = {
           },
         ],
       },
+      {
+        title: "Antes de decidir: la ficha de compra",
+        entries: [
+          {
+            term: "Banderas y veredicto",
+            definition:
+              "La ficha revisa la empresa con una lista de comprobaciones y las " +
+              "clasifica: <b>roja</b> = problema serio, <b>amarilla</b> = revisa " +
+              "antes de decidir, <b>verde</b> = punto a favor, <b>info</b> = contexto. " +
+              "El veredicto es rojo si hay UNA roja; verde solo si no hay ni rojas " +
+              "ni amarillas.",
+            example:
+              "ETB.CL es la <b>#2 del ranking</b> y aun así la ficha marca " +
+              "<b>2 banderas rojas</b> (calificación «Mala» y volatilidad del 61%) " +
+              "y 3 amarillas: encabezar el ranking no la hace buena.",
+            caveat:
+              "El veredicto NUNCA dice «compra». Sin banderas rojas solo significa " +
+              "que este filtro no encontró problemas: no mide el negocio, la " +
+              "gerencia, la competencia ni el futuro.",
+          },
+          {
+            term: "reference_pe / pe_vs_reference (P/E frente a su sector)",
+            definition:
+              "La valoración se compara con el P/E MEDIANO de las empresas de su " +
+              "propio sector (si hay al menos 8), no con todo el mercado: un banco " +
+              "y una tecnológica no se valoran con la misma vara. Sin suficientes " +
+              "pares, se usa el mercado.",
+            example:
+              "CIB cotiza a P/E <b>9,6</b> frente a una mediana de <b>14,5</b> en " +
+              "Financial Services: paga el <b>66%</b> de lo que pagan sus pares.",
+            caveat:
+              "Barato no es lo mismo que bueno: puede descontar riesgos que aún no " +
+              "has identificado, o ganancias en su punto más alto (sectores " +
+              "cíclicos como energía o materiales).",
+          },
+          {
+            term: "Deuda neta / EBITDA",
+            definition:
+              "Cuántos años de beneficio operativo (antes de depreciaciones) haría " +
+              "falta para pagar la deuda si la caja se usara para ello. Se calcula " +
+              "(deuda total − caja) / EBITDA. Amarilla desde 3x y roja desde 4,5x; " +
+              "en sectores con deuda estructural (servicios públicos, inmobiliario, " +
+              "telecomunicaciones) los umbrales son 5x y 7x.",
+            example:
+              "AAPL: <b>0,1x</b>, casi sin deuda neta. Una empresa con 6x tarda " +
+              "seis años de beneficio operativo solo en saldarla.",
+            caveat:
+              "En bancos y aseguradoras NO aplica: la deuda y la caja son su " +
+              "materia prima. Y en fabricantes con brazo financiero (autos, " +
+              "maquinaria) la deuda incluye los préstamos a clientes, así que " +
+              "exagera; ahí la bandera baja a amarilla.",
+          },
+          {
+            term: "Caja libre (FCF) y rendimiento de caja libre",
+            definition:
+              "Lo que le sobra a la empresa después de pagar su operación e " +
+              "inversiones. La <b>caja libre / ventas</b> dice cuánto de cada " +
+              "peso vendido se queda como caja; el <b>rendimiento</b> es la caja " +
+              "libre entre lo que vale la empresa en bolsa.",
+            example:
+              "AAPL: caja libre del <b>23,1%</b> de sus ventas y rendimiento de " +
+              "<b>2,2%</b>. Si la caja libre es negativa, la empresa quema dinero.",
+            caveat:
+              "El rendimiento solo se calcula si la empresa reporta en la misma " +
+              "moneda en que cotiza y su capitalización cuadra con precio × " +
+              "acciones; si no, aparece «n/d» con el motivo (pasa con ADR y " +
+              "clases duales).",
+          },
+          {
+            term: "Margen operativo",
+            definition:
+              "Qué parte de las ventas queda como beneficio de la operación, " +
+              "antes de intereses e impuestos. Mide la eficiencia del negocio en sí.",
+            example:
+              "AAPL: <b>32,6%</b>: de cada 100 vendidos, 32,6 son beneficio " +
+              "operativo. Un supermercado suele estar por debajo del 5%.",
+            caveat:
+              "Solo se compara entre empresas del mismo tipo de negocio.",
+          },
+          {
+            term: "Current ratio (liquidez)",
+            definition:
+              "Activos de corto plazo entre deudas de corto plazo. Por debajo de " +
+              "1 hay más deudas próximas que caja y cobros próximos.",
+            example:
+              "ETB.CL: <b>0,50</b>, sus deudas de corto plazo duplican sus activos " +
+              "de corto plazo. AAPL: <b>1,00</b>.",
+            caveat:
+              "En algunos sectores (supermercados, restauración) un ratio bajo es " +
+              "normal porque cobran al contado y pagan a proveedores a plazo.",
+          },
+          {
+            term: "Precio objetivo de analistas",
+            definition:
+              "El promedio de lo que estiman los analistas que cubren la acción a " +
+              "12 meses. Es una <b>opinión</b>, no un dato, y suele ser optimista.",
+            example:
+              "AAPL: objetivo de <b>328,22</b>, un <b>−2,4%</b> sobre el precio " +
+              "actual, con 39 analistas y recomendación «buy».",
+            caveat:
+              "Si el objetivo se aleja del precio de forma imposible (más de 5 " +
+              "veces o −90%) se descarta como dato roto: suele ser otra moneda.",
+          },
+          {
+            term: "Tamaño de posición (techo por riesgo)",
+            definition:
+              "Cuánto poner en UNA empresa según cuánto aceptas perder si repite " +
+              "su peor caída: <b>peso = presupuesto de riesgo ÷ caída de estrés</b>, " +
+              "con un tope por posición. La caída de estrés es la mayor entre la " +
+              "peor caída medida y un suelo (35% en acciones, 25% en fondos), " +
+              "porque el histórico guardado es de solo ~1 año.",
+            example:
+              "Aceptas perder 2% de la cartera y la acción llegó a caer 40%: " +
+              "2% ÷ 40% = <b>5% de la cartera</b>. Si repite esa caída, pierdes " +
+              "el 2% del total, ni más ni menos.",
+            caveat:
+              "Es un techo razonable, no una orden: no mira cuánto efectivo tienes " +
+              "ni cómo se mueve junto con el resto de tu cartera. Los valores por " +
+              "defecto (2% y 10%) son un juicio, y puedes cambiarlos en la ficha.",
+          },
+          {
+            term: "Diario: tesis, invalidación y revisión",
+            definition:
+              "Antes de comprar escribes <b>por qué</b> (tesis), <b>qué hecho " +
+              "demostraría que te equivocaste</b> (invalidación, con un precio " +
+              "opcional) y <b>cuándo vuelves a mirar</b>. El Tablero guarda una " +
+              "foto de ese día y te avisa cuando el precio cruza tu nivel o vence " +
+              "la fecha.",
+            example:
+              "«Compro KO por su caja libre estable; me equivoqué si recorta el " +
+              "dividendo o baja de 60». Meses después, si cae a 58, la alerta te " +
+              "pide revisar con tu propia regla, no vender por pánico.",
+            caveat:
+              "Una alerta pide REVISAR, nunca vender. Y anotar una decisión no " +
+              "crea ninguna operación: el registro de compras sigue siendo aparte.",
+          },
+        ],
+      },
     ],
   },
 };
@@ -330,7 +490,11 @@ const GLOSSARY = {
  * una sola fuente de verdad.
  */
 function viewFromPath(pathname) {
-  return pathname.startsWith("/oportunidades") ? "opportunities" : "portfolio";
+  // El diario comparte glosario con oportunidades: sus términos (tesis,
+  // invalidación, banderas, tamaño de posición) viven allí.
+  return pathname.startsWith("/oportunidades") || pathname.startsWith("/diario")
+    ? "opportunities"
+    : "portfolio";
 }
 
 document.addEventListener("alpine:init", () => {

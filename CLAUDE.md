@@ -21,7 +21,7 @@ Mantén ese idioma al añadir código.
 ```bash
 source .venv/bin/activate          # el venv ya existe con todo instalado
 
-pytest -q                          # 508 tests, ~4,8 s, sin red
+pytest -q                          # 650 tests, ~10 s, sin red
 pytest tests/test_pnl.py -q        # un archivo
 pytest tests/test_pnl.py::test_single_buy -q
 pytest -k "simulation and not api" # por expresión
@@ -29,7 +29,10 @@ pytest -k "simulation and not api" # por expresión
 ruff check .                       # lint
 ruff check --fix .
 
-alembic upgrade head
+python scripts/ficha.py AAPL          # ficha de compra en Markdown (solo lectura;
+                                   #   --portfolio N, --db ruta)
+
+alembic upgrade head               # tras actualizar: crea journal_entries
 alembic downgrade -1
 alembic revision --autogenerate -m "descripción"
 
@@ -256,6 +259,86 @@ factores informativos se **excluye**; el universo mínimo es 5.
 
 Las series se leen con `adj_close`; sin ajustar por splits, un 2:1 aparece como
 −50% e invierte el momentum.
+
+### Valoración relativa al sector
+
+El factor de valor NO compara el P/E de un banco con el de una tecnológica.
+`opportunities.py` ancla la valoración a la **mediana de su sector**
+(`sector_group()`, público) cuando hay al menos 8 pares y el activo es
+STOCK/ADR/REIT; sin pares suficientes queda la señal absoluta contra el índice
+de referencia, y sin ella, «sin dato» y nunca un neutro inventado. Los avisos
+del ranking cuentan cuántos activos se quedaron sin señal de valoración.
+
+### Ficha de compra (informativa, no recomienda)
+
+`GET /api/opportunities/{symbol}/ficha` (`app/services/ficha.py`,
+`schemas/ficha.py`) y `scripts/ficha.py` (mismo servicio, salida Markdown de
+`ficha_markdown.py`). **Solo lee lo guardado: no llama al proveedor.** Reúne el
+score y puesto, salud financiera, banderas, calendario, analistas, pares del
+sector, contexto de cartera, tamaño de posición y frescura de los datos.
+
+- **`health.py`**: solo ratios del MISMO reporte (deuda neta/EBITDA, margen
+  operativo, caja libre/ventas, current ratio…), porque el reporte y la
+  cotización pueden venir en divisas distintas y mezclarlos daría el mismo
+  error que el P/B de CIB. Bancos: «no aplica» (el EBITDA no significa nada en
+  un banco); financieras cautivas y sectores apalancados por estructura
+  suavizan el umbral en vez de llenar de rojo.
+- **`flags.py`**: banderas `red/yellow/green/info` con veredicto ASIMÉTRICO:
+  una roja basta para advertir, pero la ausencia de rojas nunca dice «compra».
+  Un activo excluido del ranking devuelve una bandera roja `not_ranked` con el
+  motivo, no un 404.
+- **`sizing.py`**: peso = presupuesto de riesgo ÷ pérdida en estrés, con tope.
+  Estrés = máx(caída máxima observada, suelo del 35 % acciones / 25 % fondos):
+  con ~1 año de histórico una calma reciente no prueba nada. Ajustes
+  `position_risk_budget_pct` (2,0) y `position_max_weight_pct` (10,0) en
+  `config.py`. `GET /api/opportunities/{symbol}/sizing` recalcula con otros
+  supuestos. Es un techo por posición, no una orden.
+- `OpportunityResponse.freshness` y `OpportunityRead.price_as_of /
+  fundamentals_as_of` declaran la edad del dato; la interfaz avisa si es vieja.
+
+Los tests de ficha marcan los activos como `is_universe=True` porque la ficha
+puntúa contra el universo de ingesta, igual que el catálogo real.
+
+### Diario de decisiones y vigilancia
+
+`app/models/journal.py` (tabla `journal_entries`, migración `ae5068edce82`),
+`services/journal.py`, `routers/journal.py`, vista `/diario`. Cada entrada
+guarda tesis, qué la invalidaría, precio de invalidación y fecha de revisión
+(por defecto +90 días, debe ser futura), más una **foto** de score, puesto,
+calificación, veredicto, banderas y precio del día de la anotación.
+
+Alertas: `invalidation_breached` (roja), `review_overdue`, `grade_dropped`
+(≥2 escalones) y `not_ranked_now` (amarillas), `review_soon` (info). Una alerta
+pide revisar, nunca vender. **Una entrada NO toca el ledger**: no crea
+transacciones. Las entradas activas se unen al universo de ingesta
+(`universe.watched_asset_ids`), así que un símbolo vigilado sigue recibiendo
+precios aunque no esté en el catálogo del universo. Crear una entrada llama a
+`ensure_data_for`.
+
+### Importación de operaciones por CSV
+
+`app/services/importer.py`, `POST /api/transactions/import?portfolio_id=&dry_run=`
+y `GET /api/transactions/import/template`. Una plantilla fija
+(`date,type,symbol,quantity,price,amount,fees,currency,fx_rate_to_base,notes,
+external_id`), coma, punto decimal, sin adivinar formatos de broker: adivinar
+mal corrompería el coste medio.
+
+- **`dry_run=true` por defecto** y **todo o nada**: una fila mala aborta todo.
+- Solo fecha = mediodía de Bogotá (-05:00). Con hora y desfase se respeta.
+- Se reproduce el ledger con `strict=True`; si falla, una búsqueda binaria sobre
+  el prefijo localiza la PRIMERA fila culpable, y el mensaje nombra el símbolo.
+- `external_id` determinista (sha1 del contenido + ocurrencia) si no viene:
+  subir el mismo archivo dos veces no duplica.
+- La columna `currency` es obligatoria para símbolos desconocidos: sin ella no
+  se puede asumir la divisa, y asumir USD marcaría en dólares una acción de la BVC.
+- El frontend es `import.js` + el modal de `dashboard.html`.
+
+### Vista de oportunidades: qué se ve por defecto
+
+`opportunities.js` arranca con `DEFAULT_TIERS=["A","B"]` para que quien empieza
+no vea primero lo malo; un aviso cuenta cuántas quedan fuera y **Ver todos**
+guarda `tablero:tiers="[]"`. `hiddenByDefault` distingue esa situación de un
+filtro elegido a propósito. Cada tarjeta abre la ficha (`ficha.js`).
 
 ### Autocompletado de símbolos
 
@@ -656,6 +739,14 @@ dejando intactos tres años de hueco anterior.
   o sea inservible: lo contrario de lo que hace el backend, que degrada y avisa.
   El plugin `collapse` va ANTES que el core de Alpine.
 
+- **Un fallo de JavaScript en Alpine no se ve.** Expresiones que llaman a
+  métodos inexistentes dejan la sección vacía sin error visible: tras tocar
+  `ficha.js`, `journal.js` o `import.js` conviene abrir la vista en un
+  navegador y mirar la consola, no fiarse solo de los tests.
+- **`GET /api/opportunities` lanza un refresco de fondo** que puede mantener la
+  base SQLite bloqueada para escritura mientras espera a la red
+  (`busy_timeout` = 5 s): una transacción registrada en ese momento puede
+  fallar con «database is locked».
 - **`<template x-if>` no puede envolver a `<template x-for>`.** Alpine clona
   `firstElementChild`; si es otro template, el bucle no se inicializa y la
   sección se renderiza **vacía sin error en consola**. Calcula la colección en
@@ -709,5 +800,9 @@ Están en la interfaz y en los docstrings; no las quites al refactorizar:
   divisa reales, `.CL`, en COP y por tanto sin conversión). Lo que
   sigue sin verificar es la correspondencia entre un ticker de Yahoo y el
   instrumento exacto que uno compra por su comisionista.
+- La ficha, las banderas y el tamaño de posición son heurísticas SIN backtest y
+  no son asesoría financiera: el veredicto nunca debe decir «compra».
+- Los datos de Yahoo llegan con retraso y errores posibles; la interfaz declara
+  su fecha y manda a comprobar las cifras clave en fuentes oficiales.
 - La caja puede quedar negativa: es deliberado, para poder cargar un histórico
   ya existente sin registrar depósitos previos.

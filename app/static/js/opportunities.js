@@ -68,6 +68,22 @@ const SLUG_GRADE = Object.fromEntries(
 const LIMIT_OPTIONS = [5, 10, 20, 50, 100, 200];
 const DEFAULT_LIMIT = 10;
 
+/* Calificaciones que se muestran la PRIMERA vez que se abre la vista.
+ *
+ * Sin esto, el ranking abre con todo el universo y un principiante ve arriba
+ * empresas «Malas» que solo son las menos malas de un grupo flojo (ETB.CL fue
+ * la #2 con calificación «Mala»). El filtro es de VISTA -el score no cambia- y
+ * se anuncia con un aviso y un botón «Ver todos». Solo se aplica si el usuario
+ * nunca ha elegido: cualquier elección suya, incluida «ver todos», se recuerda
+ * y manda sobre este valor. */
+const DEFAULT_TIERS = ["A", "B"];
+
+/* A partir de cuántos días un dato se considera viejo para el aviso. Los
+ * precios se refrescan a diario y los fundamentales un par de veces por
+ * semana, de ahí la diferencia. */
+const PRICE_STALE_DAYS = 4;
+const FUNDAMENTALS_STALE_DAYS = 10;
+
 /* Regiones de mercado. El orden es el de `regions.REGION_ORDER`: primero los
  * mercados en los que se opera de forma directa. */
 const REGION_ORDER = ["US", "COL", "LATAM", "EU", "ASIA", "GLOBAL"];
@@ -157,6 +173,9 @@ document.addEventListener("alpine:init", () => {
      * el universo completo, no una lista vacía. */
     activeTiers: [],
     activeRegions: [],
+
+    /* Los filtros de calidad son los de PRIMERA VISITA, no una elección. */
+    defaultTiers: false,
 
     /* Firma de los avisos ya mostrados.
      *
@@ -308,9 +327,15 @@ document.addEventListener("alpine:init", () => {
       this.symbolsInput = symbols ?? localStorage.getItem("tablero:symbols") ?? "";
 
       const tiers = url.get("quality_tiers");
-      this.activeTiers = tiers
-        ? tiers.split(",").map((slug) => SLUG_GRADE[slug.trim()]).filter(Boolean)
-        : this.readStoredList("tablero:tiers");
+      if (tiers) {
+        this.activeTiers = tiers.split(",").map((slug) => SLUG_GRADE[slug.trim()]).filter(Boolean);
+      } else if (localStorage.getItem("tablero:tiers") === null) {
+        // Nunca ha elegido nada: primera visita.
+        this.activeTiers = [...DEFAULT_TIERS];
+        this.defaultTiers = true;
+      } else {
+        this.activeTiers = this.readStoredList("tablero:tiers");
+      }
 
       const regions = url.get("regions");
       this.activeRegions = regions
@@ -371,6 +396,7 @@ document.addEventListener("alpine:init", () => {
      * cliente solo tiene las `limit` filas mostradas: filtrar sobre 10 de 491
      * daría casi siempre una lista vacía y parecería que no hay nada. */
     toggleTier(grade) {
+      this.defaultTiers = false;
       this.activeTiers = this.activeTiers.includes(grade)
         ? this.activeTiers.filter((g) => g !== grade)
         : [...this.activeTiers, grade];
@@ -391,11 +417,63 @@ document.addEventListener("alpine:init", () => {
     },
 
     clearFilters() {
-      this.activeTiers = [];
+      this.showAll();
       this.activeRegions = [];
-      localStorage.removeItem("tablero:tiers");
       localStorage.removeItem("tablero:regions");
       this.load({ triggerRefresh: false });
+    },
+
+    /* «Ver todos»: quita el filtro de calidad y RECUERDA la decisión.
+     *
+     * Se guarda una lista vacía y no se borra la clave: una clave ausente
+     * significa «primera visita» y volvería a aplicar el filtro por defecto. */
+    showAll() {
+      this.defaultTiers = false;
+      this.activeTiers = [];
+      localStorage.setItem("tablero:tiers", "[]");
+    },
+
+    showAllAndReload() {
+      this.showAll();
+      this.load({ triggerRefresh: false });
+    },
+
+    /* Cuántos candidatos deja fuera el filtro de calidad por defecto. */
+    get hiddenByDefault() {
+      if (!this.data) return 0;
+      return Math.max(0, this.data.universe_size - this.data.matched_size);
+    },
+
+    /* ---------- Frescura de los datos ---------- */
+
+    /* Fecha sin hora (AAAA-MM-DD) a texto corto. Se fija el mediodía: parsear
+     * «2026-09-19» a secas es UTC y en Bogotá se vería el día anterior. */
+    shortDate(iso) {
+      if (!iso) return "—";
+      return new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short" }).format(
+        new Date(`${iso}T12:00:00`),
+      );
+    },
+
+    ageInDays(value) {
+      if (!value) return null;
+      const then = new Date(value.length === 10 ? `${value}T12:00:00` : value);
+      return (Date.now() - then.getTime()) / 86400000;
+    },
+
+    get freshness() {
+      return this.data?.freshness ?? null;
+    },
+
+    /* True si algún dato del ranking es más viejo de lo razonable: el orden
+     * puede ser otro hoy, y hay que decirlo. */
+    get dataIsOld() {
+      const f = this.freshness;
+      if (!f) return false;
+      const price = this.ageInDays(f.prices_oldest);
+      const funds = this.ageInDays(f.fundamentals_oldest);
+      return (price !== null && price > PRICE_STALE_DAYS) ||
+             (funds !== null && funds > FUNDAMENTALS_STALE_DAYS);
     },
 
     /* Clases de un chip de calificación según esté activo o no. */

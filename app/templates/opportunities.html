@@ -3,6 +3,7 @@
 {% block scripts %}
 <script src="{{ static_url('/static/js/opportunities.js') }}"></script>
 <script src="{{ static_url('/static/js/suggestion.js') }}"></script>
+<script src="{{ static_url('/static/js/ficha.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -14,6 +15,9 @@
       <h1 class="text-xl font-semibold tracking-tight">Oportunidades</h1>
       <p class="mt-1 max-w-2xl text-xs leading-relaxed text-ink-mute">
         Ranking relativo dentro del universo evaluado, con el desglose de cada factor.
+        <strong class="font-medium text-ink-soft">No es una recomendación de compra.</strong>
+        Los datos vienen de Yahoo Finance con retraso y pueden tener errores: comprueba las
+        cifras clave en fuentes oficiales antes de decidir.
       </p>
     </div>
 
@@ -75,6 +79,42 @@
         <p class="mt-0.5 text-xs leading-relaxed text-ink-soft" x-text="qualityWarning"></p>
       </div>
     </div>
+  </template>
+
+  <!-- ================= Filtro por defecto ================= -->
+  <!-- Solo aparece en la primera visita: se ven las calificaciones «Muy buena»
+       y «Buena», y se dice claramente que hay más y cómo verlas. -->
+  <template x-if="defaultTiers && data">
+    <div class="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-s1/30 bg-s1/10 px-4 py-3">
+      <p class="min-w-0 flex-1 text-xs leading-relaxed text-ink-soft">
+        Por defecto ves solo las empresas calificadas <strong class="font-medium text-ink">«Muy buena» y «Buena»</strong>.
+        Otras <span class="tabular font-medium text-ink" x-text="hiddenByDefault"></span> siguen en el universo
+        pero no se muestran: el ranking las incluye, y algunas de ellas encabezan la lista sin ser buenas.
+      </p>
+      <button type="button" @click="showAllAndReload()"
+              class="shrink-0 rounded-lg border border-s1/40 px-3 py-1.5 text-xs font-medium text-s1
+                     transition-colors hover:bg-s1/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1">
+        Ver todos
+      </button>
+    </div>
+  </template>
+
+  <!-- ================= Frescura de los datos ================= -->
+  <template x-if="data && freshness && freshness.prices_newest">
+    <p class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]"
+       :class="dataIsOld ? 'text-warn' : 'text-ink-mute'">
+      <span>Precios de <span class="tabular" x-text="$fmt.dateTime(freshness.prices_newest)"></span>
+        <span x-show="freshness.prices_oldest !== freshness.prices_newest">
+          (los más viejos, del <span class="tabular" x-text="$fmt.dateTime(freshness.prices_oldest)"></span>)
+        </span>
+      </span>
+      <span>Fundamentales del <span class="tabular" x-text="shortDate(freshness.fundamentals_oldest)"></span>
+        al <span class="tabular" x-text="shortDate(freshness.fundamentals_newest)"></span>
+      </span>
+      <span x-show="dataIsOld" x-cloak class="font-medium">
+        Hay datos viejos: el orden de hoy podría ser otro. Pulsa «Sincronizar» arriba.
+      </span>
+    </p>
   </template>
 
   <!-- ================= Filtros: calidad y mercado =================
@@ -367,7 +407,23 @@
           <template x-if="row.sector_weight_pct > 0">
             <span class="tabular">· sector <span x-text="row.sector_weight_pct.toFixed(1) + '%'"></span> en cartera</span>
           </template>
+          <span title="Fecha de los fundamentales usados en esta tarjeta">
+            · fundamentales del <span class="tabular" x-text="shortDate(row.fundamentals_as_of)"></span>
+          </span>
         </div>
+
+        <!-- La ficha reúne lo que el score NO dice: banderas, salud
+             financiera, calendario y cómo encaja en tu cartera. -->
+        <button type="button" @click="$dispatch('open-ficha', row.symbol)"
+                class="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line
+                       px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors
+                       hover:border-line-strong hover:text-ink focus-visible:outline-none
+                       focus-visible:ring-2 focus-visible:ring-s1">
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M7 3h7l5 5v13H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/>
+          </svg>
+          Ver ficha de compra
+        </button>
 
         <!-- Notas y métricas observadas, plegadas por defecto -->
         <div class="mt-3" x-show="row.notes.length || true">
@@ -452,6 +508,272 @@
     </div>
   </template>
 
+
+  <!-- ================= Modal: Ficha de compra ================= -->
+  <div x-data="fichaModal()" @open-ficha.window="open($event.detail)" x-cloak>
+    <div x-show="isOpen" class="fixed inset-0 z-50 grid place-items-start overflow-y-auto bg-black/60 p-4 sm:place-items-center"
+         @click.self="close()" @keydown.escape.window="close()" x-transition.opacity
+         role="dialog" aria-modal="true" aria-labelledby="ficha-title">
+      <div class="my-4 w-full max-w-3xl rounded-2xl border border-line bg-surf shadow-2xl">
+
+        <header class="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div class="min-w-0">
+            <h2 id="ficha-title" class="text-base font-semibold">
+              Ficha de compra · <span x-text="symbol"></span>
+            </h2>
+            <p class="mt-0.5 truncate text-xs text-ink-mute">
+              <span x-text="data?.name ?? ''"></span>
+              <span x-show="data?.sector"> · <span x-text="data?.sector"></span></span>
+              <span x-show="data?.industry"> · <span x-text="data?.industry"></span></span>
+            </p>
+          </div>
+          <button @click="close()" class="text-ink-mute transition-colors hover:text-ink" aria-label="Cerrar">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </header>
+
+        <div class="space-y-5 px-5 py-5">
+          <div x-show="loading" class="space-y-3">
+            <div class="skeleton h-16 w-full rounded-lg"></div>
+            <div class="skeleton h-24 w-full rounded-lg"></div>
+            <div class="skeleton h-24 w-full rounded-lg"></div>
+          </div>
+
+          <div x-show="error" x-cloak class="flex items-start gap-2.5 rounded-xl border border-bad/40 bg-bad/10 p-3.5">
+            <p class="flex-1 text-xs leading-relaxed text-bad" x-text="error"></p>
+            <button @click="load()" class="text-[11px] text-ink-soft underline hover:text-ink">Reintentar</button>
+          </div>
+
+          <div x-show="data" x-cloak class="space-y-5">
+
+            <!-- Veredicto: el semáforo habla de si el FILTRO encontró
+                 problemas, nunca de si comprar. El aviso va SIEMPRE debajo. -->
+            <section class="rounded-xl border p-4"
+                     :class="[levelStyle(data?.verdict.level).ring, levelStyle(data?.verdict.level).bg]">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <p class="text-sm font-semibold" :class="levelStyle(data?.verdict.level).text"
+                   x-text="data?.verdict.label"></p>
+                <p class="tabular text-[11px] text-ink-soft">
+                  <span x-text="data?.verdict.red"></span> rojas ·
+                  <span x-text="data?.verdict.yellow"></span> amarillas ·
+                  <span x-text="data?.verdict.green"></span> verdes
+                </p>
+              </div>
+              <p class="mt-1.5 text-[11px] leading-relaxed text-ink-soft" x-text="data?.verdict.disclaimer"></p>
+              <p x-show="data?.opportunity" class="mt-2 text-[11px] text-ink-mute">
+                Puesto <span class="tabular text-ink-soft" x-text="'#' + data?.opportunity?.rank"></span>
+                de <span class="tabular" x-text="data?.universe_size"></span>
+                · score <span class="tabular text-ink-soft" x-text="data?.opportunity?.score.toFixed(1)"></span>
+                · calificación <span class="text-ink-soft" x-text="data?.opportunity?.assessment.label"></span>
+              </p>
+            </section>
+
+            <!-- Banderas -->
+            <section>
+              <h3 class="mb-2 text-[10px] font-medium uppercase tracking-wider text-ink-mute">Banderas</h3>
+              <ul class="space-y-2">
+                <template x-for="flag in sortedFlags" :key="flag.code">
+                  <li class="flex items-start gap-2.5 rounded-lg border px-3 py-2"
+                      :class="[levelStyle(flag.level).ring, levelStyle(flag.level).bg]">
+                    <span class="mt-px w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide"
+                          :class="levelStyle(flag.level).text" x-text="levelStyle(flag.level).label"></span>
+                    <div class="min-w-0">
+                      <p class="text-xs font-medium" x-text="flag.title"></p>
+                      <p class="mt-0.5 text-[11px] leading-relaxed text-ink-soft" x-text="flag.detail"></p>
+                    </div>
+                  </li>
+                </template>
+              </ul>
+            </section>
+
+            <!-- Salud financiera -->
+            <section>
+              <h3 class="mb-2 text-[10px] font-medium uppercase tracking-wider text-ink-mute">Salud financiera</h3>
+              <p x-show="health && !health.has_data" class="text-xs text-ink-mute">
+                Sin datos financieros del proveedor para esta empresa.
+              </p>
+              <p x-show="health && health.has_data && !health.applies"
+                 class="text-xs leading-relaxed text-ink-soft" x-text="health?.not_applicable_reason"></p>
+              <dl x-show="healthRows.length" class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs sm:grid-cols-3">
+                <template x-for="row in healthRows" :key="row.label">
+                  <div :title="row.why">
+                    <dt class="text-[11px] text-ink-mute" x-text="row.label"></dt>
+                    <dd class="tabular font-medium" x-text="row.value"></dd>
+                  </div>
+                </template>
+              </dl>
+              <template x-for="caveat in (health?.caveats ?? [])" :key="caveat">
+                <p class="mt-2 text-[11px] leading-relaxed text-ink-mute" x-text="'· ' + caveat"></p>
+              </template>
+            </section>
+
+            <!-- Calendario y analistas -->
+            <section class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <h3 class="mb-2 text-[10px] font-medium uppercase tracking-wider text-ink-mute">Calendario</h3>
+                <p class="text-xs">
+                  Próximos resultados:
+                  <span class="tabular font-medium" x-text="health?.calendar.next_earnings ?? 'no consta fecha futura'"></span>
+                  <span x-show="health?.calendar.next_earnings" class="text-ink-mute">
+                    (en <span x-text="health?.calendar.days_to_earnings"></span> días<span
+                      x-show="health?.calendar.earnings_is_estimate">, estimada</span>)
+                  </span>
+                </p>
+                <p class="mt-1 text-xs">
+                  Ex-dividendo:
+                  <span class="tabular font-medium" x-text="health?.calendar.ex_dividend ?? 'no consta'"></span>
+                </p>
+              </div>
+              <div>
+                <h3 class="mb-2 text-[10px] font-medium uppercase tracking-wider text-ink-mute">
+                  Analistas <span class="normal-case tracking-normal">(opinión, no dato)</span>
+                </h3>
+                <p x-show="health?.analyst.target_mean !== null && health?.analyst.target_mean !== undefined" class="text-xs">
+                  Objetivo medio
+                  <span class="tabular font-medium" x-text="plain(health?.analyst.target_mean, 2)"></span>
+                  (<span class="tabular" x-text="signedRatio(health?.analyst.upside_pct)"></span> sobre el precio) ·
+                  <span x-text="health?.analyst.analysts ?? '?'"></span> analistas ·
+                  «<span x-text="health?.analyst.recommendation ?? 'n/d'"></span>»
+                </p>
+                <p x-show="health?.analyst.target_mean === null || health?.analyst.target_mean === undefined"
+                   class="text-xs text-ink-mute">Sin objetivo fiable.</p>
+              </div>
+            </section>
+
+            <!-- Frente a su sector -->
+            <section>
+              <h3 class="mb-2 text-[10px] font-medium uppercase tracking-wider text-ink-mute">Frente a su sector</h3>
+              <p x-show="data?.sector_rank === null" class="text-xs text-ink-mute">
+                Sin comparación sectorial (fondo o sin sector declarado).
+              </p>
+              <p x-show="data?.sector_rank !== null" class="mb-2 text-xs text-ink-soft">
+                Es la <span class="tabular font-medium" x-text="'#' + data?.sector_rank"></span>
+                de <span class="tabular" x-text="data?.sector_size"></span> empresas de
+                <span x-text="data?.sector"></span> en el universo. Las mejor puestas:
+              </p>
+              <ul class="space-y-1">
+                <template x-for="peer in (data?.peers ?? [])" :key="peer.symbol">
+                  <li class="flex items-center gap-2 rounded-lg border border-line px-2.5 py-1.5 text-[11px]">
+                    <span class="w-16 font-medium" x-text="peer.symbol"></span>
+                    <span class="flex-1 truncate text-ink-mute" x-text="peer.name ?? ''"></span>
+                    <span class="tabular text-ink-mute" x-text="'P/E ' + plain(peer.trailing_pe)"></span>
+                    <span class="text-ink-soft" x-text="peer.grade_label"></span>
+                    <span class="tabular w-10 text-right text-ink-soft" x-text="'#' + peer.rank"></span>
+                  </li>
+                </template>
+              </ul>
+            </section>
+
+            <!-- Tu cartera -->
+            <section>
+              <h3 class="mb-2 text-[10px] font-medium uppercase tracking-wider text-ink-mute">Tu cartera</h3>
+              <p class="text-xs text-ink-soft">
+                <span class="tabular" x-text="data?.portfolio.position_count"></span> posiciones abiertas.
+                <span x-show="data?.portfolio.holding">
+                  Ya tienes <span class="tabular font-medium" x-text="data?.portfolio.holding?.quantity"></span>
+                  títulos (<span class="tabular" x-text="plain(data?.portfolio.holding?.weight_pct, 1, '%')"></span>
+                  de la cartera).
+                </span>
+                <span x-show="!data?.portfolio.holding">No tienes este activo.</span>
+                <span x-show="data?.portfolio.bucket_weight_pct !== null && data?.portfolio.bucket_weight_pct !== undefined">
+                  «<span x-text="data?.portfolio.bucket"></span>» pesa hoy
+                  <span class="tabular font-medium" x-text="plain(data?.portfolio.bucket_weight_pct, 1, '%')"></span>.
+                </span>
+              </p>
+            </section>
+
+            <!-- Cuánto poner. El peso sale de una regla, no de las ganas:
+                 presupuesto de riesgo / caída de estrés. Se puede jugar con
+                 los supuestos y ver el efecto. -->
+            <section x-show="sizing">
+              <h3 class="mb-2 text-[10px] font-medium uppercase tracking-wider text-ink-mute">
+                Cuánto poner <span class="normal-case tracking-normal">(un techo, no una orden)</span>
+              </h3>
+              <div class="rounded-xl border border-line p-3.5">
+                <p class="text-xs leading-relaxed text-ink-soft">
+                  Si esta empresa repite su peor caída (<span class="tabular font-medium"
+                    x-text="plain(sizing?.stress_loss_pct, 0, '%')"></span>),
+                  con <span class="tabular font-medium" x-text="plain(sizing?.target_pct, 1, '%')"></span>
+                  de tu cartera perderías el
+                  <span class="tabular font-medium" x-text="plain(sizing?.loss_if_repeats_pct_of_capital, 1, '%')"></span>
+                  del total. Manda el <span class="font-medium"
+                    x-text="sizing?.binding === 'risk' ? 'presupuesto de riesgo' : 'tope por posición'"></span>.
+                </p>
+                <p x-show="sizing?.capital" class="mt-2 text-xs text-ink-soft">
+                  Con <span class="tabular" x-text="money(sizing?.capital)"></span>:
+                  objetivo <span class="tabular font-medium" x-text="money(sizing?.target_amount)"></span>,
+                  añadir <span class="tabular font-medium" x-text="money(sizing?.add_amount)"></span>
+                  (hoy pesas <span class="tabular" x-text="plain(sizing?.current_pct, 1, '%')"></span>);
+                  pérdida en el peor caso
+                  <span class="tabular font-medium" x-text="money(sizing?.loss_if_repeats_amount)"></span>.
+                </p>
+                <p x-show="!sizing?.capital" class="mt-2 text-xs text-ink-mute">
+                  Tu cartera no tiene capital registrado: escribe cuánto piensas invertir para ver importes.
+                </p>
+
+                <form @submit.prevent="recalcSizing()" class="mt-3 flex flex-wrap items-end gap-2">
+                  <div>
+                    <label class="mb-1 block text-[10px] text-ink-mute">Capital total</label>
+                    <input x-model="sizingCapital" inputmode="decimal" placeholder="por defecto: tu cartera"
+                           class="h-8 w-40 rounded-lg border border-line bg-surf-2 px-2.5 text-xs outline-none focus:border-s1">
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-[10px] text-ink-mute">Riesgo aceptado %</label>
+                    <input x-model="sizingRisk" inputmode="decimal" :placeholder="plain(sizing?.risk_budget_pct, 1)"
+                           class="h-8 w-24 rounded-lg border border-line bg-surf-2 px-2.5 text-xs outline-none focus:border-s1">
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-[10px] text-ink-mute">Tope por posición %</label>
+                    <input x-model="sizingCap" inputmode="decimal" :placeholder="plain(sizing?.max_position_pct, 0)"
+                           class="h-8 w-24 rounded-lg border border-line bg-surf-2 px-2.5 text-xs outline-none focus:border-s1">
+                  </div>
+                  <button type="submit" :disabled="sizingBusy"
+                          class="h-8 rounded-lg border border-line px-3 text-xs text-ink-soft transition-colors
+                                 hover:border-line-strong hover:text-ink disabled:opacity-50">
+                    Recalcular
+                  </button>
+                </form>
+                <p x-show="sizingError" x-cloak class="mt-2 text-[11px] text-bad" x-text="sizingError"></p>
+
+                <template x-for="note in (sizing?.notes ?? [])" :key="note">
+                  <p class="mt-2 text-[11px] leading-relaxed text-ink-mute" x-text="'· ' + note"></p>
+                </template>
+              </div>
+            </section>
+
+            <!-- De cuándo son los datos -->
+            <section class="rounded-lg border border-line bg-surf-2/50 p-3">
+              <h3 class="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-mute">De cuándo son los datos</h3>
+              <p class="text-[11px] leading-relaxed text-ink-soft">
+                Precio: <span class="tabular" x-text="$fmt.dateTime(data?.freshness.price_time)"></span>
+                · última barra del histórico: <span class="tabular" x-text="data?.freshness.last_bar_date ?? '—'"></span>
+                · fundamentales del <span class="tabular" x-text="data?.freshness.fundamentals_as_of ?? '—'"></span>
+              </p>
+              <template x-for="note in [...(data?.freshness.notes ?? []), ...(data?.warnings ?? [])]" :key="note">
+                <p class="mt-1 text-[11px] leading-relaxed text-warn" x-text="'· ' + note"></p>
+              </template>
+            </section>
+
+            <p class="border-t border-line pt-3 text-[10px] leading-relaxed text-ink-mute" x-text="data?.disclaimer"></p>
+          </div>
+        </div>
+
+        <footer class="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
+          <button @click="close()" class="rounded-lg px-3 py-2 text-sm text-ink-soft transition-colors hover:bg-surf-2 hover:text-ink">
+            Cerrar
+          </button>
+          <!-- Pasa la empresa al diario con el símbolo listo: escribir el
+               porqué ANTES de comprar es lo que evita decidir por impulso. -->
+          <a x-show="data?.opportunity" :href="`/diario?nuevo=${symbol}`"
+             class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
+            Anotar en el diario
+          </a>
+        </footer>
+      </div>
+    </div>
+  </div>
 
   <!-- ================= Modal: Sugerencia óptima ================= -->
   <div x-data="suggestionModal()" @open-suggestion.window="open()" x-cloak>
