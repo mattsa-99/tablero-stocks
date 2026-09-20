@@ -57,7 +57,7 @@ def to_read(transaction: Transaction) -> TransactionRead:
     )
 
 
-def _resolve_fx(
+def resolve_fx(
     db: Session, payload: TransactionCreate, currency: str, portfolio: Portfolio
 ) -> Decimal:
     """Determina el tipo de cambio a CONGELAR en la transacción.
@@ -97,7 +97,7 @@ def create_transaction(
         asset = portfolio_repo.get_or_create_asset(db, payload.symbol)
 
     currency = payload.currency or (asset.currency if asset else portfolio.base_currency)
-    fx = _resolve_fx(db, payload, currency, portfolio)
+    fx = resolve_fx(db, payload, currency, portfolio)
 
     transaction = Transaction(
         portfolio_id=portfolio.id,

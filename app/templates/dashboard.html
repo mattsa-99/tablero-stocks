@@ -5,6 +5,7 @@
 <script src="{{ static_url('/static/js/combobox.js') }}"></script>
 <script src="{{ static_url('/static/js/portfolio.js') }}"></script>
 <script src="{{ static_url('/static/js/simulation.js') }}"></script>
+<script src="{{ static_url('/static/js/import.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -45,6 +46,12 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4m0 0L4 20h16L15 7m-6 0h6m0-4v4"/>
         </svg>
         Simular
+      </button>
+
+      <button @click="$dispatch('open-import-modal')"
+              class="rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm text-ink-soft
+                     transition-colors hover:border-line-strong hover:text-ink">
+        Importar CSV
       </button>
 
       <button @click="$dispatch('open-transaction-modal')"
@@ -663,6 +670,126 @@
           </div>
         </footer>
       </aside>
+    </div>
+  </div>
+
+  <!-- ================= Modal: importar CSV ================= -->
+  <div x-data="importModal()" @open-import-modal.window="open()" x-cloak>
+    <div x-show="isOpen" class="fixed inset-0 z-50 grid place-items-start overflow-y-auto bg-black/60 p-4 sm:place-items-center"
+         @click.self="close()" @keydown.escape.window="close()" x-transition.opacity
+         role="dialog" aria-modal="true" aria-labelledby="imp-title">
+      <div class="my-4 w-full max-w-3xl rounded-2xl border border-line bg-surf shadow-2xl">
+        <header class="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div>
+            <h2 id="imp-title" class="text-base font-semibold">Importar operaciones desde CSV</h2>
+            <p class="mt-0.5 max-w-xl text-xs leading-relaxed text-ink-mute">
+              Solo se acepta la plantilla del Tablero: cada broker exporta distinto y adivinar mal
+              corrompería tu coste medio. Se revisa todo antes de escribir, y si una sola fila falla
+              <strong>no se importa ninguna</strong>.
+            </p>
+          </div>
+          <button @click="close()" class="text-ink-mute transition-colors hover:text-ink" aria-label="Cerrar">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </header>
+
+        <div class="space-y-4 px-5 py-5">
+          <div class="flex flex-wrap items-center gap-3">
+            <a href="/api/transactions/import/template" download
+               class="rounded-lg border border-line px-3 py-2 text-xs text-ink-soft transition-colors hover:border-line-strong hover:text-ink">
+              Descargar plantilla
+            </a>
+            <label class="cursor-pointer rounded-lg bg-s1 px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90">
+              Elegir archivo CSV
+              <input type="file" accept=".csv,text/csv" class="sr-only" @change="onFile($event)">
+            </label>
+            <span class="text-xs text-ink-mute" x-text="fileName ?? 'Ningún archivo elegido'"></span>
+          </div>
+
+          <p class="text-[11px] leading-relaxed text-ink-mute">
+            Columnas: date, type, symbol, quantity, price, amount, fees, currency, fx_rate_to_base, notes,
+            external_id. Punto decimal, sin separador de miles. Fecha AAAA-MM-DD (mediodía de Bogotá) o con hora y desfase.
+            Depósitos, retiros y dividendos usan <em>amount</em>; compras y ventas, <em>quantity</em> y <em>price</em>.
+          </p>
+
+          <p x-show="busy" class="text-xs text-ink-mute">Revisando…</p>
+          <p x-show="error" x-cloak class="text-xs text-bad" x-text="error"></p>
+
+          <div x-show="report" x-cloak class="space-y-3">
+            <div class="rounded-xl border p-3.5"
+                 :class="report?.errors.length ? 'border-bad/40 bg-bad/10' : 'border-good/40 bg-good/10'">
+              <p class="text-sm font-medium" :class="report?.errors.length ? 'text-bad' : 'text-good'"
+                 x-text="report?.errors.length ? 'Hay problemas por corregir' : 'Revisión limpia'"></p>
+              <p class="mt-1 text-xs leading-relaxed text-ink-soft" x-text="report?.message"></p>
+              <p class="tabular mt-1.5 text-[11px] text-ink-mute">
+                <span x-text="report?.total_rows"></span> <span x-text="report?.total_rows === 1 ? 'fila' : 'filas'"></span> ·
+                <span x-text="report?.new_rows"></span> nuevas ·
+                <span x-text="report?.duplicate_rows"></span> ya importadas
+              </p>
+            </div>
+
+            <ul x-show="report?.errors.length" class="space-y-1">
+              <template x-for="(issue, i) in (report?.errors ?? [])" :key="i">
+                <li class="flex gap-2 rounded-lg border border-bad/30 px-2.5 py-1.5 text-[11px]">
+                  <span class="tabular w-16 shrink-0 font-medium text-bad"
+                        x-text="issue.line ? 'Línea ' + issue.line : 'Archivo'"></span>
+                  <span class="text-ink-soft" x-text="issue.message"></span>
+                </li>
+              </template>
+            </ul>
+
+            <ul x-show="report?.warnings.length" class="space-y-1">
+              <template x-for="(w, i) in (report?.warnings ?? [])" :key="i">
+                <li class="rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-ink-soft"
+                    x-text="w"></li>
+              </template>
+            </ul>
+
+            <div x-show="previewRows.length" class="overflow-x-auto rounded-lg border border-line">
+              <table class="w-full text-[11px]">
+                <thead class="bg-surf-2 text-ink-mute">
+                  <tr>
+                    <th class="px-2 py-1.5 text-left font-medium">Línea</th>
+                    <th class="px-2 py-1.5 text-left font-medium">Fecha</th>
+                    <th class="px-2 py-1.5 text-left font-medium">Tipo</th>
+                    <th class="px-2 py-1.5 text-left font-medium">Símbolo</th>
+                    <th class="px-2 py-1.5 text-right font-medium">Cantidad</th>
+                    <th class="px-2 py-1.5 text-right font-medium">Precio / importe</th>
+                    <th class="px-2 py-1.5 text-left font-medium">Divisa</th>
+                    <th class="px-2 py-1.5 text-left font-medium">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in previewRows" :key="row.line">
+                    <tr class="border-t border-line" :class="row.status === 'duplicate' && 'opacity-50'">
+                      <td class="tabular px-2 py-1" x-text="row.line"></td>
+                      <td class="tabular px-2 py-1" x-text="row.date"></td>
+                      <td class="px-2 py-1" x-text="typeLabel(row.type)"></td>
+                      <td class="px-2 py-1 font-medium" x-text="row.symbol ?? '—'"></td>
+                      <td class="tabular px-2 py-1 text-right" x-text="row.quantity ?? '—'"></td>
+                      <td class="tabular px-2 py-1 text-right" x-text="row.price ?? row.amount ?? '—'"></td>
+                      <td class="px-2 py-1" x-text="row.currency"></td>
+                      <td class="px-2 py-1" x-text="row.status === 'duplicate' ? 'ya importada' : 'nueva'"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <footer class="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
+          <button @click="close()" class="rounded-lg px-3 py-2 text-sm text-ink-soft transition-colors hover:bg-surf-2 hover:text-ink">
+            Cancelar
+          </button>
+          <button @click="run(false)" :disabled="!canImport || busy"
+                  class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40">
+            Importar <span x-show="canImport" x-text="report?.new_rows"></span> operaciones
+          </button>
+        </footer>
+      </div>
     </div>
   </div>
 
