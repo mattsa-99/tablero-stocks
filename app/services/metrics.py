@@ -1,4 +1,4 @@
-"""Indicadores técnicos y estadísticos sobre series de precios.
+"""Indicadores técnicos y estadísticos sobre series de precios y sobre pesos.
 
 Funciones puras sobre listas de floats ORDENADAS ASCENDENTEMENTE por fecha.
 Sin pandas ni numpy: las series son de cientos de puntos, la aritmética es
@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
+from decimal import Decimal
 
 TRADING_DAYS_YEAR = 252
 TRADING_DAYS_MONTH = 21
@@ -113,3 +114,36 @@ def percent_change(current: float | None, previous: float | None) -> float | Non
     if current is None or previous is None or previous == 0:
         return None
     return (current / previous - 1.0) * 100.0
+
+
+# ---------------------------------------------------------------------------
+# Concentración. Vive aquí -y no en el simulador, donde nació- porque la mide
+# también el resumen de la cartera: dos copias acabarían diciendo cosas
+# distintas sobre la misma cartera en dos pantallas.
+# ---------------------------------------------------------------------------
+
+
+def herfindahl(weights: list[Decimal]) -> Decimal:
+    """Índice Herfindahl-Hirschman sobre pesos que suman 1.
+
+    HHI = Σ wᵢ². Vale 1 con todo en un solo sitio y 1/n con n partes iguales,
+    así que mide concentración de forma continua en lugar de "¿supera el 30%?".
+    """
+    return sum((w * w for w in weights), Decimal(0))
+
+
+def diversification_index(weights: list[Decimal]) -> Decimal | None:
+    """Índice de diversificación 0-100 = 100 · (1 − HHI).
+
+    Interpretación honesta: es una escala RELATIVA, pensada para comparar el
+    antes y el después de una misma cartera —que es exactamente el trabajo del
+    simulador—, no una nota absoluta. Con los 11 sectores GICS el techo real es
+    100·(1−1/11) ≈ 90,9: el 100 es inalcanzable por construcción, así que un 72
+    no significa "aprobado raspado".
+
+    Se elige HHI y no el conteo de sectores porque este último no distingue una
+    cartera con 5 sectores al 20% de otra con 5 donde uno pesa el 96%.
+    """
+    if not weights:
+        return None
+    return (Decimal("1") - herfindahl(weights)) * Decimal(100)

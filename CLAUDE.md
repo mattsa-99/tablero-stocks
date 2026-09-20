@@ -14,7 +14,7 @@ Mantén ese idioma al añadir código.
 ```bash
 source .venv/bin/activate          # el venv ya existe con todo instalado
 
-pytest -q                          # 497 tests, ~4,6 s, sin red
+pytest -q                          # 504 tests, ~4,8 s, sin red
 pytest tests/test_pnl.py -q        # un archivo
 pytest tests/test_pnl.py::test_single_buy -q
 pytest -k "simulation and not api" # por expresión
