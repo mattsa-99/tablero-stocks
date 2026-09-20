@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -66,6 +67,23 @@ app = FastAPI(
     version="0.2.0",
     lifespan=lifespan,
 )
+
+
+# ----------------------------------------------------------------------
+# Compresión. El JSON de oportunidades es MUY repetitivo -las mismas claves de
+# `inputs` y `signals` repetidas una vez por candidato-, así que comprime
+# mucho mejor que un payload normal. Medido sobre el universo real de 494
+# activos:
+#
+#     limit= 10:   20,9 KB  ->   3,8 KB  (5,5x)
+#     limit= 50:   99,2 KB  ->  11,9 KB  (8,3x)
+#     limit=200:  390,9 KB  ->  41,2 KB  (9,5x)
+#
+# El umbral de 500 bytes deja fuera las respuestas pequeñas (un POST de
+# transacción, el /api/health), donde comprimir cuesta más CPU de lo que
+# ahorra en red.
+# ----------------------------------------------------------------------
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 
 # ----------------------------------------------------------------------

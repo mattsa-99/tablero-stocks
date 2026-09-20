@@ -26,8 +26,24 @@ from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 import app.db.session  # noqa: E402, F401  -- registra el listener de PRAGMAs
 from app.db.registry import Base  # noqa: E402
 from app.models import Asset, Portfolio  # noqa: E402
+from app.services import opportunities as _opportunities  # noqa: E402
 
 UTC = dt.UTC
+
+
+@pytest.fixture(autouse=True)
+def _clean_opportunity_cache() -> Iterator[None]:
+    """La memoización del universo NO puede sobrevivir a un test.
+
+    No es higiene opcional: cada test estrena una base con el mismo esquema y
+    los mismos ids -portafolio 1, activos 1..N- así que dos tests distintos
+    producen huellas IDÉNTICAS con facilidad. Sin este reseteo, el segundo
+    recibiría el ranking del primero y pasaría o fallaría por una razón que no
+    tiene nada que ver con lo que comprueba.
+    """
+    _opportunities.clear_cache()
+    yield
+    _opportunities.clear_cache()
 
 
 @pytest.fixture
