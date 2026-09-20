@@ -21,7 +21,7 @@ Mantén ese idioma al añadir código.
 ```bash
 source .venv/bin/activate          # el venv ya existe con todo instalado
 
-pytest -q                          # 507 tests, ~4,8 s, sin red
+pytest -q                          # 508 tests, ~4,8 s, sin red
 pytest tests/test_pnl.py -q        # un archivo
 pytest tests/test_pnl.py::test_single_buy -q
 pytest -k "simulation and not api" # por expresión
@@ -670,6 +670,16 @@ dejando intactos tres años de hueco anterior.
   trampa más cara del sistema porque no lanza nada: produce una posición
   valorada 100 veces de más que, si se registra una compra, queda congelada en
   el coste medio para siempre. Ver `app/providers/currencies.py`.
+- **Las cotizaciones traen ruido de coma flotante.** IVV no cotiza a 764,92
+  sino a 764.919982910156. Quien registra una compra al precio de hoy -que el
+  formulario redondea a dos decimales- se queda con un P&L de −0,0000170898, y
+  la pantalla mostraba «−US$ 0,00» EN ROJO: el signo y el color afirmaban una
+  pérdida que la propia cifra desmiente. Se resuelve en PRESENTACIÓN
+  (`roundsToZero` en `store.js`), no redondeando el dato: el backend mantiene
+  Decimal exacto a propósito y recortar el precio rompería los activos que
+  cotizan por debajo del centavo. Por eso `pnlClass` recibe los decimales con
+  que se imprime la cifra: el color tiene que coincidir con lo que se lee al
+  lado.
 - **Pydantic serializa `Decimal` como string.** Todo valor monetario del JSON
   pasa por `window.fmt.num()` en el frontend; sin eso, `a > b` compara
   lexicográficamente.

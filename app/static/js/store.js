@@ -84,11 +84,39 @@ function num(value) {
 
 const MONEY_FORMATTERS = new Map();
 
+/* Decimales con que se IMPRIME una divisa. El COP va sin decimales: los
+ * céntimos de peso son ruido visual. */
+function decimalsFor(currency) {
+  return currency === "COP" ? 0 : 2;
+}
+
+/* ¿Esta cifra se imprime como cero?
+ *
+ * Hace falta porque las cotizaciones de yfinance llegan con RUIDO DE COMA
+ * FLOTANTE: IVV no cotiza a 764,92 sino a 764.919982910156. Quien registra
+ * una compra al precio de hoy -que el formulario redondea a dos decimales-
+ * acaba con un P&L no realizado de −0,0000170898, que es cero para cualquier
+ * efecto práctico.
+ *
+ * Sin esta guarda la pantalla mostraba «−US$ 0,00» en ROJO: el signo y el
+ * color afirmaban una pérdida inexistente sobre una cifra que se imprime
+ * como cero. Es peor que un error de cálculo, porque parece uno: invita a
+ * desconfiar de todas las demás cifras de la pantalla.
+ *
+ * Se resuelve en PRESENTACIÓN y no redondeando el dato: el backend mantiene
+ * Decimal exacto a propósito, y recortar el precio de mercado rompería los
+ * activos que cotizan por debajo del centavo.
+ */
+function roundsToZero(value, decimals) {
+  const parsed = num(value);
+  if (parsed === null) return false;
+  return Math.abs(parsed) < 0.5 * 10 ** -decimals;
+}
+
 function moneyFormatter(currency) {
   if (!MONEY_FORMATTERS.has(currency)) {
-    // El COP se presenta sin decimales: los céntimos de peso son ruido visual.
     // El redondeo es SOLO de presentación; internamente todo sigue exacto.
-    const decimals = currency === "COP" ? 0 : 2;
+    const decimals = decimalsFor(currency);
     MONEY_FORMATTERS.set(
       currency,
       new Intl.NumberFormat("es-CO", {
@@ -131,14 +159,18 @@ function fmtPct(value, digits = 2) {
 function fmtSigned(value, currency = "COP") {
   const parsed = num(value);
   if (parsed === null) return "—";
-  const sign = parsed > 0 ? "+" : parsed < 0 ? "−" : "";
+  // Cero a la precisión que se imprime: sin signo. Un «−US$ 0,00» afirma una
+  // pérdida que la propia cifra desmiente.
+  if (roundsToZero(parsed, decimalsFor(currency))) return fmtMoney(0, currency);
+  const sign = parsed > 0 ? "+" : "−";
   return `${sign}${fmtMoney(Math.abs(parsed), currency)}`;
 }
 
 function fmtSignedPct(value, digits = 2) {
   const parsed = num(value);
   if (parsed === null) return "—";
-  const sign = parsed > 0 ? "+" : parsed < 0 ? "−" : "";
+  if (roundsToZero(parsed, digits)) return `${(0).toFixed(digits)}%`;
+  const sign = parsed > 0 ? "+" : "−";
   return `${sign}${Math.abs(parsed).toFixed(digits)}%`;
 }
 
@@ -184,9 +216,14 @@ function fmtDate(value) {
 
 /* Clase de color para una cifra con signo. El color es redundante respecto al
  * signo que ya escribe fmtSigned: nunca es el único canal. */
-function pnlClass(value) {
+function pnlClass(value, decimals = 2) {
   const parsed = num(value);
-  if (parsed === null || parsed === 0) return "text-[var(--text-secondary)]";
+  // `roundsToZero` y no `=== 0`: el color tiene que coincidir con lo que se
+  // imprime al lado. Con la comparación exacta, un −0,0000170898 salía rojo
+  // junto a un «US$ 0,00» y la pantalla se contradecía a sí misma.
+  if (parsed === null || roundsToZero(parsed, decimals)) {
+    return "text-[var(--text-secondary)]";
+  }
   return parsed > 0 ? "text-[var(--good)]" : "text-[var(--critical)]";
 }
 
@@ -320,6 +357,8 @@ window.api = api;
 window.ApiError = ApiError;
 window.fmt = {
   num,
+  roundsToZero,
+  decimalsFor,
   money: fmtMoney,
   compact: fmtCompact,
   pct: fmtPct,

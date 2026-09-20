@@ -87,7 +87,7 @@
         <!-- Un grado menos en móvil: a 390px una cifra COP de nueve dígitos
              llega justo al borde de la tarjeta con text-2xl. -->
         <p class="tabular text-xl font-semibold sm:text-2xl"
-           :class="kpi.kind === 'money' ? 'text-ink' : $fmt.pnlClass(kpi.value)"
+           :class="kpi.kind === 'money' ? 'text-ink' : $fmt.pnlClass(kpi.value, kpi.kind === 'signed' ? $fmt.decimalsFor(currency) : 2)"
            x-text="kpi.kind === 'money' ? $fmt.money(kpi.value, currency)
                  : kpi.kind === 'pct'   ? $fmt.signedPct(kpi.value)
                  : $fmt.signed(kpi.value, currency)"></p>
@@ -101,7 +101,7 @@
       <div class="rounded-lg border border-line bg-surf px-3.5 py-2.5">
         <p class="mb-1 text-ink-mute" x-text="item.label"></p>
         <p class="tabular text-sm font-medium"
-           :class="item.signed ? $fmt.pnlClass(item.value) : 'text-ink'"
+           :class="item.signed ? $fmt.pnlClass(item.value, $fmt.decimalsFor(currency)) : 'text-ink'"
            x-text="item.signed ? $fmt.signed(item.value, currency) : $fmt.money(item.value, currency)"></p>
       </div>
     </template>
@@ -119,7 +119,7 @@
         <div class="flex items-baseline gap-2">
           <span class="text-xs text-ink-mute" x-text="item.label"></span>
           <span class="tabular text-sm font-medium"
-                :class="$fmt.pnlClass(item.value)"
+                :class="$fmt.pnlClass(item.value, $fmt.decimalsFor(currency))"
                 x-text="$fmt.signed(item.value, currency)"></span>
         </div>
       </template>
@@ -145,7 +145,7 @@
             <span class="text-ink-mute">vs</span>
             <span class="font-medium text-ink-soft" x-text="vsBenchmark.symbol"></span>
             <span class="tabular font-medium"
-                  :class="$fmt.pnlClass(vsBenchmark.diff)"
+                  :class="$fmt.pnlClass(vsBenchmark.diff, $fmt.decimalsFor(currency))"
                   x-text="$fmt.signedPct(vsBenchmark.pct, 1)"></span>
           </div>
         </template>
@@ -304,12 +304,12 @@
                        :class="$fmt.pnlClass(p.day_change_pct)" x-text="$fmt.signedPct(p.day_change_pct, 2)"></p>
                   </td>
                   <td class="tabular px-4 py-3 text-right font-medium" x-text="$fmt.money(p.market_value, currency)"></td>
-                  <td class="tabular px-4 py-3 text-right" :class="$fmt.pnlClass(p.unrealized_pnl)">
+                  <td class="tabular px-4 py-3 text-right" :class="$fmt.pnlClass(p.unrealized_pnl, $fmt.decimalsFor(currency))">
                     <span x-text="$fmt.signed(p.unrealized_pnl, currency)"></span>
                     <p x-show="p.unrealized_return_pct !== null" x-cloak class="tabular mt-0.5 text-[11px] opacity-80"
                        x-text="$fmt.signedPct(p.unrealized_return_pct)"></p>
                   </td>
-                  <td class="tabular px-4 py-3 text-right" :class="$fmt.pnlClass(p.realized_pnl)"
+                  <td class="tabular px-4 py-3 text-right" :class="$fmt.pnlClass(p.realized_pnl, $fmt.decimalsFor(currency))"
                       x-text="$fmt.signed(p.realized_pnl, currency)"></td>
                   <td class="tabular px-4 py-3 text-right text-ink-soft" x-text="$fmt.pct(p.weight_pct, 1)"></td>
                 </tr>
