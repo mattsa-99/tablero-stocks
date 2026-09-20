@@ -32,6 +32,9 @@ class ResourceType:
     FUNDAMENTALS = "fundamentals"
     METADATA = "asset_metadata"
     FX = "fx"
+    # El HISTÓRICO de un par, distinto del tipo del día: su TTL se mide en
+    # días, no en minutos, porque son cierres ya cerrados.
+    FX_HISTORY = "fx_history"
     # El proveedor COMO UN TODO, no un símbolo. Un 429 no dice nada sobre el
     # activo que se pidió: dice que hay que parar de pedir.
     PROVIDER = "provider"

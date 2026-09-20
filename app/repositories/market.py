@@ -192,6 +192,45 @@ def get_fx_rate(
     return None
 
 
+def get_fx_date_range(
+    db: Session, pairs: Iterable[tuple[str, str]]
+) -> dict[tuple[str, str], tuple[dt.date, dt.date]]:
+    """Primera y última fecha almacenadas de cada par, en UNA consulta.
+
+    Devuelve las DOS y no solo la última, que es lo que se hizo primero y
+    estaba mal. Con solo el máximo, el relleno únicamente sabe avanzar hacia
+    adelante: en una base que ya tenía tres semanas de USD/COP pedía desde el
+    día siguiente al último y traía 2 filas, dejando intactos los tres años de
+    hueco ANTERIORES. Conociendo también la primera fecha se distingue "estoy
+    al día" de "me falta todo lo de antes".
+    """
+    wanted = {(b.upper(), q.upper()) for b, q in pairs}
+    if not wanted:
+        return {}
+
+    rows = db.execute(
+        select(
+            FxRateDaily.base_currency,
+            FxRateDaily.quote_currency,
+            func.min(FxRateDaily.date),
+            func.max(FxRateDaily.date),
+        )
+        .where(
+            FxRateDaily.base_currency.in_({b for b, _ in wanted}),
+            FxRateDaily.quote_currency.in_({q for _, q in wanted}),
+        )
+        .group_by(FxRateDaily.base_currency, FxRateDaily.quote_currency)
+    ).all()
+    # El filtro de arriba es un producto cartesiano de las divisas pedidas, así
+    # que puede traer pares que nadie pidió: se descartan aquí en vez de
+    # componer un OR por par, que con muchos pares sería una consulta enorme.
+    return {
+        (base, quote): (first, last)
+        for base, quote, first, last in rows
+        if first is not None and last is not None and (base, quote) in wanted
+    }
+
+
 def get_fx_rates(
     db: Session, currencies: Iterable[str], base: str, on_date: dt.date | None = None
 ) -> dict[str, Decimal | None]:

@@ -49,6 +49,15 @@ class Settings(BaseSettings):
     fx_ttl_market_closed_seconds: int = 14_400  # 4 h
     metadata_ttl_seconds: int = 2_592_000  # 30 días
 
+    # Histórico de tipos de cambio. TTL de un día, no de 15 minutos: son
+    # CIERRES ya cerrados, y el tipo del día en curso lo mantiene fresco
+    # `refresh_fx` con la cotización viva.
+    fx_history_ttl_seconds: int = 86_400  # 24 h
+    # Ventana por defecto del relleno. 1.100 días es la misma retención que las
+    # barras de precio: la curva de valor cruza las dos series y una ventana
+    # más corta en divisas recortaría la curva justo donde hay precios.
+    fx_history_days: int = 1_100
+
     # ------------------------------------------------------------------
     # Pipeline de ingesta
     # ------------------------------------------------------------------

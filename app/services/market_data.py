@@ -28,7 +28,7 @@ from app.core.exceptions import (
     ProviderUnreachable,
     SymbolNotFound,
 )
-from app.db.bulk import insert_ignore_duplicates
+from app.db.bulk import insert_ignore_duplicates, upsert
 from app.models import Asset, AssetQuote, AssetType, FundamentalSnapshot, FxRateDaily, PriceHistory
 from app.providers.base import MarketProvider
 from app.providers.cache import ResourceType, SyncGate, flight_lock
@@ -908,6 +908,116 @@ class MarketDataService:
             lock.release()
         return report
 
+    def refresh_fx_history(
+        self, pairs: list[tuple[str, str]], *, days: int = 0, force: bool = False
+    ) -> RefreshReport:
+        """Rellena los CIERRES diarios ausentes de cada par de divisas.
+
+        POR QUÉ HACE FALTA. `fx_rates` acumulaba un tipo por día, pero solo
+        desde que la aplicación empezó a correr: al escribir esto eran tres
+        semanas de USD/COP. Tres semanas no sirven para valorar un histórico, y
+        sin eso una cartera con posiciones en COP no puede dibujar su curva de
+        valor ni compararse con un índice más allá de ese mes escaso.
+
+        Se pide solo desde el día siguiente al último almacenado, igual que las
+        barras de precio, porque un cierre pasado es inmutable. `days` fuerza
+        una ventana concreta para la carga inicial.
+
+        NO PISA lo ya guardado (`ON CONFLICT DO NOTHING`). Es deliberado: el
+        tipo del día en curso lo escribe `refresh_fx` con la cotización VIVA, y
+        el cierre de esa misma fecha llegaría después y lo sustituiría por un
+        valor más viejo. Rellenar huecos y corregir el presente son dos cosas
+        distintas.
+        """
+        report = RefreshReport()
+        pairs = [(b.upper(), q.upper()) for b, q in pairs if b.upper() != q.upper()]
+        if not pairs:
+            return report
+
+        ttl = settings.fx_history_ttl_seconds
+        today = dt.date.today()
+        pending = [
+            pair
+            for pair in pairs
+            if self.gate.should_fetch(
+                ResourceType.FX_HISTORY, f"{pair[0]}{pair[1]}", ttl, force=force
+            )
+        ]
+        if not pending:
+            return report
+        if self._cooling_down(report):
+            return report
+
+        stored_range = market_repo.get_fx_date_range(self.db, pending)
+        floor = today - dt.timedelta(days=days or settings.fx_history_days)
+
+        rows: list[dict] = []
+        for pair in pending:
+            key = f"{pair[0]}{pair[1]}"
+            self.gate.mark_attempt(ResourceType.FX_HISTORY, key, ttl)
+
+            # De dónde arrancar. No basta con "el día siguiente al último":
+            # eso solo sabe avanzar, y en una base que ya tenía unas semanas
+            # dejaba intacto todo el hueco anterior. Si la primera fecha
+            # almacenada es posterior al suelo de la ventana, falta lo de
+            # antes y se pide entero; el ON CONFLICT DO NOTHING hace que el
+            # solape no cueste ninguna escritura.
+            stored = stored_range.get(pair)
+            if stored is None or stored[0] > floor:
+                start = floor
+            else:
+                start = stored[1] + dt.timedelta(days=1)
+
+            if start > today:
+                self.gate.mark_success(ResourceType.FX_HISTORY, key, ttl)
+                continue
+
+            try:
+                fetched = self.provider.fetch_fx_history([pair], start, today)
+            except ProviderError as exc:
+                report.note(
+                    self._blame_failure(
+                        exc, ResourceType.FX_HISTORY, [key], ttl,
+                        "No se pudo traer el histórico de tipos de cambio",
+                    )
+                )
+                continue
+
+            serie = fetched.get(pair, [])
+            for when, rate in serie:
+                # El día EN CURSO no se toca: su tipo lo mantiene `refresh_fx`
+                # con la cotización viva, y el "cierre" que Yahoo devuelve para
+                # hoy es sencillamente el último precio, que quedaría congelado
+                # como si la jornada hubiera terminado.
+                if when >= today:
+                    continue
+                rows.append({
+                    "base_currency": pair[0],
+                    "quote_currency": pair[1],
+                    "date": when,
+                    "rate": Decimal(str(rate)),
+                    "source": "yfinance:close",
+                    "fetched_at": dt.datetime.now(dt.UTC),
+                })
+            self.gate.mark_success(ResourceType.FX_HISTORY, key, ttl)
+            report.fx_updated += sum(1 for when, _ in serie if when < today)
+
+        if rows:
+            # PISA lo que hubiera, y es deliberado. Una fila de un día pasado
+            # escrita por el refresco de jornada guarda la cotización viva del
+            # momento en que se pidió, no el cierre: medido sobre USD/COP, esas
+            # filas se desviaban del cierre entre 0,1% y 0,9%. Para valorar un
+            # día ya cerrado el canónico es el cierre.
+            upsert(
+                self.db,
+                FxRateDaily.__table__,
+                rows,
+                index_elements=["base_currency", "quote_currency", "date"],
+                update_columns=["rate", "source", "fetched_at"],
+            )
+        self.db.commit()
+        return report
+
     def refresh_quotes_and_fx(
         self, assets: list[Asset], base_currencies: list[str], *, force: bool = False
     ) -> RefreshReport:
@@ -956,4 +1066,7 @@ class MarketDataService:
             }
         )
         report.merge(self.refresh_fx(pairs, force=force))
+        # El histórico va en el job completo y no en el de jornada: son cierres
+        # inmutables, igual que las barras de precio.
+        report.merge(self.refresh_fx_history(pairs, force=force))
         return report
