@@ -33,6 +33,42 @@
   scripts/scheduled_refresh.py decide que hacer segun la hora del Este; los
   fines de semana sale sin tocar la red, y launchd ejecuta la corrida perdida
   al despertar el equipo.
+
+  MANTENER DESPIERTO EL EQUIPO. El comando va envuelto en `caffeinate`, que
+  sostiene una aserción de energía mientras el refresco corre y la suelta al
+  terminar. No es un adorno: muchos portátiles se suspenden en cuanto quedan
+  inactivos y una sincronización completa tarda entre 7 y 15 minutos,
+  así que sin esto se dormía a mitad. Comprueba el tuyo con `pmset -g | grep sleep`.
+
+    -i  no dormir por inactividad   (funciona también con batería)
+    -m  no dormir el disco
+    -s  no suspender el sistema     (solo tiene efecto con el cargador puesto)
+
+  Pantalla BLOQUEADA no es lo mismo que equipo SUSPENDIDO: con la pantalla
+  bloqueada y el Mac despierto, este agente ya corría bien. Lo que lo rompía
+  era la suspensión.
+
+  DESPERTAR el equipo para la corrida es lo único que launchd no puede hacer
+  por sí solo: si el Mac duerme a las 18:00, el disparo no existe y launchd lo
+  ejecuta al despertar, tarde. Para que la sincronización completa ocurra a su
+  hora hace falta programar un despertador, y eso pide permisos de
+  administrador (una sola vez):
+
+    sudo pmset repeat wakeorpoweron MTWRF 17:55:00
+
+  Se elige la franja de cierre porque es la única que hace el trabajo pesado
+  -barras, fundamentales y metadatos-; las otras tres son cotizaciones y se
+  ponen al día solas en la siguiente corrida. `pmset repeat` admite UN horario
+  repetido, así que hay que escoger, y esta es la que importa.
+
+  Comprobar y quitar el despertador:
+
+    pmset -g sched
+    sudo pmset repeat cancel
+
+  Con BATERÍA el despertar programado es poco fiable y macOS lo pospone si
+  queda poca carga: para una sincronización diaria puntual, el equipo debería
+  estar enchufado a esa hora.
 -->
 <plist version="1.0">
 <dict>
@@ -41,6 +77,14 @@
 
     <key>ProgramArguments</key>
     <array>
+        <!-- caffeinate sostiene la aserción de energía mientras dura el
+             refresco y la suelta al terminar: sin esto el equipo se suspende
+             al minuto y la sincronización muere a mitad. Ver la nota de
+             arriba. -->
+        <string>/usr/bin/caffeinate</string>
+        <string>-i</string>
+        <string>-m</string>
+        <string>-s</string>
         <string>__RUTA_PROYECTO__/.venv/bin/python</string>
         <string>-m</string>
         <string>scripts.scheduled_refresh</string>
