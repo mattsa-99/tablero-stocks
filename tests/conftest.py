@@ -20,6 +20,14 @@ os.environ["TABLERO_DATABASE_URL"] = f"sqlite:///{Path(_TMP_DIR) / 'test.db'}"
 # red de verdad.
 os.environ["TABLERO_ENABLE_BACKGROUND_REFRESH"] = "false"
 
+# Por el mismo motivo: `Settings` lee el `.env` del directorio de trabajo, así
+# que sin fijarla aquí la suite hereda la divisa base del desarrollador. Pasó
+# de verdad: `test_intraday_universe_refresh_touches_only_quotes_and_fx`
+# esperaba un par de cambio y pasaba en local -con un `.env` que ponía COP- y
+# fallaba en un checkout limpio, donde el valor por defecto es USD. Se fija al
+# valor de producción para que la suite pruebe la configuración real.
+os.environ["TABLERO_DEFAULT_BASE_CURRENCY"] = "USD"
+
 from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
