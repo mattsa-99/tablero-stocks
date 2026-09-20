@@ -115,13 +115,22 @@ def _value_replay(
     real_ids = [aid for aid in assets if aid > 0]
     quotes = market_repo.get_quotes(db, real_ids)
 
-    fx_cache: dict[str, Decimal | None] = {}
+    # Mismo deduplicado que en `portfolio.build_positions`, y por la misma
+    # razón: el "antes" del simulador y el portafolio real tienen que valorar
+    # con los mismos tipos, o la comparación que el simulador promete no
+    # significaría nada.
+    fx_by_currency = market_repo.get_fx_rates(
+        db, (a.currency for a in assets.values()), base_currency
+    )
 
     def fx_for(currency: str) -> Decimal | None:
-        currency = currency.upper()
-        if currency not in fx_cache:
-            fx_cache[currency] = market_repo.get_fx_rate(db, currency, base_currency)
-        return fx_cache[currency]
+        key = currency.upper()
+        if key not in fx_by_currency:
+            # Una divisa que no venía en `assets` se resuelve igualmente: el
+            # deduplicado es una optimización, nunca un silencio que devuelva
+            # "sin tipo" por no haberlo buscado.
+            fx_by_currency[key] = market_repo.get_fx_rate(db, key, base_currency)
+        return fx_by_currency[key]
 
     by_sector: dict[str, Decimal] = {}
     by_symbol: dict[str, Decimal] = {}

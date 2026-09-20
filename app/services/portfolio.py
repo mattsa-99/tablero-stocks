@@ -52,6 +52,14 @@ def build_positions(
     quotes = market_repo.get_quotes(db, asset_ids)
 
     base_currency = portfolio.base_currency.upper()
+    # Los tipos de cambio, UNA vez por divisa y no una por posición. Antes
+    # `get_fx_rate` vivía dentro del bucle: veinte posiciones en dólares eran
+    # veinte consultas -cuarenta contando el intento con el par inverso-
+    # resolviendo el mismo USD->COP. Una cartera tiene decenas de posiciones
+    # pero dos o tres divisas.
+    fx_by_currency = market_repo.get_fx_rates(
+        db, (a.currency for a in assets.values()), base_currency
+    )
     rows: list[tuple[PositionRead, Decimal | None]] = []
     without_price: list[str] = []
 
@@ -62,7 +70,7 @@ def build_positions(
             continue
 
         quote = quotes.get(asset.id)
-        fx_now = market_repo.get_fx_rate(db, asset.currency.upper(), base_currency)
+        fx_now = fx_by_currency.get(asset.currency.upper())
 
         current_price = to_decimal(quote.price) if quote else None
         market_value: Decimal | None = None

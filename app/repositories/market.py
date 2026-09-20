@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Iterable
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -189,6 +190,36 @@ def get_fx_rate(
         return Decimal("1") / inverse
 
     return None
+
+
+def get_fx_rates(
+    db: Session, currencies: Iterable[str], base: str, on_date: dt.date | None = None
+) -> dict[str, Decimal | None]:
+    """Tipos `divisa` -> `base` de VARIAS divisas, sin repetir consultas.
+
+    Existe porque `get_fx_rate` se llamaba dentro del bucle de posiciones: con
+    veinte posiciones en dólares eran veinte consultas -o cuarenta, porque el
+    par inverso es una segunda- resolviendo exactamente el mismo par. Una
+    cartera tiene decenas de posiciones pero dos o tres divisas, así que
+    deduplicar por divisa es donde está todo el ahorro.
+
+    Deliberadamente NO intenta resolverlo en una sola consulta con GROUP BY:
+    cada par necesita "la fila más reciente hasta la fecha", el número de
+    divisas distintas es diminuto y una consulta única traería todo el
+    histórico de esos pares para descartarlo en Python. Deduplicar basta y
+    deja `get_fx_rate` como el único sitio donde vive la regla de directo,
+    inverso y rechazo.
+
+    Un valor None se CONSERVA en el diccionario: significa "no hay tipo" y el
+    llamador debe distinguirlo de "no lo he pedido". Asumir 1 erraría por
+    ~4000x en COP/USD.
+    """
+    resolved: dict[str, Decimal | None] = {}
+    for currency in currencies:
+        key = currency.upper()
+        if key not in resolved:
+            resolved[key] = get_fx_rate(db, key, base, on_date)
+    return resolved
 
 
 def get_assets_by_symbols(db: Session, symbols: list[str]) -> dict[str, Asset]:
