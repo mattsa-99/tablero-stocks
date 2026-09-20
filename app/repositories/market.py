@@ -81,6 +81,86 @@ def get_price_series_bulk(
     return series
 
 
+def get_price_series_dated(
+    db: Session,
+    asset_ids: list[int],
+    *,
+    since: dt.date,
+    adjusted: bool = True,
+) -> dict[int, list[tuple[dt.date, float]]]:
+    """Series (fecha, precio) de varios activos en UNA consulta.
+
+    `adjusted` elige la columna, y la elección NO es un detalle de precisión:
+
+    - `True` (`adj_close`) para medir RENDIMIENTO: momentum, volatilidad,
+      correlación. Sin ajustar por splits, un 2:1 aparece como una caída del
+      50% y el momentum sale con el signo invertido.
+    - `False` (`close`) para VALORAR una cartera en una fecha. `adj_close`
+      reescribe el pasado también por dividendos, y esos ya están en el ledger
+      como entradas de caja: usarlo los contaría dos veces. Además el último
+      punto de la curva tiene que coincidir con el valor que el tablero enseña
+      arriba, y ese se calcula con el precio real, no con el ajustado.
+
+    El coste de `close` es que un split no registrado en el ledger aparece como
+    un desplome. Hoy el ledger no procesa `SPLIT`, así que ese caso ya deja la
+    posición mal en la valoración de hoy, no solo en la curva.
+    """
+    if not asset_ids:
+        return {}
+
+    column = PriceHistory.adj_close if adjusted else PriceHistory.close
+    rows = db.execute(
+        select(
+            PriceHistory.asset_id,
+            PriceHistory.date,
+            func.coalesce(column, PriceHistory.close),
+        )
+        .where(PriceHistory.asset_id.in_(asset_ids), PriceHistory.date >= since)
+        .order_by(PriceHistory.asset_id, PriceHistory.date)
+    ).all()
+
+    series: dict[int, list[tuple[dt.date, float]]] = {}
+    for asset_id, day, price in rows:
+        if price is not None and price > 0:
+            series.setdefault(asset_id, []).append((day, price))
+    return series
+
+
+def get_fx_series(
+    db: Session, pairs: Iterable[tuple[str, str]], *, since: dt.date
+) -> dict[tuple[str, str], list[tuple[dt.date, Decimal]]]:
+    """Series diarias de varios pares, ascendentes por fecha.
+
+    Solo el par DIRECTO: invertir una serie entera para ahorrarse una fila por
+    día escondería que falta el dato, y aquí un tipo ausente tiene que notarse.
+    El relleno (`refresh_fx_history`) guarda los dos sentidos.
+    """
+    wanted = {(b.upper(), q.upper()) for b, q in pairs}
+    if not wanted:
+        return {}
+
+    rows = db.execute(
+        select(
+            FxRateDaily.base_currency,
+            FxRateDaily.quote_currency,
+            FxRateDaily.date,
+            FxRateDaily.rate,
+        )
+        .where(
+            FxRateDaily.base_currency.in_({b for b, _ in wanted}),
+            FxRateDaily.quote_currency.in_({q for _, q in wanted}),
+            FxRateDaily.date >= since,
+        )
+        .order_by(FxRateDaily.base_currency, FxRateDaily.quote_currency, FxRateDaily.date)
+    ).all()
+
+    series: dict[tuple[str, str], list[tuple[dt.date, Decimal]]] = {}
+    for base, quote, day, rate in rows:
+        if (base, quote) in wanted and rate is not None and rate > 0:
+            series.setdefault((base, quote), []).append((day, rate))
+    return series
+
+
 def get_last_bar_dates(db: Session, asset_ids: list[int]) -> dict[int, dt.date]:
     """Última barra almacenada de cada activo, en una sola consulta.
 

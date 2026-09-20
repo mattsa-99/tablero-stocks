@@ -30,6 +30,7 @@ from app.routers import (
     market,
     market_data,
     opportunities,
+    performance,
     portfolios,
     suggestion,
     transactions,
@@ -175,6 +176,7 @@ app.mount(
 app.include_router(portfolios.router)
 app.include_router(transactions.router)
 app.include_router(opportunities.router)
+app.include_router(performance.router)
 app.include_router(market.router)
 app.include_router(market_data.router)
 app.include_router(suggestion.router)
