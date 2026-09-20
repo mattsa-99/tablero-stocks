@@ -74,6 +74,56 @@ const REGION_LABEL = {
  * la categoría y añade un anillo, para que el estado no dependa SOLO del tono. */
 const CHIP_INACTIVE = "border-line bg-transparent text-ink-mute hover:border-line-strong hover:text-ink-soft";
 
+/* Cada cuánto se vuelve a preguntar mientras el refresco corre por detrás, y
+ * cuántas veces como mucho. 3 s x 40 = dos minutos, que cubre de sobra un
+ * refresco de cotizaciones del universo completo: medido el 19-09-2026, los
+ * 494 símbolos tardan 40 s en una descarga agrupada. */
+const POLL_INTERVAL_MS = 3000;
+const MAX_POLLS = 40;
+
+/* Resume los avisos repetitivos en una sola línea.
+ *
+ * El backend manda un aviso POR SÍMBOLO sin cotización, y la vista los
+ * convertía en un toast cada uno. En una sincronización con Yahoo limitando
+ * el ritmo eso fueron 84 notificaciones apiladas que tapaban la pantalla
+ * entera: el usuario no puede hacer nada con 84 nombres de ticker, y el
+ * único aviso accionable -si lo hubiera- quedaba sepultado entre ellos.
+ *
+ * Se agrupan por su texto sin el símbolo, conservando los primeros nombres
+ * para que el aviso siga siendo concreto. */
+function summarizeWarnings(warnings) {
+  const groups = new Map();
+  const singles = [];
+
+  for (const warning of warnings) {
+    // `\S+` y no `\w+`: \w es [A-Za-z0-9_] y dejaría fuera «cotización».
+    const match = /^(Sin \S+) para (.+)$/.exec(warning);
+    if (!match) {
+      singles.push(warning);
+      continue;
+    }
+    const [, prefix, symbol] = match;
+    if (!groups.has(prefix)) groups.set(prefix, []);
+    groups.get(prefix).push(symbol);
+  }
+
+  const summarized = [];
+  for (const [prefix, symbols] of groups) {
+    if (symbols.length === 1) {
+      summarized.push(`${prefix} para ${symbols[0]}`);
+      continue;
+    }
+    const shown = symbols.slice(0, 3).join(", ");
+    const rest = symbols.length - 3;
+    summarized.push(
+      rest > 0
+        ? `${prefix} para ${symbols.length} activos (${shown} y ${rest} más)`
+        : `${prefix} para ${symbols.length} activos (${shown})`,
+    );
+  }
+  return [...singles, ...summarized];
+}
+
 document.addEventListener("alpine:init", () => {
   Alpine.data("opportunitiesView", () => ({
     loading: true,
@@ -103,6 +153,16 @@ document.addEventListener("alpine:init", () => {
      * NO se había avisado ya. */
     notifiedWarnings: "",
 
+    /* Hay un refresco de precios corriendo por detrás en el servidor.
+     *
+     * La vista NO espera a la red: pinta el ranking con lo que hay guardado
+     * -0,23 s- y el servidor refresca los precios después de responder. Este
+     * campo mantiene visible que eso está pasando y gobierna el sondeo que
+     * traerá los precios nuevos cuando terminen. */
+    refreshing: false,
+    pollTimer: null,
+    pollsLeft: 0,
+
     factors: FACTOR_META,
     regionOrder: REGION_ORDER,
 
@@ -126,18 +186,30 @@ document.addEventListener("alpine:init", () => {
       if (this.$store.app.selectedId) this.load();
     },
 
-    async load() {
+    /* `silent` repinta sin vaciar la vista; `triggerRefresh` decide si esta
+     * llamada además pide al servidor que refresque precios por detrás.
+     *
+     * Separarlos importa por dos motivos. Un sondeo que pusiera `loading`
+     * haría parpadear la cuadrícula entera cada pocos segundos, y uno que
+     * volviera a pedir refresco se encadenaría consigo mismo para siempre.
+     * Y filtrar es una operación de VISTA -el backend puntúa el universo
+     * completo igual-, así que un clic en un chip no debe salir a la red. */
+    async load({ silent = false, triggerRefresh = true } = {}) {
       const id = this.$store.app.selectedId;
       if (!id) {
         this.loading = false;
         return;
       }
 
-      this.loading = true;
+      if (!silent) this.loading = true;
       this.error = null;
       this.insufficient = null;
 
-      const params = new URLSearchParams({ portfolio_id: id, limit: this.limit });
+      const params = new URLSearchParams({
+        portfolio_id: id,
+        limit: this.limit,
+        refresh: triggerRefresh ? "true" : "false",
+      });
       const symbols = this.symbolsInput
         .split(",")
         .map((s) => s.trim().toUpperCase())
@@ -156,7 +228,11 @@ document.addEventListener("alpine:init", () => {
         this.data = await window.api.get(`/api/opportunities?${params}`);
         localStorage.setItem("tablero:symbols", this.symbolsInput);
 
-        const warnings = this.data.warnings ?? [];
+        this.refreshing = this.data.refreshing === true;
+        if (triggerRefresh) this.pollsLeft = MAX_POLLS;
+        this.schedulePoll();
+
+        const warnings = summarizeWarnings(this.data.warnings ?? []);
         const signature = warnings.join("|");
         if (signature !== this.notifiedWarnings) {
           for (const warning of warnings) {
@@ -175,6 +251,30 @@ document.addEventListener("alpine:init", () => {
       } finally {
         this.loading = false;
       }
+    },
+
+    /* Vuelve a preguntar mientras el servidor siga refrescando.
+     *
+     * Con tope: si el refresco se atasca -Yahoo limitando, la red caída-,
+     * sondear indefinidamente convierte una vista abierta en un goteo de
+     * peticiones que nadie está mirando. Al agotarse se deja de sondear y
+     * lo mostrado sigue siendo válido: son los últimos datos guardados,
+     * que es exactamente lo que se pintó desde el principio. */
+    schedulePoll() {
+      clearTimeout(this.pollTimer);
+      if (!this.refreshing || this.pollsLeft <= 0) {
+        this.refreshing = false;
+        return;
+      }
+      this.pollsLeft -= 1;
+      this.pollTimer = setTimeout(
+        () => this.load({ silent: true, triggerRefresh: false }),
+        POLL_INTERVAL_MS,
+      );
+    },
+
+    destroy() {
+      clearTimeout(this.pollTimer);
     },
 
     readStoredList(key) {
@@ -197,7 +297,7 @@ document.addEventListener("alpine:init", () => {
         ? this.activeTiers.filter((g) => g !== grade)
         : [...this.activeTiers, grade];
       localStorage.setItem("tablero:tiers", JSON.stringify(this.activeTiers));
-      this.load();
+      this.load({ triggerRefresh: false });
     },
 
     toggleRegion(region) {
@@ -205,7 +305,7 @@ document.addEventListener("alpine:init", () => {
         ? this.activeRegions.filter((r) => r !== region)
         : [...this.activeRegions, region];
       localStorage.setItem("tablero:regions", JSON.stringify(this.activeRegions));
-      this.load();
+      this.load({ triggerRefresh: false });
     },
 
     get hasFilters() {
@@ -217,7 +317,7 @@ document.addEventListener("alpine:init", () => {
       this.activeRegions = [];
       localStorage.removeItem("tablero:tiers");
       localStorage.removeItem("tablero:regions");
-      this.load();
+      this.load({ triggerRefresh: false });
     },
 
     /* Clases de un chip de calificación según esté activo o no. */

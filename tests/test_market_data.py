@@ -16,6 +16,7 @@ from app.providers.cache import ResourceType, SyncGate
 from app.services.market_data import MarketDataService, fx_sanity_check
 from tests.fakes import (
     RATE_LIMIT,
+    UNAVAILABLE,
     FakeProvider,
     fundamentals,
     metadata,
@@ -69,6 +70,144 @@ def test_force_does_not_bypass_backoff(db):
 
     service.refresh_quotes([asset], force=True)
     assert provider.call_count("fetch_quotes") == 1, "El backoff debe seguir en pie"
+
+
+def test_a_rate_limit_is_not_blamed_on_the_symbols(db):
+    """Un 429 no dice nada sobre el ticker: dice que hay que parar de pedir.
+
+    Es la diferencia entre degradar y averiarse. Cargarle el límite a cada
+    símbolo les sube su contador de fallos consecutivos y los mete en un
+    backoff exponencial individual, como si estuvieran rotos. Pasó de verdad:
+    las sincronizaciones del 16, 17 y 18 de septiembre de 2026 marcaron 469,
+    420 y 494 símbolos como fallidos por un límite ajeno a ellos, y el
+    universo entero quedaba en penitencia.
+    """
+    assets = [make_asset(db, symbol=s) for s in ("AAPL", "MSFT", "KO")]
+    service = MarketDataService(db, FakeProvider(fail_with=RATE_LIMIT))
+
+    service.refresh_quotes(assets)
+
+    for asset in assets:
+        state = db.scalar(
+            select(DataSyncState).where(
+                DataSyncState.resource_type == ResourceType.QUOTE,
+                DataSyncState.resource_key == asset.symbol,
+            )
+        )
+        assert state.consecutive_failures == 0, (
+            f"{asset.symbol} no tiene la culpa de que Yahoo limite el ritmo"
+        )
+
+    provider_state = db.scalar(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.PROVIDER
+        )
+    )
+    assert provider_state is not None, "El 429 se apunta contra el proveedor"
+    assert provider_state.consecutive_failures == 1
+    assert provider_state.next_eligible_at is not None
+
+
+def test_an_ordinary_failure_is_still_blamed_on_the_symbols(db):
+    """Lo contrario del anterior: un fallo normal SÍ es atribuible a lo pedido."""
+    asset = make_asset(db)
+    service = MarketDataService(db, FakeProvider(fail_with=UNAVAILABLE))
+
+    service.refresh_quotes([asset])
+
+    state = db.scalar(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.QUOTE,
+            DataSyncState.resource_key == "AAPL",
+        )
+    )
+    assert state.consecutive_failures == 1
+    assert db.scalar(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.PROVIDER
+        )
+    ) is None
+
+
+def test_the_cooldown_silences_every_resource_not_just_quotes(db):
+    """El enfriamiento es del proveedor, así que alcanza a todo el pipeline.
+
+    Sin esto, un 429 en cotizaciones no impediría que el mismo ciclo siguiera
+    pidiendo histórico, fundamentales y metadatos al proveedor que acaba de
+    decir que pares, alargando el castigo.
+    """
+    asset = make_asset(db)
+    provider = FakeProvider(fail_with=RATE_LIMIT)
+    service = MarketDataService(db, provider)
+
+    service.refresh_quotes([asset])
+    assert provider.call_count("fetch_quotes") == 1
+
+    report = service.full_refresh([asset], ["USD"], force=True)
+
+    assert provider.call_count("fetch_quotes") == 1
+    assert provider.call_count("fetch_history") == 0
+    assert provider.call_count("fetch_fundamentals") == 0
+    assert provider.call_count("fetch_metadata") == 0
+    assert any("limitó las peticiones" in w for w in report.warnings)
+
+
+def test_the_cooldown_warning_is_said_once_not_five_times(db):
+    """`full_refresh` encadena cinco refrescos y todos ven el mismo enfriamiento.
+
+    Sin deduplicar, la interfaz muestra cinco notificaciones idénticas.
+    """
+    asset = make_asset(db)
+    service = MarketDataService(db, FakeProvider(fail_with=RATE_LIMIT))
+    service.refresh_quotes([asset])
+
+    report = service.full_refresh([asset], ["USD"], force=True)
+
+    cooldown = [w for w in report.warnings if "limitó las peticiones" in w]
+    assert len(cooldown) == 1, report.warnings
+
+
+def test_a_good_call_clears_the_rate_limit_counter(db):
+    """Sin esto el enfriamiento solo sube y acaba clavado en el techo de 6 h."""
+    gate = SyncGate(db)
+    gate.mark_rate_limited(RATE_LIMIT)
+    gate.mark_rate_limited(RATE_LIMIT)
+    db.commit()
+    assert gate.provider_cooldown_until() is not None
+
+    gate.clear_rate_limit()
+    db.commit()
+
+    assert gate.provider_cooldown_until() is None
+
+
+def test_recovering_reopens_the_provider(db):
+    """Que el enfriamiento se cierre solo al volver Yahoo, sin intervención.
+
+    Comprueba el CABLEADO, no el método: `clear_rate_limit` existía y no lo
+    llamaba nadie, así que el contador de 429 solo podía subir y el
+    enfriamiento habría acabado clavado en el techo de 6 horas.
+    """
+    asset = make_asset(db)
+    gate = SyncGate(db)
+    gate.mark_rate_limited(RATE_LIMIT)
+    db.commit()
+
+    # Se vence el enfriamiento a mano: lo que se prueba es qué pasa DESPUÉS.
+    state = db.scalar(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.PROVIDER
+        )
+    )
+    state.next_eligible_at = dt.datetime.now(dt.UTC) - dt.timedelta(seconds=1)
+    db.commit()
+
+    provider = FakeProvider(quotes={"AAPL": quote("AAPL", 230.0)})
+    MarketDataService(db, provider).refresh_quotes([asset])
+
+    db.refresh(state)
+    assert state.consecutive_failures == 0, "Una respuesta buena reabre el proveedor"
+    assert state.next_eligible_at is None
 
 
 def test_backoff_grows_with_consecutive_failures(db):

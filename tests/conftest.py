@@ -96,7 +96,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
-from app.routers.dependencies import get_provider  # noqa: E402
+from app.routers.dependencies import get_provider, get_session_factory  # noqa: E402
 from tests.fakes import (  # noqa: E402
     FakeProvider,
     fundamentals,
@@ -192,6 +192,10 @@ def client(api_session_factory, provider) -> Iterator[TestClient]:
 
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_provider] = lambda: provider
+    # Las tareas de fondo se abren su PROPIA sesión, porque la de la petición
+    # ya está cerrada cuando arrancan. Sin sustituir también la fábrica,
+    # escribirían en tablero.db -la base de verdad- mientras corre la suite.
+    app.dependency_overrides[get_session_factory] = lambda: api_session_factory
 
     # El planificador se apaga: un bucle de fondo en los tests introduce
     # llamadas no deterministas y hace fallar aserciones de conteo.

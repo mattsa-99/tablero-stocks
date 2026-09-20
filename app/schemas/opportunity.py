@@ -132,6 +132,16 @@ class OpportunityResponse(BaseModel):
         description="Aviso cuando NINGÚN candidato alcanza una calificación buena",
     )
 
+    refreshing: bool = Field(
+        default=False,
+        description=(
+            "Hay un refresco de precios en curso por detrás. La respuesta ya "
+            "es válida -está puntuada con los últimos datos guardados-; "
+            "cuando esto sea true conviene volver a pedirla en unos segundos "
+            "para ver los precios recién traídos"
+        ),
+    )
+
     warnings: list[str] = Field(default_factory=list)
     excluded: dict[str, str] = Field(
         default_factory=dict, description="símbolo -> motivo de exclusión"

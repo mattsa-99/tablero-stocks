@@ -4,19 +4,19 @@ from __future__ import annotations
 
 import datetime as dt
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, BackgroundTasks, Query
 
 from app.core.exceptions import InsufficientUniverse
 from app.repositories import portfolio as portfolio_repo
-from app.routers.dependencies import DbSession, MarketService, ProviderDep
+from app.routers.dependencies import DbSession, ProviderDep, SessionFactory
 from app.schemas.suggestion import (
     SuggestionFactors,
     SuggestionRead,
     SuggestionResponse,
     VolatilityImpactRead,
 )
-from app.services import ingestion as ingestion_service
 from app.services import opportunities as opportunity_service
+from app.services import refresh_jobs
 from app.services import suggestion as suggestion_service
 from app.services import universe as universe_service
 
@@ -83,14 +83,21 @@ def _to_read(candidate: suggestion_service.SuggestionCandidate) -> SuggestionRea
 @router.get("/{portfolio_id}/suggested-stock", response_model=SuggestionResponse)
 def suggested_stock(
     db: DbSession,
-    market: MarketService,
     provider: ProviderDep,
+    session_factory: SessionFactory,
+    background: BackgroundTasks,
     portfolio_id: int,
     pool: int = Query(25, ge=5, le=50, description="Cuántas oportunidades se consideran"),
     weight: float = Query(
         0.05, gt=0, le=0.5, description="Peso hipotético de la compra, para medir el impacto"
     ),
-    refresh: bool = Query(True),
+    refresh: bool = Query(
+        True,
+        description=(
+            "Lanzar un refresco de precios POR DETRÁS. Nunca retrasa esta "
+            "respuesta"
+        ),
+    ),
 ):
     """La siguiente mejor compra, optimizando encaje en la cartera actual.
 
@@ -111,10 +118,20 @@ def suggested_stock(
             f"símbolos antes de pedir una sugerencia."
         )
 
+    # Mismo criterio que en oportunidades: el job completo no cabe en una
+    # petición. Aquí el universo ya está ingestado -si no, arriba habría
+    # saltado `InsufficientUniverse`-, así que no hay nada que cargar en línea
+    # y el refresco de precios se encola para después de responder.
     warnings: list[str] = []
-    if refresh:
-        warnings.extend(ingestion_service.ensure_data_for(db, provider, assets).warnings)
-        warnings.extend(market.full_refresh(assets, [portfolio.base_currency]).warnings)
+    if refresh and assets:
+        background.add_task(
+            refresh_jobs.refresh_quotes_for,
+            session_factory,
+            provider,
+            [a.symbol for a in assets],
+            portfolio.base_currency,
+            scope=f"opportunities:{portfolio.id}",
+        )
 
     ranking = opportunity_service.compute_opportunities(
         db, portfolio, assets=assets, limit=pool

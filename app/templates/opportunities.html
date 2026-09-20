@@ -163,6 +163,16 @@
         · <span x-text="data.universe_size"></span> evaluados de
         <span x-text="data.universe_requested"></span>
       </span>
+      <!-- Refresco por detrás. La vista YA es válida -está puntuada con los
+           últimos datos guardados-, así que esto informa, no bloquea: nada
+           de spinner a pantalla completa ni de deshabilitar controles. Se
+           apaga solo cuando el sondeo ve que el servidor terminó. -->
+      <span x-show="refreshing" x-cloak
+            class="inline-flex items-center gap-1.5 text-xs text-ink-mute"
+            title="Se están trayendo los precios más recientes. Mientras tanto ves los últimos guardados.">
+        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-ink-mute" aria-hidden="true"></span>
+        actualizando precios…
+      </span>
       <!-- Leyenda de factores: identidad por punto de color junto al texto,
            nunca coloreando el texto. -->
       <ul class="ml-auto flex flex-wrap items-center gap-x-3.5 gap-y-1.5">

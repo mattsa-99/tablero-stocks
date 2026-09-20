@@ -127,6 +127,57 @@ barras diarias, fundamentales y FX en el job completo (APScheduler, 18:00
 "última sincronización". El planificador tiene recuperación al arrancar porque
 un portátil apagado a las 18:00 ET nunca vería el cron.
 
+**Ninguna petición HTTP espera a la red.** `app/services/refresh_jobs.py`
+encola el refresco para DESPUÉS de enviar la respuesta, con su propia sesión
+y un candado no bloqueante. La regla nació de una medición: la vista de
+oportunidades llamaba a `full_refresh` -el job de dos veces por semana- sobre
+los 494 símbolos dentro de la petición, y tardaba **269 s** frente a los
+**0,23 s** de puntuar lo ya guardado.
+
+Del job completo, lo único que cambia intradía y le importa al ranking es el
+PRECIO (de ahí sale `fresh_trailing_pe`): las barras diarias son cierres
+inmutables, los fundamentales trimestrales y los metadatos tienen TTL de 30
+días. Por eso el refresco de fondo es `refresh_quotes_and_fx` y no
+`full_refresh`. La respuesta trae `refreshing` y el frontend sondea con
+`refresh=false` hasta que baja; filtrar NO refresca, porque es una operación
+de vista.
+
+La excepción son los símbolos que el usuario **escribe** en `?symbols=`: esos
+se cargan en línea, porque sin histórico no se pueden puntuar y desaparecerían
+del ranking que se pidió a propósito. Son un puñado, no 494.
+
+**Un 429 se apunta contra el proveedor, nunca contra los símbolos.** Es la
+diferencia entre degradar y averiarse. `SyncGate.mark_rate_limited` mantiene
+un enfriamiento global (`ResourceType.PROVIDER`) en vez de subirle el contador
+de fallos a cada símbolo: cargárselo a ellos los mete en un backoff
+exponencial individual como si el ticker estuviera roto. Medido antes de
+arreglarlo: las sincronizaciones del 16, 17 y 18 de septiembre de 2026
+marcaron 469, 420 y 494 símbolos como fallidos por un límite ajeno a ellos.
+Cualquier respuesta correcta cierra el enfriamiento (`clear_rate_limit`, desde
+`mark_success`); sin eso el contador solo sube y se clava en el techo de 6 h.
+
+**`fetch_quotes` va en lote de verdad, y no lo parecía.** `yf.Tickers(...)` es
+perezoso: se construye en 3 ms y cada `fast_info` posterior es una petición
+HTTP propia de 0,42 s. Eran 494 viajes -208 s- y la ráfaga es lo que
+disparaba el 429. Con `yf.download` el universo entero tarda **40 s** y trae
+488 de 494. Dos detalles que no se pueden relajar:
+
+- **Ventana de 5 días, no de un mes.** Con ventana larga, un símbolo cuya
+  serie lleva semanas parada devuelve igualmente un número y lo presentaría
+  como precio de hoy: AVB da 68,14 con `period="1mo"` -última barra del 24 de
+  agosto- cuando cotiza a 184. Con cinco días no devuelve nada, que es el
+  fallo correcto.
+- **Reintento acotado de rezagados.** Una descarga grande deja caer símbolos
+  bajo carga: faltaron 18 y al volver a pedir solo esos aparecieron 12 en
+  3,5 s. Se reintenta UNA vez y solo si la primera pasada trajo algo: que no
+  venga nada no son rezagados, es una caída o un rate limit.
+
+`yf.download` no devuelve divisa, así que `QuoteData.currency` llega en `None`
+y el consumidor usa la del activo, fijada por los metadatos, que es donde
+`normalize_currency` ya corrió. Un `"USD"` por defecto marcaría como dólares
+los 22 tickers de la BVC. El divisor de subunidad (`GBp`) sí se aplica en la
+frontera, con el mismo sondeo acotado que usa el histórico.
+
 ### Motor de oportunidades
 
 `Score = 0.35·V + 0.30·M + 0.15·D − 0.20·R + 20`, todo en [0,100]. El `+20` es

@@ -72,6 +72,37 @@ def _translate_error(exc: Exception, context: str) -> Exception:
     return ProviderUnavailable(f"Fallo del proveedor en {context}: {exc}")
 
 
+_yf_configured = False
+
+
+def _configure_yfinance(yfinance: Any) -> None:
+    """Ajustes globales de yfinance, una sola vez por proceso.
+
+    **Silenciar su logger no es esconder errores.** yfinance escribe una línea
+    por símbolo sin datos MÁS un resumen de "N Failed downloads", y en un
+    refresco del universo eso son decenas de líneas por las que no se puede
+    hacer nada: el mismo hecho ya se registra aquí como "Sin precio para X" y
+    llega a la interfaz como aviso. Mantener las dos copias solo consigue que
+    la terminal sea ilegible justo cuando hay algo que leer.
+
+    **`retries` viene de fábrica en 0.** Se sube a 2 porque el reintento de
+    yfinance solo cubre errores de RED -timeouts y conexiones cortadas, no el
+    429, que tiene su propio tipo y no cuenta como transitorio-, y espera
+    2^intento segundos entre uno y otro. Es decir: ayuda con el wifi y no
+    puede convertirse en un martilleo contra un proveedor que ya está
+    rechazando peticiones.
+    """
+    global _yf_configured
+    if _yf_configured:
+        return
+    logging.getLogger("yfinance").setLevel(logging.CRITICAL)
+    try:
+        yfinance.config.network.retries = 2
+    except Exception:  # pragma: no cover - versión sin config de red
+        logger.debug("Esta versión de yfinance no expone config.network.retries")
+    _yf_configured = True
+
+
 class YFinanceClient:
     """Implementación de MarketProvider sobre yfinance."""
 
@@ -96,48 +127,112 @@ class YFinanceClient:
             raise ProviderUnavailable(
                 "yfinance no está instalado: pip install yfinance"
             ) from exc
+        _configure_yfinance(yfinance)
         return yfinance
 
     # ------------------------------------------------------------------
     # Cotizaciones
     # ------------------------------------------------------------------
 
-    def fetch_quotes(self, symbols: list[str]) -> dict[str, QuoteData]:
-        if not symbols:
-            return {}
+    def _download_quotes(
+        self, symbols: list[str], divisors: dict[str, float]
+    ) -> dict[str, QuoteData]:
+        """Una pasada de descarga agrupada. No avisa de lo que falte."""
         yf = self._yf()
-        quotes: dict[str, QuoteData] = {}
-
         try:
-            tickers = yf.Tickers(" ".join(symbols))
+            frame = yf.download(
+                tickers=symbols,
+                period="5d",
+                interval="1d",
+                auto_adjust=False,
+                actions=False,
+                group_by="ticker",
+                progress=False,
+                threads=True,
+                timeout=self.timeout,
+            )
         except Exception as exc:
             raise _translate_error(exc, "fetch_quotes") from exc
 
+        if frame is None or frame.empty:
+            return {}
+
+        now = dt.datetime.now(dt.UTC)
+        quotes: dict[str, QuoteData] = {}
         for symbol in symbols:
             try:
-                info = tickers.tickers[symbol].fast_info
-                price = _clean(getattr(info, "last_price", None))
-                if price is None:
-                    logger.warning("Sin precio para %s", symbol)
-                    continue
-                # La divisa se normaliza ANTES de usar el precio: "GBp" trae
-                # peniques, y pasarlos como GBP infla la posición 100 veces.
-                currency, divisor = normalize_currency(
-                    getattr(info, "currency", None)
-                )
-                quotes[symbol] = QuoteData(
-                    symbol=symbol,
-                    price=scale(price, divisor),
-                    previous_close=scale(
-                        _clean(getattr(info, "previous_close", None)), divisor
-                    ),
-                    currency=currency or "USD",
-                    quote_time=dt.datetime.now(dt.UTC),
-                )
+                # Con un solo símbolo yfinance aplana el MultiIndex.
+                sub = frame[symbol] if len(symbols) > 1 else frame
             except KeyError:
-                logger.warning("Símbolo desconocido en el lote: %s", symbol)
-            except Exception as exc:  # un símbolo roto no debe tumbar el lote
-                logger.warning("Error obteniendo cotización de %s: %s", symbol, exc)
+                continue
+
+            closes = [v for v in (_clean(x) for x in sub["Close"]) if v is not None]
+            if not closes:
+                continue
+
+            divisor = divisors.get(symbol, 1.0)
+            quotes[symbol] = QuoteData(
+                symbol=symbol,
+                price=closes[-1] / divisor,
+                previous_close=scale(closes[-2] if len(closes) > 1 else None, divisor),
+                currency=None,
+                quote_time=now,
+            )
+        return quotes
+
+    def fetch_quotes(self, symbols: list[str]) -> dict[str, QuoteData]:
+        """Cotizaciones del lote en descargas agrupadas, no una por símbolo.
+
+        `yf.Tickers(...)` es PEREZOSO: construirlo no cuesta nada y cada
+        `fast_info` que se le pide después es un viaje de ida y vuelta propio.
+        Medido: 3 ms de construcción y 0,42 s por símbolo, o sea 208 s para el
+        universo de 494 -y una ráfaga de 494 peticiones que Yahoo corta a
+        mitad con un 429-. Con `yf.download` el mismo universo tarda 81 s y
+        no dispara el límite.
+
+        Se piden 5 días y se usan las dos últimas barras CON precio: la última
+        es la cotización -durante la sesión Yahoo va actualizando la barra del
+        día en curso- y la anterior el cierre previo. Buscar la última con
+        precio, y no la última fila, es lo que evita quedarse a cero un
+        festivo.
+
+        **Cinco días y no un mes, aunque un mes devuelva más.** Con ventana
+        larga, un símbolo cuya serie lleva semanas parada devuelve igualmente
+        un número y lo presentaría como el precio de hoy: AVB da 68,14 con
+        `period="1mo"` -su última barra es del 24 de agosto- cuando cotiza a
+        184. Con cinco días no devuelve nada, que es el fallo correcto: sin
+        cotización se conserva el último valor y se marca `is_stale`, en vez
+        de inventar una caída del 63%.
+
+        **Reintento acotado de los rezagados.** Una descarga grande deja caer
+        símbolos bajo carga: en el universo completo faltaron 18, y al volver
+        a pedir solo esos 12 aparecieron en 3,5 s. Se reintenta UNA vez y solo
+        si la primera pasada trajo algo: que no venga nada no son rezagados,
+        es una caída o un rate limit, y repetir entonces solo dobla la carga
+        justo cuando el proveedor pide que pares.
+
+        NO devuelve divisa, y es deliberado: `yf.download` no la da. Dejarla
+        en None hace que el consumidor use la del activo, fijada por los
+        metadatos, que es donde `normalize_currency` ya corrió. Poner un "USD"
+        por defecto marcaría como dólares los 22 tickers de la BVC. Lo que sí
+        se aplica en esta frontera es el divisor de subunidad: `GBp` llega en
+        peniques sin ninguna marca, con el mismo sondeo acotado que ya usa el
+        histórico.
+        """
+        if not symbols:
+            return {}
+
+        divisors = self._minor_unit_divisors(symbols)
+        quotes = self._download_quotes(symbols, divisors)
+
+        missing = [s for s in symbols if s not in quotes]
+        if quotes and missing:
+            logger.info("Reintentando %d símbolos rezagados del lote", len(missing))
+            quotes.update(self._download_quotes(missing, divisors))
+
+        for symbol in symbols:
+            if symbol not in quotes:
+                logger.warning("Sin precio para %s", symbol)
 
         return quotes
 

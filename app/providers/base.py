@@ -17,7 +17,11 @@ class QuoteData:
     symbol: str
     price: float
     previous_close: float | None
-    currency: str
+    # None cuando el proveedor no la informa: `yf.download` agrupa el lote en
+    # una sola llamada pero no devuelve divisa. Quien consuma esto usa la del
+    # activo, fijada por los metadatos; poner un "USD" por defecto aquí
+    # marcaría como dólares a los tickers de la BVC, que cotizan en COP.
+    currency: str | None
     quote_time: dt.datetime | None
 
 

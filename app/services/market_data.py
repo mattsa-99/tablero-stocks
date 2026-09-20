@@ -22,7 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.exceptions import ProviderError, SymbolNotFound
+from app.core.exceptions import ProviderError, ProviderRateLimited, SymbolNotFound
 from app.db.bulk import insert_ignore_duplicates
 from app.models import Asset, AssetQuote, AssetType, FundamentalSnapshot, FxRateDaily, PriceHistory
 from app.providers.base import MarketProvider
@@ -118,13 +118,24 @@ class RefreshReport:
     warnings: list[str] = field(default_factory=list)
     failed_symbols: list[str] = field(default_factory=list)
 
+    def note(self, message: str) -> None:
+        """Añade un aviso sin repetirlo.
+
+        `full_refresh` encadena cinco refrescos y todos ven el mismo
+        enfriamiento del proveedor: sin esto la misma frase llega cinco veces
+        a la interfaz, que la muestra como cinco notificaciones distintas.
+        """
+        if message not in self.warnings:
+            self.warnings.append(message)
+
     def merge(self, other: RefreshReport) -> RefreshReport:
         self.quotes_updated += other.quotes_updated
         self.bars_written += other.bars_written
         self.fundamentals_updated += other.fundamentals_updated
         self.fx_updated += other.fx_updated
         self.metadata_updated += other.metadata_updated
-        self.warnings.extend(other.warnings)
+        for warning in other.warnings:
+            self.note(warning)
         self.failed_symbols.extend(other.failed_symbols)
         return self
 
@@ -153,6 +164,58 @@ class MarketDataService:
         self.gate = SyncGate(db)
 
     # ------------------------------------------------------------------
+    # Trato con un proveedor que puede cortarnos
+    # ------------------------------------------------------------------
+
+    def _cooling_down(self, report: RefreshReport) -> bool:
+        """True si hay que abstenerse de llamar al proveedor ahora mismo.
+
+        Respetar el enfriamiento es lo que convierte el 429 en una pausa en
+        vez de una espiral: seguir pidiendo mientras Yahoo rechaza solo alarga
+        el castigo y gasta minutos de reloj en respuestas que ya sabemos que
+        no van a llegar.
+        """
+        until = self.gate.provider_cooldown_until()
+        if until is None:
+            return False
+        report.note(
+            "Yahoo limitó las peticiones hace un momento. Se sirven los "
+            f"últimos datos guardados; se reintenta a las {until:%H:%M} UTC"
+        )
+        return True
+
+    def _blame_failure(
+        self,
+        exc: ProviderError,
+        resource_type: str,
+        keys: list[str],
+        ttl: int,
+        context: str,
+    ) -> str:
+        """Reparte la culpa de un fallo y devuelve el aviso para el usuario.
+
+        La distinción es la que separa degradar de averiarse. Un 429 no dice
+        nada sobre el símbolo que se pidió -dice que hay que parar de pedir-,
+        así que cargárselo a cada símbolo les sube su contador de fallos
+        consecutivos y los mete en un backoff exponencial individual, como si
+        el ticker estuviera roto. Medido aquí: las sincronizaciones del 16, 17
+        y 18 de septiembre marcaron 469, 420 y 494 símbolos como fallidos por
+        un límite que no tenía nada que ver con ellos.
+
+        Cualquier otro fallo del proveedor sí es atribuible a lo que se pidió,
+        y ahí el backoff por clave es exactamente lo que se quiere.
+        """
+        if isinstance(exc, ProviderRateLimited):
+            until = self.gate.mark_rate_limited(exc)
+            return (
+                f"{context}: Yahoo limitó las peticiones. Se sirven los "
+                f"últimos datos guardados; se reintenta a las {until:%H:%M} UTC"
+            )
+        for key in keys:
+            self.gate.mark_failure(resource_type, key, ttl, exc)
+        return f"{context}: {exc}"
+
+    # ------------------------------------------------------------------
     # Cotizaciones
     # ------------------------------------------------------------------
 
@@ -169,6 +232,9 @@ class MarketDataService:
         if not stale:
             return report
 
+        if self._cooling_down(report):
+            return report
+
         by_symbol = {a.symbol: a for a in stale}
         symbols = sorted(by_symbol)
         for symbol in symbols:
@@ -177,10 +243,13 @@ class MarketDataService:
         try:
             quotes = self.provider.fetch_quotes(symbols)
         except ProviderError as exc:
-            for symbol in symbols:
-                self.gate.mark_failure(ResourceType.QUOTE, symbol, ttl, exc)
             self._mark_quotes_stale(list(by_symbol.values()))
-            report.warnings.append(f"No se pudieron actualizar cotizaciones: {exc}")
+            report.note(
+                self._blame_failure(
+                    exc, ResourceType.QUOTE, symbols, ttl,
+                    "No se pudieron actualizar cotizaciones",
+                )
+            )
             report.failed_symbols.extend(symbols)
             self.db.commit()
             return report
@@ -198,7 +267,14 @@ class MarketDataService:
 
             quote = self.db.get(AssetQuote, asset.id)
             if quote is None:
-                quote = AssetQuote(asset_id=asset.id, price=data.price, currency=data.currency)
+                quote = AssetQuote(
+                    asset_id=asset.id,
+                    price=data.price,
+                    # `or asset.currency` y no `data.currency` a secas: el
+                    # proveedor la deja en None cuando el lote viene de una
+                    # descarga agrupada, y la columna es NOT NULL.
+                    currency=data.currency or asset.currency,
+                )
                 self.db.add(quote)
             quote.price = data.price
             quote.previous_close = data.previous_close
@@ -313,6 +389,9 @@ class MarketDataService:
         if not pending:
             return report
 
+        if self._cooling_down(report):
+            return report
+
         symbols = sorted(pending)
         window_start = min(start for _, start in pending.values())
         for symbol in symbols:
@@ -321,9 +400,12 @@ class MarketDataService:
         try:
             history = self.provider.fetch_history(symbols, window_start, today)
         except ProviderError as exc:
-            for symbol in symbols:
-                self.gate.mark_failure(ResourceType.PRICE_HISTORY, symbol, ttl, exc)
-            report.warnings.append(f"No se pudo actualizar el histórico: {exc}")
+            report.note(
+                self._blame_failure(
+                    exc, ResourceType.PRICE_HISTORY, symbols, ttl,
+                    "No se pudo actualizar el histórico",
+                )
+            )
             report.failed_symbols.extend(symbols)
             self.db.commit()
             return report
@@ -384,6 +466,9 @@ class MarketDataService:
         if not pending:
             return report
 
+        if self._cooling_down(report):
+            return report
+
         symbols = sorted(pending)
         for symbol in symbols:
             self.gate.mark_attempt(ResourceType.FUNDAMENTALS, symbol, ttl)
@@ -391,9 +476,12 @@ class MarketDataService:
         try:
             data = self.provider.fetch_fundamentals(symbols)
         except ProviderError as exc:
-            for symbol in symbols:
-                self.gate.mark_failure(ResourceType.FUNDAMENTALS, symbol, ttl, exc)
-            report.warnings.append(f"No se pudieron actualizar fundamentales: {exc}")
+            report.note(
+                self._blame_failure(
+                    exc, ResourceType.FUNDAMENTALS, symbols, ttl,
+                    "No se pudieron actualizar fundamentales",
+                )
+            )
             report.failed_symbols.extend(symbols)
             self.db.commit()
             return report
@@ -497,6 +585,9 @@ class MarketDataService:
         if not pending:
             return report
 
+        if self._cooling_down(report):
+            return report
+
         symbols = sorted(pending)
         for symbol in symbols:
             self.gate.mark_attempt(ResourceType.METADATA, symbol, ttl)
@@ -504,9 +595,12 @@ class MarketDataService:
         try:
             metadata = self.provider.fetch_metadata(symbols)
         except ProviderError as exc:
-            for symbol in symbols:
-                self.gate.mark_failure(ResourceType.METADATA, symbol, ttl, exc)
-            report.warnings.append(f"No se pudieron actualizar metadatos: {exc}")
+            report.note(
+                self._blame_failure(
+                    exc, ResourceType.METADATA, symbols, ttl,
+                    "No se pudieron actualizar metadatos",
+                )
+            )
             self.db.commit()
             return report
 
@@ -562,15 +656,22 @@ class MarketDataService:
         if not pending:
             return report
 
+        if self._cooling_down(report):
+            return report
+
         for base, quote in pending:
             self.gate.mark_attempt(ResourceType.FX, f"{base}{quote}", ttl)
 
         try:
             rates = self.provider.fetch_fx_rates(pending)
         except ProviderError as exc:
-            for base, quote in pending:
-                self.gate.mark_failure(ResourceType.FX, f"{base}{quote}", ttl, exc)
-            report.warnings.append(f"No se pudieron actualizar tipos de cambio: {exc}")
+            report.note(
+                self._blame_failure(
+                    exc, ResourceType.FX,
+                    [f"{base}{quote}" for base, quote in pending], ttl,
+                    "No se pudieron actualizar tipos de cambio",
+                )
+            )
             self.db.commit()
             return report
 
