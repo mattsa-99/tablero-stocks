@@ -54,6 +54,20 @@ const GRADE_SLUG = {
   SIN_CALIFICAR: "sin_calificar",
 };
 
+/* Vuelta del nombre público a la letra. Se DERIVA de GRADE_SLUG en vez de
+ * escribirse a mano: dos tablas inversas se desincronizan en cuanto alguien
+ * toca una, y el síntoma sería un enlace compartido que restaura un filtro
+ * equivocado. */
+const SLUG_GRADE = Object.fromEntries(
+  Object.entries(GRADE_SLUG).map(([grade, slug]) => [slug, grade]),
+);
+
+/* Opciones del selector «Mostrar». El tope es 200 y está medido: 494 tarjetas
+ * son 70.300 nodos y 65 pantallas de scroll. Se valida contra esta lista al
+ * restaurar, para que un `?limit=99999` en la URL no intente pintar todo. */
+const LIMIT_OPTIONS = [5, 10, 20, 50, 100, 200];
+const DEFAULT_LIMIT = 10;
+
 /* Regiones de mercado. El orden es el de `regions.REGION_ORDER`: primero los
  * mercados en los que se opera de forma directa. */
 const REGION_ORDER = ["US", "COL", "LATAM", "EU", "ASIA", "GLOBAL"];
@@ -135,7 +149,7 @@ document.addEventListener("alpine:init", () => {
     data: null,
 
     symbolsInput: "",
-    limit: 10,
+    limit: DEFAULT_LIMIT,
     expanded: {},
 
     /* Filtros activos. Vacío = sin filtrar, que NO es lo mismo que "todas
@@ -175,9 +189,7 @@ document.addEventListener("alpine:init", () => {
     },
 
     init() {
-      this.symbolsInput = localStorage.getItem("tablero:symbols") ?? "";
-      this.activeTiers = this.readStoredList("tablero:tiers");
-      this.activeRegions = this.readStoredList("tablero:regions");
+      this.restoreState();
       // Ver la nota en store.select(): el watch cubre la selección inicial
       // asíncrona además de los cambios del selector.
       this.$watch("$store.app.selectedId", (id) => {
@@ -227,6 +239,7 @@ document.addEventListener("alpine:init", () => {
       try {
         this.data = await window.api.get(`/api/opportunities?${params}`);
         localStorage.setItem("tablero:symbols", this.symbolsInput);
+        this.syncUrl();
 
         this.refreshing = this.data.refreshing === true;
         if (triggerRefresh) this.pollsLeft = MAX_POLLS;
@@ -275,6 +288,71 @@ document.addEventListener("alpine:init", () => {
 
     destroy() {
       clearTimeout(this.pollTimer);
+    },
+
+    /* Restaura los filtros. LA URL MANDA sobre lo guardado.
+     *
+     * El orden no es arbitrario: si alguien abre un enlace con filtros, tiene
+     * que ver ESOS filtros y no los que dejó puestos la última vez. El
+     * localStorage es la memoria entre sesiones; la URL es una petición
+     * explícita, y una petición explícita gana siempre.
+     *
+     * `limit` se restaura igual que los chips. Antes no: quien ponía
+     * «Mostrar 200» lo perdía al recargar y volvía a ver diez tarjetas sin
+     * saber por qué.
+     */
+    restoreState() {
+      const url = new URLSearchParams(window.location.search);
+
+      const symbols = url.get("symbols");
+      this.symbolsInput = symbols ?? localStorage.getItem("tablero:symbols") ?? "";
+
+      const tiers = url.get("quality_tiers");
+      this.activeTiers = tiers
+        ? tiers.split(",").map((slug) => SLUG_GRADE[slug.trim()]).filter(Boolean)
+        : this.readStoredList("tablero:tiers");
+
+      const regions = url.get("regions");
+      this.activeRegions = regions
+        ? regions.split(",").map((r) => r.trim().toUpperCase()).filter((r) => REGION_ORDER.includes(r))
+        : this.readStoredList("tablero:regions");
+
+      const limit = Number.parseInt(url.get("limit") ?? localStorage.getItem("tablero:limit"), 10);
+      if (LIMIT_OPTIONS.includes(limit)) this.limit = limit;
+    },
+
+    /* Escribe el estado en la barra de direcciones.
+     *
+     * Se usan LOS MISMOS nombres que la API (`regions`, `quality_tiers`,
+     * `limit`, `symbols`) en vez de traducirlos al español como las rutas:
+     * así la cadena de consulta de la página se pega tal cual detrás de
+     * /api/opportunities y devuelve exactamente lo que se está viendo, sin
+     * una tabla de equivalencias que mantener sincronizada.
+     *
+     * `replaceState` y no `pushState`: cada clic en un chip es un ajuste de
+     * la misma vista, no un destino nuevo. Con pushState, salir de la página
+     * exigiría pulsar «atrás» tantas veces como filtros se hubieran tocado.
+     */
+    syncUrl() {
+      const params = new URLSearchParams();
+      if (this.symbolsInput.trim()) params.set("symbols", this.symbolsInput.trim());
+      if (this.activeTiers.length) {
+        params.set("quality_tiers", this.activeTiers.map((g) => GRADE_SLUG[g]).join(","));
+      }
+      if (this.activeRegions.length) params.set("regions", this.activeRegions.join(","));
+      if (this.limit !== DEFAULT_LIMIT) params.set("limit", String(this.limit));
+
+      const query = params.toString();
+      window.history.replaceState(
+        null, "", query ? `${window.location.pathname}?${query}` : window.location.pathname,
+      );
+    },
+
+    /* Cambiar cuántas tarjetas se ven NO sale a la red a refrescar precios.
+     * Es una operación de vista, igual que filtrar. */
+    setLimit() {
+      localStorage.setItem("tablero:limit", String(this.limit));
+      this.load({ triggerRefresh: false });
     },
 
     readStoredList(key) {

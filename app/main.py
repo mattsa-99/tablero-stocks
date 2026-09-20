@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
+from os import PathLike
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
+from starlette.types import Scope
 
 from app.core import scheduler
 from app.core.config import settings
@@ -128,9 +132,43 @@ async def provider_error_handler(request: Request, exc: ProviderError) -> JSONRe
     )
 
 
+class VersionedStaticFiles(StaticFiles):
+    """Estáticos con caché larga SOLO cuando la URL viene versionada.
+
+    `static_url()` ya pone `?v=<mtime>` en cada referencia, pero faltaba la
+    otra mitad: `StaticFiles` manda `etag` y `last-modified` y NINGÚN
+    `Cache-Control`, así que el navegador revalidaba en cada carga. Eran nueve
+    peticiones 304 por navegación para archivos que no habían cambiado.
+
+    Con la URL versionada, `immutable` es seguro por construcción: si el
+    archivo cambia, cambia su mtime, cambia la URL y el navegador no tiene
+    ninguna copia de ella. Es justo lo contrario del fallo que `static_url`
+    vino a resolver -HTML nuevo con JavaScript viejo-, porque aquí el HTML no
+    puede pedir la versión antigua.
+
+    Sin `?v=` NO se cachea agresivamente: una petición directa a
+    /static/js/store.js no lleva ninguna promesa de unicidad, y grabarla un año
+    en el navegador del usuario sería imposible de deshacer.
+    """
+
+    def file_response(
+        self,
+        full_path: PathLike,
+        stat_result: os.stat_result,
+        scope: Scope,
+        status_code: int = 200,
+    ) -> Response:
+        response = super().file_response(full_path, stat_result, scope, status_code)
+        if b"v=" in scope.get("query_string", b""):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            response.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
+        return response
+
+
 app.mount(
     "/static",
-    StaticFiles(directory=str(Path(__file__).resolve().parent / "static")),
+    VersionedStaticFiles(directory=str(Path(__file__).resolve().parent / "static")),
     name="static",
 )
 

@@ -78,8 +78,8 @@ def test_alpine_loads_after_the_component_definitions(client):
     para los componentes ya montados y las vistas quedarían vacías.
     """
     html = client.get("/").text
-    assert html.index("/static/js/store.js") < html.index("alpinejs/")
-    assert html.index("/static/js/portfolio.js") < html.index("alpinejs/")
+    assert html.index("/static/js/store.js") < html.index("/static/vendor/alpine.min.js")
+    assert html.index("/static/js/portfolio.js") < html.index("/static/vendor/alpine.min.js")
 
 
 def test_no_nested_alpine_templates():
@@ -100,12 +100,36 @@ def test_no_nested_alpine_templates():
     assert not offenders, f"Templates de Alpine anidados en: {offenders}"
 
 
-def test_cdn_versions_are_pinned():
-    """Sin versión fija, una publicación del CDN puede romper la app sola."""
+def test_the_page_loads_nothing_from_a_cdn():
+    """Sin red, la página tiene que seguir siendo usable.
+
+    Antes Tailwind, Alpine y Chart.js venían de fuera, así que un corte de red
+    la dejaba sin estilos y sin interactividad. Es justo lo contrario de lo que
+    hace el backend, que conserva el último valor y avisa en vez de romperse.
+    """
     html = (TEMPLATES / "base.html").read_text()
-    for library in ("alpinejs/", "Chart.js/"):
-        match = re.search(rf"{re.escape(library)}(\d+\.\d+\.\d+)/", html)
-        assert match, f"{library} debe cargarse con una versión exacta"
+    assert "//cdn" not in html
+    assert "https://" not in html.split("<body")[0]
+
+
+def test_the_vendored_libraries_are_present_and_documented():
+    """Vendorizar congela la versión de verdad; el README dice cuál es.
+
+    La URL fijaba la versión pero no lo que el CDN servía bajo ella. Ahora el
+    archivo es el contrato, y este test impide que se borre uno o que la tabla
+    de versiones se quede sin actualizar.
+    """
+    vendor = TEMPLATES.parent / "static" / "vendor"
+    readme = (vendor / "README.md").read_text()
+    for name in ("alpine.min.js", "alpine-collapse.min.js", "chart.umd.min.js"):
+        assert (vendor / name).stat().st_size > 1000, f"{name} falta o está vacío"
+        assert name in readme, f"{name} no aparece en la tabla de versiones"
+
+
+def test_the_collapse_plugin_loads_before_alpine_core():
+    """Se registra sobre `window.Alpine` al arrancar: después no se registraría."""
+    html = (TEMPLATES / "base.html").read_text()
+    assert html.index("alpine-collapse.min.js") < html.index("vendor/alpine.min.js")
 
 
 def test_decimal_fields_arrive_as_strings(client, portfolio_id):
@@ -166,7 +190,7 @@ def test_combobox_option_ids_are_scoped_per_instance(client):
 
 def test_combobox_script_is_loaded_before_alpine(client):
     html = client.get("/").text
-    assert html.index("/static/js/combobox.js") < html.index("alpinejs/")
+    assert html.index("/static/js/combobox.js") < html.index("/static/vendor/alpine.min.js")
 
 
 def test_only_the_simulator_prefills_the_price(client):

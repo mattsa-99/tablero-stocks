@@ -27,7 +27,11 @@
       </div>
       <div>
         <label for="op-limit" class="mb-1.5 block text-xs font-medium text-ink-soft">Mostrar</label>
-        <select id="op-limit" x-model.number="limit" @change="load()"
+        {# setLimit() y no load(): cambiar cuántas tarjetas se ven es una
+   operación de vista, igual que filtrar, y no tiene por qué pedir un
+   refresco de precios. Además guarda la elección, que antes se perdía
+   en cada recarga. #}
+        <select id="op-limit" x-model.number="limit" @change="setLimit()"
                 class="h-9 rounded-lg border border-line bg-surf-2 px-3 text-sm outline-none focus:border-s1">
           <option :value="5">5</option>
           <option :value="10">10</option>

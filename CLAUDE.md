@@ -14,7 +14,7 @@ Mantén ese idioma al añadir código.
 ```bash
 source .venv/bin/activate          # el venv ya existe con todo instalado
 
-pytest -q                          # 395 tests, ~3,9 s, sin red
+pytest -q                          # 472 tests, ~4,3 s, sin red
 pytest tests/test_pnl.py -q        # un archivo
 pytest tests/test_pnl.py::test_single_buy -q
 pytest -k "simulation and not api" # por expresión
@@ -27,7 +27,17 @@ alembic downgrade -1
 alembic revision --autogenerate -m "descripción"
 
 uvicorn app.main:app --reload      # http://127.0.0.1:8000
+
+npm install                        # solo para compilar el CSS
+npm run build:css                  # OBLIGATORIO tras tocar clases de Tailwind
+npm run watch:css                  # lo mismo, en continuo
 ```
+
+`app/static/css/tailwind.css` **se genera y se versiona**: ejecutar la app no
+necesita node, pero añadir una clase a una plantilla o a un .js sí exige
+recompilar. Una clase que no esté en el CSS no lanza nada -el elemento sale
+sin estilo-, así que `test_frontend_assets.py` compara las clases usadas
+contra las generadas y convierte ese silencio en un fallo.
 
 Los tests **no tocan la red**: `tests/fakes.py::FakeProvider` implementa el
 Protocol `MarketProvider` con datos sintéticos y se inyecta con
@@ -141,6 +151,26 @@ días. Por eso el refresco de fondo es `refresh_quotes_and_fx` y no
 `full_refresh`. La respuesta trae `refreshing` y el frontend sondea con
 `refresh=false` hasta que baja; filtrar NO refresca, porque es una operación
 de vista.
+
+**El universo puntuado se memoiza, y la huella no es la fecha de la barra.**
+Filtrar por región o calificación es una operación de VISTA -el motor puntúa
+siempre el universo completo-, pero cada clic repetía el trabajo entero: 186 ms,
+de los cuales 85 eran releer 135.851 barras para recalcular indicadores
+idénticos. Con la caché, un clic cuesta **0,5 ms** (294x).
+
+La tentación es cachear por «fecha de la última barra». Sería un error: las
+cotizaciones cambian intradía y SÍ mueven el score, porque `fresh_trailing_pe`
+rehace el P/E con el precio de ahora. Esa caché congelaría el ranking justo
+durante el refresco de fondo, que es cuando el usuario está mirando. La huella
+pregunta por agregados baratos (~1,2 ms), con `data_sync_state` como red
+principal porque toda escritura del proveedor pasa por `mark_success`.
+`count(*)` sobre `price_history` o `fundamental_snapshots` queda fuera: son 83
+y 41 ms de barrido completo, más de lo que ahorran.
+
+`_ScoredUniverse` es inmutable porque se comparte entre peticiones: si una
+petición filtrada renumerara `rank`, la siguiente vería el destrozo. Y la caché
+se resetea en `conftest.py` porque cada test estrena una base con los mismos
+ids, así que dos tests distintos producen huellas idénticas con facilidad.
 
 La excepción son los símbolos que el usuario **escribe** en `?symbols=`: esos
 se cargan en línea, porque sin histórico no se pueden puntuar y desaparecerían
@@ -445,6 +475,14 @@ sobre el resultado filtrado: si siguieran al filtro, al pulsar «Muy buena» los
 demás chips marcarían cero y no habría forma de saber qué queda por explorar.
 `matched_size` es lo que el filtro deja ver.
 
+El estado de la vista (filtros, «Mostrar» y candidatos extra) va en la URL con
+**los mismos nombres que la API**, no traducidos al español como las rutas: la
+cadena de consulta de la página se pega tal cual detrás de `/api/opportunities`
+y no hay tabla de equivalencias que mantener. La URL MANDA sobre el
+`localStorage` al restaurar -un enlace compartido es una petición explícita-, y
+se escribe con `replaceState` porque cada clic ajusta la misma vista y no es un
+destino nuevo.
+
 Un valor desconocido en cualquiera de los dos parámetros se **ignora**, no
 devuelve 422: son parámetros de interfaz y fallar dejaría la vista en blanco.
 
@@ -524,6 +562,17 @@ objetos ORM (107 ms → 23 ms con 120 activos). Para escribir, `app/db/bulk.py::
 insert_ignore_duplicates` (ON CONFLICT DO NOTHING, consciente del dialecto).
 
 ## Trampas conocidas
+
+- **Tailwind no aplica `/10` a un color que es `var(--good)`.** No puede
+  componer el canal alfa sobre una custom property opaca, así que la utilidad
+  **no se emite** y la clase queda muerta en el HTML, sin advertencia. Regía
+  igual bajo el Play CDN: `bg-good/10`, `bg-s1/10`, `bg-bg/85` y otras 24 no
+  pintaron nunca. Se resuelve con `color-mix` en `tailwind.config.js`, que deja
+  la paleta donde está (`app.css`).
+- **No hay CDN.** Tailwind, Alpine y Chart.js se sirven desde
+  `app/static/vendor/`. Sin red, la página se quedaba sin estilos y sin Alpine,
+  o sea inservible: lo contrario de lo que hace el backend, que degrada y avisa.
+  El plugin `collapse` va ANTES que el core de Alpine.
 
 - **`<template x-if>` no puede envolver a `<template x-for>`.** Alpine clona
   `firstElementChild`; si es otro template, el bucle no se inicializa y la
