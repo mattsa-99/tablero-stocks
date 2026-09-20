@@ -289,3 +289,34 @@ def test_a_missing_static_file_does_not_break_the_page(tmp_path, monkeypatch):
 
     monkeypatch.setattr(views, "BASE_DIR", tmp_path)
     assert views.static_url("/static/js/no-existe.js") == "/static/js/no-existe.js"
+
+
+# ----------------------------------------------------------------------
+# Curva de valor
+# ----------------------------------------------------------------------
+
+
+def test_the_value_chart_canvas_exists_and_is_labelled():
+    """Un `<canvas>` sin `aria-label` es una caja vacía para un lector de pantalla."""
+    html = (TEMPLATES / "dashboard.html").read_text()
+    assert 'x-ref="valueChart"' in html
+    assert "aria-label=\"Evolución del valor de la cartera\"" in html
+
+
+def test_the_chart_is_repainted_on_theme_change():
+    """Chart.js no lee CSS.
+
+    Al cambiar de tema hay que repintar los DOS gráficos, o el nuevo se queda
+    con los colores del anterior. Con uno solo cableado, el fallo aparece
+    justo en el gráfico recién añadido.
+    """
+    js = (TEMPLATES.parent / "static" / "js" / "portfolio.js").read_text()
+    handler = js.split('"theme-changed"')[1].split("});")[0]
+    assert "drawChart()" in handler
+    assert "drawSeries()" in handler
+
+
+def test_the_dual_price_only_shows_when_the_currency_differs():
+    """Con la divisa base repetiría el renglón sin aportar nada."""
+    html = (TEMPLATES / "dashboard.html").read_text()
+    assert "p.currency !== currency && p.current_price_base" in html

@@ -44,6 +44,36 @@ function foldTail(items, maxSlices = MAX_SLICES) {
   return [...head, { label: `Otros (${tail.length})`, value: total, isOther: true }];
 }
 
+/* Formateador del eje Y que se adapta al RANGO, no solo a la magnitud.
+ *
+ * `fmt.compact` usa un decimal, que basta para una cifra suelta pero no para
+ * un eje: una cartera que se mueve entre 2,12 M y 2,23 M rotulaba «$2,2 M» en
+ * los siete ticks, y el eje dejaba de informar justo en el caso normal -una
+ * curva de valor casi siempre se mueve dentro de un rango estrecho-.
+ *
+ * Se calculan los dígitos significativos que hacen falta para que dos ticks
+ * contiguos se distingan: cuanto más estrecho es el rango frente al valor
+ * absoluto, más dígitos. Se acota a 6 para que un rango diminuto no produzca
+ * un rótulo interminable.
+ */
+function compactAxisFormatter(values, currency) {
+  const numbers = values.filter((v) => typeof v === "number" && Number.isFinite(v));
+  const max = numbers.length ? Math.max(...numbers) : 0;
+  const span = numbers.length ? max - Math.min(...numbers) : 0;
+
+  let digits = 3;
+  if (span > 0 && max > 0) {
+    digits = Math.min(6, Math.max(2, Math.ceil(Math.log10(max / span)) + 2));
+  }
+  const formatter = new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumSignificantDigits: digits,
+  });
+  return (value) => formatter.format(value);
+}
+
 const registry = new Map();
 
 /* Donut de distribución.
@@ -125,6 +155,152 @@ function renderDoughnut(canvas, items, { currency = "COP" } = {}) {
   return { chart, slices: folded, colors, total };
 }
 
+/* Curva de valor: la cartera contra lo aportado y contra el índice.
+ *
+ * Tres líneas y no una, porque una sola no responde a nada. «Vale 2,2 M» no
+ * dice si eso es bueno; «vale 2,2 M habiendo puesto 2,1 M, y el índice habría
+ * dado 2,09 M» sí.
+ *
+ * La línea de lo aportado va ESCALONADA (`stepped`) a propósito: el capital no
+ * entra de forma continua sino de golpe el día del depósito, e interpolarla
+ * dibujaría aportaciones que nunca ocurrieron.
+ *
+ * Sin puntos (`pointRadius: 0`) salvo al pasar por encima: con cientos de días
+ * los marcadores se solapan hasta formar una banda sólida que tapa la línea.
+ */
+function renderValueSeries(canvas, points, { currency = "COP", benchmarkLabel = null } = {}) {
+  if (!canvas) return null;
+  if (typeof Chart === "undefined") {
+    console.warn("Chart.js no está disponible: se omite la curva de valor");
+    return null;
+  }
+
+  const tokens = readTokens();
+  const existing = registry.get(canvas);
+  if (existing) existing.destroy();
+
+  const labels = points.map((p) => p.date);
+  const value = points.map((p) => window.fmt.num(p.total_value));
+  const invested = points.map((p) => window.fmt.num(p.net_invested));
+  const benchmark = points.map((p) => window.fmt.num(p.benchmark_value));
+
+  const datasets = [
+    {
+      label: "Mi cartera",
+      data: value,
+      borderColor: tokens.series[0],
+      backgroundColor: "transparent",
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      tension: 0.15,
+      order: 1,
+    },
+    {
+      label: "Aportado",
+      data: invested,
+      borderColor: tokens.textMuted,
+      borderWidth: 1.5,
+      borderDash: [4, 4],
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      stepped: true,
+      order: 3,
+    },
+  ];
+
+  if (benchmark.some((v) => v !== null)) {
+    datasets.push({
+      label: benchmarkLabel ? `Si fuera ${benchmarkLabel}` : "Índice",
+      data: benchmark,
+      borderColor: tokens.series[1],
+      borderWidth: 1.5,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      tension: 0.15,
+      order: 2,
+    });
+  }
+
+  // Se calcula con TODAS las series dibujadas: si el índice se separa mucho
+  // de la cartera, el rango del eje es el de las dos juntas.
+  const formatAxis = compactAxisFormatter(
+    datasets.flatMap((d) => d.data),
+    currency,
+  );
+
+  const chart = new Chart(canvas, {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400 },
+      // El cruce por el eje X evita tener que acertar el punto exacto de una
+      // línea con cientos de días comprimidos en unos cientos de píxeles.
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: tokens.textMuted,
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 8,
+            callback(index) {
+              return window.fmt.date(this.getLabelForValue(index));
+            },
+          },
+          border: { color: tokens.border },
+        },
+        y: {
+          // NO empieza en cero, y es deliberado. Con el eje forzado a cero, una
+          // cartera que se mueve un 5% sobre un valor grande aparece como una
+          // recta horizontal y el gráfico deja de informar. La referencia aquí
+          // no es el cero sino la línea de lo aportado, que sí está dibujada.
+          beginAtZero: false,
+          grid: { color: tokens.border },
+          border: { display: false },
+          ticks: {
+            color: tokens.textMuted,
+            callback: formatAxis,
+          },
+        },
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: "bottom",
+          labels: {
+            color: tokens.textSecondary,
+            boxWidth: 12,
+            boxHeight: 2,
+            usePointStyle: false,
+            padding: 16,
+          },
+        },
+        tooltip: {
+          backgroundColor: tokens.surface2,
+          titleColor: tokens.textPrimary,
+          bodyColor: tokens.textSecondary,
+          borderColor: tokens.border,
+          borderWidth: 1,
+          padding: 10,
+          cornerRadius: 6,
+          callbacks: {
+            title: (items) => window.fmt.date(items[0].label),
+            label: (ctx) =>
+              ` ${ctx.dataset.label}: ${window.fmt.money(ctx.parsed.y, currency)}`,
+          },
+        },
+      },
+    },
+  });
+
+  registry.set(canvas, chart);
+  return chart;
+}
+
 function destroyChart(canvas) {
   const chart = registry.get(canvas);
   if (chart) {
@@ -133,4 +309,11 @@ function destroyChart(canvas) {
   }
 }
 
-window.charts = { renderDoughnut, destroyChart, readTokens, foldTail, MAX_SLICES };
+window.charts = {
+  renderDoughnut,
+  renderValueSeries,
+  destroyChart,
+  readTokens,
+  foldTail,
+  MAX_SLICES,
+};

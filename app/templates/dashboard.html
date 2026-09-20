@@ -107,6 +107,106 @@
     </template>
   </div>
 
+  <!-- Atribución de divisa. Solo si hay algo que atribuir: con todo en la
+       divisa base los dos valores son null, y un «0» invitaría a leer "la
+       divisa no aportó" cuando lo cierto es que no interviene. -->
+  <div class="mb-6 rounded-lg border border-line bg-surf px-4 py-3" x-show="hasAttribution" x-cloak>
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+      <p class="text-xs font-medium text-ink-soft">
+        De dónde viene el P&amp;L no realizado
+      </p>
+      <template x-for="item in attribution" :key="item.label">
+        <div class="flex items-baseline gap-2">
+          <span class="text-xs text-ink-mute" x-text="item.label"></span>
+          <span class="tabular text-sm font-medium"
+                :class="$fmt.pnlClass(item.value)"
+                x-text="$fmt.signed(item.value, currency)"></span>
+        </div>
+      </template>
+      <span class="text-xs text-ink-mute">
+        Las dos cifras suman exactamente el P&amp;L no realizado.
+      </span>
+    </div>
+  </div>
+
+  <!-- ================= Curva de valor ================= -->
+  <section class="mb-6 rounded-2xl border border-line bg-surf p-4 sm:p-5" x-show="!isEmpty" x-cloak>
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="text-sm font-semibold">Evolución</h2>
+        <p class="mt-0.5 text-xs text-ink-mute">
+          Tu cartera frente a lo aportado y a lo que habría dado el mismo dinero
+          en el índice.
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <template x-if="vsBenchmark">
+          <div class="flex items-baseline gap-1.5 text-xs">
+            <span class="text-ink-mute">vs</span>
+            <span class="font-medium text-ink-soft" x-text="vsBenchmark.symbol"></span>
+            <span class="tabular font-medium"
+                  :class="$fmt.pnlClass(vsBenchmark.diff)"
+                  x-text="$fmt.signedPct(vsBenchmark.pct, 1)"></span>
+          </div>
+        </template>
+        <div class="flex gap-1">
+          <template x-for="r in seriesRanges" :key="r.days">
+            <button type="button" @click="setSeriesRange(r.days)"
+                    :class="rangeClass(r.days)"
+                    class="rounded-md border px-2.5 py-1 text-xs font-medium transition-colors
+                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1"
+                    x-text="r.label"></button>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div class="relative h-64 sm:h-72" x-show="hasSeries">
+      <canvas x-ref="valueChart" aria-label="Evolución del valor de la cartera"></canvas>
+    </div>
+
+    <div x-show="seriesLoading" class="h-64 animate-pulse rounded-lg bg-surf-2 sm:h-72"></div>
+
+    <p x-show="seriesTooShort && !seriesLoading" x-cloak
+       class="py-12 text-center text-sm text-ink-mute">
+      Todavía no hay histórico suficiente para dibujar la evolución.
+      Vuelve tras la próxima sincronización.
+    </p>
+
+    <!-- XIRR. Se omite bajo un trimestre: anualizar un tramo corto multiplica
+         el ruido, y un «129% anual» sobre tres semanas es un número
+         impresionante y vacío. -->
+    <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-3 text-xs"
+         x-show="xirr !== null" x-cloak>
+      <div class="flex items-baseline gap-2">
+        <span class="text-ink-mute">Retorno anualizado</span>
+        <span class="tabular text-sm font-medium" :class="$fmt.pnlClass(xirr)"
+              x-text="$fmt.signedPct(xirr, 1)"></span>
+      </div>
+      <template x-if="benchmarkXirr !== null">
+        <div class="flex items-baseline gap-2">
+          <span class="text-ink-mute" x-text="'El índice (' + series.benchmark_symbol + ')'"></span>
+          <span class="tabular text-sm font-medium" :class="$fmt.pnlClass(benchmarkXirr)"
+                x-text="$fmt.signedPct(benchmarkXirr, 1)"></span>
+        </div>
+      </template>
+      <span class="text-ink-mute">
+        Ponderado por dinero: tiene en cuenta cuándo entró cada aporte.
+      </span>
+    </div>
+  </section>
+
+  <!-- ================= Riesgo ================= -->
+  <div class="mb-6 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4" x-show="risk.length" x-cloak>
+    <template x-for="m in risk" :key="m.label">
+      <div class="rounded-lg border border-line bg-surf px-3.5 py-2.5" :title="m.hint">
+        <p class="mb-1 text-ink-mute" x-text="m.label"></p>
+        <p class="tabular text-sm font-medium text-ink"
+           x-text="m.kind === 'pct' ? $fmt.pct(m.value, 1) : $fmt.num(m.value).toFixed(0)"></p>
+      </div>
+    </template>
+  </div>
+
   <!-- ================= Estado vacío ================= -->
   <template x-if="isEmpty">
     <div class="rounded-2xl border border-line bg-surf p-12 text-center">
@@ -193,6 +293,13 @@
                   <td class="tabular px-4 py-3 text-right text-ink-soft" x-text="$fmt.money(p.average_cost, currency)"></td>
                   <td class="tabular px-4 py-3 text-right">
                     <span class="text-ink-soft" x-text="p.current_price ? $fmt.money(p.current_price, p.currency) : '—'"></span>
+                    {# El MISMO precio en divisa base, solo cuando difieren. Un
+                       activo de la BVC cotiza en pesos dentro de una cartera en
+                       dólares: sin las dos cifras hay que hacer la cuenta a
+                       mano cada vez. Con la divisa base repetiría el renglón. #}
+                    <p x-show="p.currency !== currency && p.current_price_base" x-cloak
+                       class="tabular mt-0.5 text-[11px] text-ink-mute"
+                       x-text="'= ' + $fmt.money(p.current_price_base, currency)"></p>
                     <p x-show="p.day_change_pct !== null" x-cloak class="tabular mt-0.5 text-[11px]"
                        :class="$fmt.pnlClass(p.day_change_pct)" x-text="$fmt.signedPct(p.day_change_pct, 2)"></p>
                   </td>
