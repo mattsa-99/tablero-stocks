@@ -70,6 +70,40 @@ _CONNECTION_MARKERS = (
 )
 
 
+def _sub_frame(frame, symbol: str):
+    """Las columnas de UN símbolo dentro del frame de `yf.download`.
+
+    Aquí vivía un fallo silencioso y caro. El código asumía que con un solo
+    símbolo yfinance aplana el MultiIndex y hacía `frame[symbol] if
+    len(symbols) > 1 else frame`. La versión instalada NO lo aplana con
+    `group_by="ticker"`: las columnas siguen siendo `('AAPL', 'Close')`, así
+    que `row.get("Close")` devolvía None en todas las filas y la función
+    entregaba CERO barras sin lanzar nada.
+
+    Medido antes del arreglo:
+
+        fetch_history(["AAPL"])          -> 0 barras
+        fetch_history(["AAPL", "MSFT"])  -> 9 y 9 barras
+
+    Lo que rompía es justo el camino de un símbolo suelto: la carga perezosa
+    de `ensure_data_for` y los que el usuario escribe en `?symbols=`, que se
+    traen EN LÍNEA precisamente para poder puntuarlos. Sin histórico no se
+    puntúan y desaparecían del ranking que se había pedido a propósito.
+
+    Se prueban las dos formas en vez de fijar una: yfinance ha cambiado este
+    comportamiento entre versiones y volver a atarse a una sola es repetir el
+    fallo en la siguiente actualización.
+    """
+    columns = getattr(frame, "columns", None)
+    if columns is not None and getattr(columns, "nlevels", 1) > 1:
+        try:
+            return frame[symbol]
+        except KeyError:
+            return None
+    # Frame plano: solo puede ser de este símbolo si se pidió uno.
+    return frame
+
+
 def _clean(value: Any) -> float | None:
     """Normaliza un campo numérico de yfinance.
 
@@ -197,10 +231,8 @@ class YFinanceClient:
         now = dt.datetime.now(dt.UTC)
         quotes: dict[str, QuoteData] = {}
         for symbol in symbols:
-            try:
-                # Con un solo símbolo yfinance aplana el MultiIndex.
-                sub = frame[symbol] if len(symbols) > 1 else frame
-            except KeyError:
+            sub = _sub_frame(frame, symbol)
+            if sub is None:
                 continue
 
             closes = [v for v in (_clean(x) for x in sub["Close"]) if v is not None]
@@ -346,10 +378,8 @@ class YFinanceClient:
 
         result: dict[str, list[BarData]] = {}
         for symbol in symbols:
-            try:
-                # Con un solo símbolo yfinance aplana el MultiIndex.
-                sub = frame[symbol] if len(symbols) > 1 else frame
-            except KeyError:
+            sub = _sub_frame(frame, symbol)
+            if sub is None:
                 continue
 
             divisor = divisors.get(symbol, 1.0)
@@ -519,6 +549,41 @@ class YFinanceClient:
         error de un factor de ~16 millones en una cartera COP/USD.
         """
         return f"{base.upper()}{quote.upper()}=X"
+
+    def fetch_fx_history(
+        self, pairs: list[tuple[str, str]], start: dt.date, end: dt.date
+    ) -> dict[tuple[str, str], list[tuple[dt.date, float]]]:
+        """Cierres diarios de un par de divisas.
+
+        Es la MISMA descarga que la de un activo -un par de divisas en Yahoo es
+        un ticker más, `USDCOP=X`- así que reutiliza `fetch_history` en lugar de
+        duplicar el manejo de errores, el lote y el timeout.
+
+        Devuelve CIERRES, no cotizaciones vivas. La diferencia importa: el tipo
+        del día en curso se sigue tomando de `fetch_fx_rates`, que da el precio
+        de ahora, mientras que esto rellena los días ya cerrados. Mezclarlos al
+        revés pondría un cierre de ayer como tipo de hoy.
+
+        El sondeo de subunidad no interfiere: solo mira los sufijos `.L`, `.TA`
+        y `.JO`, y un par de divisas termina en `=X`.
+        """
+        if not pairs:
+            return {}
+        tickers = {self.fx_ticker(base, quote): (base.upper(), quote.upper())
+                   for base, quote in pairs}
+        bars_by_ticker = self.fetch_history(list(tickers), start, end)
+
+        result: dict[tuple[str, str], list[tuple[dt.date, float]]] = {}
+        for ticker, pair in tickers.items():
+            bars = bars_by_ticker.get(ticker)
+            if not bars:
+                continue
+            # Un tipo de cambio no negativo ni nulo: un 0 aquí produciría una
+            # división por cero al invertir el par.
+            serie = [(bar.date, bar.close) for bar in bars if bar.close > 0]
+            if serie:
+                result[pair] = serie
+        return result
 
     def fetch_fx_rates(self, pairs: list[tuple[str, str]]) -> dict[tuple[str, str], float]:
         if not pairs:

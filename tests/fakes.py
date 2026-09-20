@@ -72,6 +72,7 @@ class FakeProvider:
         metadata: dict[str, AssetMetadata] | None = None,
         fundamentals: dict[str, FundamentalData] | None = None,
         fx: dict[tuple[str, str], float] | None = None,
+        fx_history: dict[tuple[str, str], list[tuple[dt.date, float]]] | None = None,
         search: list[SearchHit] | None = None,
         fail_with: Exception | None = None,
     ) -> None:
@@ -80,6 +81,7 @@ class FakeProvider:
         self.metadata = metadata or {}
         self.fundamentals = fundamentals or {}
         self.fx = fx or {}
+        self.fx_history = fx_history or {}
         self.search = search or []
         self.fail_with = fail_with
         self.calls: list[tuple[str, tuple]] = []
@@ -117,6 +119,16 @@ class FakeProvider:
     def fetch_fx_rates(self, pairs: list[tuple[str, str]]) -> dict[tuple[str, str], float]:
         self._record("fetch_fx_rates", tuple(pairs))
         return {p: self.fx[p] for p in pairs if p in self.fx}
+
+    def fetch_fx_history(
+        self, pairs: list[tuple[str, str]], start: dt.date, end: dt.date
+    ) -> dict[tuple[str, str], list[tuple[dt.date, float]]]:
+        self._record("fetch_fx_history", tuple(pairs), start, end)
+        return {
+            p: [(d, r) for d, r in self.fx_history[p] if start <= d <= end]
+            for p in pairs
+            if p in self.fx_history
+        }
 
     def search_symbols(self, query: str, limit: int = 8) -> list[SearchHit]:
         self._record("search_symbols", query, limit)
