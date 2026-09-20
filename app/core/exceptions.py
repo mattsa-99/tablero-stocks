@@ -27,6 +27,10 @@ class InvalidLedgerOperation(TableroError):
     """
 
 
+class InvalidJournalEntry(TableroError):
+    """La entrada del diario no cumple las reglas (fecha pasada, sin razón...). -> 422"""
+
+
 class InsufficientUniverse(TableroError):
     """No hay candidatos suficientes para un ranking con sentido. -> 422
 

@@ -68,3 +68,12 @@ def opportunities(request: Request):
         name="opportunities.html",
         context={"active_page": "/oportunidades"},
     )
+
+
+@router.get("/diario", response_class=HTMLResponse)
+def journal(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="journal.html",
+        context={"active_page": "/diario"},
+    )

@@ -11,6 +11,7 @@ from app.db.base import Base
 from app.models.asset import Asset
 from app.models.fundamentals import FundamentalSnapshot
 from app.models.fx import FxRateDaily
+from app.models.journal import JournalEntry
 from app.models.market import AssetQuote, PriceHistory
 from app.models.portfolio import Portfolio
 from app.models.sync import DataSyncState
@@ -26,4 +27,5 @@ __all__ = [
     "FundamentalSnapshot",
     "FxRateDaily",
     "DataSyncState",
+    "JournalEntry",
 ]

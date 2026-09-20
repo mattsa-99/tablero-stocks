@@ -41,7 +41,12 @@ const api = {
       let detail = body?.detail ?? `Error ${response.status}`;
       if (Array.isArray(detail)) {
         detail = detail
-          .map((item) => `${item.loc?.slice(1).join(".") ?? ""}: ${item.msg}`)
+          .map((item) => {
+            // Pydantic antepone «Value error, » a los mensajes propios.
+            const msg = String(item.msg).replace(/^Value error, /, "");
+            const field = item.loc?.slice(1).join(".") ?? "";
+            return field ? `${field}: ${msg}` : msg;
+          })
           .join("; ");
       }
       throw new ApiError(detail, response.status, body?.type ?? "HTTPError");
@@ -242,6 +247,9 @@ document.addEventListener("alpine:init", () => {
     loadingPortfolios: true,
     portfolioError: null,
     toasts: [],
+    // Contadores del diario, para el globo de la barra de navegación. Se
+    // piden sin puntuar el universo: es barato y se pide en cada página.
+    journalCounts: { active: 0, overdue: 0, breached: 0, with_alerts: 0 },
     theme: "dark",
     _nextToastId: 1,
 
@@ -249,6 +257,16 @@ document.addEventListener("alpine:init", () => {
       this.theme = localStorage.getItem("tablero:theme") || "dark";
       document.documentElement.setAttribute("data-theme", this.theme);
       await this.loadPortfolios();
+      await this.refreshJournalCounts();
+    },
+
+    async refreshJournalCounts() {
+      if (!this.selectedId) return;
+      try {
+        this.journalCounts = await api.get(`/api/journal/summary?portfolio_id=${this.selectedId}`);
+      } catch {
+        // El globo es un extra: que falle no puede romper la página.
+      }
     },
 
     get selected() {
@@ -296,6 +314,7 @@ document.addEventListener("alpine:init", () => {
       if (parsed === this.selectedId) return;
       this.selectedId = parsed;
       localStorage.setItem("tablero:portfolio", String(parsed));
+      this.refreshJournalCounts();
     },
 
     async createPortfolio(payload) {

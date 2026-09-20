@@ -43,6 +43,16 @@ class AssetType(StrEnum):
     OTHER = "OTHER"
 
 
+class JournalKind(StrEnum):
+    """Qué decidiste sobre una empresa, en palabras tuyas."""
+
+    WATCH = "WATCH"  # en vigilancia: aún no compras
+    BUY = "BUY"  # comprada (o decidida a comprar)
+    HOLD = "HOLD"  # decidiste mantener
+    SELL = "SELL"  # vendida o decidida a vender
+    PASS = "PASS"  # descartada: mirada y rechazada a propósito
+
+
 def sa_enum(enum_cls: type[StrEnum], name: str) -> SAEnum:
     """Enum persistido como VARCHAR + CHECK, nunca como ENUM nativo.
 

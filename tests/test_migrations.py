@@ -30,6 +30,7 @@ EXPECTED_TABLES = {
     "fundamental_snapshots",
     "fx_rates",
     "data_sync_state",
+    "journal_entries",
 }
 
 

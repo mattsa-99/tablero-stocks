@@ -49,13 +49,21 @@
     </a>
 
     <nav class="flex items-center gap-1 text-sm">
-      {% set nav_items = [("/", "Portafolio"), ("/oportunidades", "Oportunidades")] %}
+      {% set nav_items = [("/", "Portafolio"), ("/oportunidades", "Oportunidades"), ("/diario", "Diario")] %}
       {% for href, label in nav_items %}
       <a href="{{ href }}"
          class="rounded-lg px-3 py-1.5 transition-colors
                 {% if active_page == href %}bg-surf-2 font-medium text-ink
                 {% else %}text-ink-soft hover:bg-surf-2 hover:text-ink{% endif %}">
         {{ label }}
+        {% if href == "/diario" %}
+        <!-- Cuántas decisiones piden que las revises. Lleva el número escrito:
+             el color no es el único canal. -->
+        <span x-show="$store.app.journalCounts.with_alerts > 0" x-cloak
+              class="tabular ml-1 rounded-full bg-warn/20 px-1.5 text-[10px] font-semibold text-warn"
+              title="Decisiones que piden revisión"
+              x-text="$store.app.journalCounts.with_alerts"></span>
+        {% endif %}
       </a>
       {% endfor %}
     </nav>
