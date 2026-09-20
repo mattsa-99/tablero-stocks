@@ -11,7 +11,11 @@ from __future__ import annotations
 import datetime as dt
 import math
 
-from app.core.exceptions import ProviderRateLimited, ProviderUnavailable
+from app.core.exceptions import (
+    ProviderRateLimited,
+    ProviderUnavailable,
+    ProviderUnreachable,
+)
 from app.providers.base import (
     AssetMetadata,
     BarData,
@@ -158,3 +162,9 @@ def hit(symbol: str, name: str, exchange: str = "NASDAQ", quote_type: str = "EQU
 
 RATE_LIMIT = ProviderRateLimited("429 Too Many Requests")
 UNAVAILABLE = ProviderUnavailable("timeout")
+
+# Textuales del log del agente de launchd: son el 80% de los fallos reales.
+DNS_DOWN = ProviderUnreachable(
+    "Sin conexión con el proveedor en fetch_quotes: Failed to perform, "
+    "curl: (6) Could not resolve host: query2.finance.yahoo.com"
+)

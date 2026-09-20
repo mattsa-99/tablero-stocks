@@ -146,15 +146,38 @@ La excepción son los símbolos que el usuario **escribe** en `?symbols=`: esos
 se cargan en línea, porque sin histórico no se pueden puntuar y desaparecerían
 del ranking que se pidió a propósito. Son un puñado, no 494.
 
-**Un 429 se apunta contra el proveedor, nunca contra los símbolos.** Es la
-diferencia entre degradar y averiarse. `SyncGate.mark_rate_limited` mantiene
-un enfriamiento global (`ResourceType.PROVIDER`) en vez de subirle el contador
-de fallos a cada símbolo: cargárselo a ellos los mete en un backoff
-exponencial individual como si el ticker estuviera roto. Medido antes de
-arreglarlo: las sincronizaciones del 16, 17 y 18 de septiembre de 2026
-marcaron 469, 420 y 494 símbolos como fallidos por un límite ajeno a ellos.
+**Un fallo de 429 o de RED se apunta contra el proveedor, nunca contra los
+símbolos.** Es la diferencia entre degradar y averiarse, y es el arreglo de
+mayor impacto del pipeline. Ninguno de los dos dice nada sobre el ticker que
+tocaba pedir -en el caso de la red ni siquiera se llegó a preguntar-, pero
+cargárselo a cada símbolo lo mete en un backoff exponencial individual como si
+estuviera roto.
+
+Medido sobre el log real del agente de launchd: **1.282 fallos de DNS frente a
+23 de rate limit**, o sea que el caso dominante es el portátil suspendido, no
+Yahoo cortando. Reproducida la sincronización de 494 símbolos con la red caída:
+
+    antes:  81 llamadas, 494 símbolos en backoff
+    ahora:   1 llamada,    0 símbolos en backoff
+
+En producción esas 81 llamadas eran intentos que expiraban -el log tiene
+timeouts de 946 s- y por eso la sincronización del 18-09-2026 estuvo 67
+minutos para terminar con 0 cotizaciones, 0 barras y 0 fundamentales.
+
+`_translate_error` clasifica en tres, y el orden importa: el rate limit se
+comprueba PRIMERO porque un 429 llega por una conexión que funcionó.
+`ProviderUnreachable` es subclase de `ProviderUnavailable` para no romper a
+quien ya la captura.
+
+Los dos enfriamientos NO duran lo mismo, y confundirlos sale caro en ambos
+sentidos. Un 429 es el proveedor pidiendo que pares: 15 min de base, techo de
+6 h. Una caída de red es un problema NUESTRO y puede resolverse en cualquier
+segundo: 2 min de base y **techo propio de 15 min**. Ese techo bajo evita
+además un bloqueo real: mientras el enfriamiento corre no se llama a nadie, y
+si no se llama a nadie no hay respuesta correcta que pueda cerrarlo.
+
 Cualquier respuesta correcta cierra el enfriamiento (`clear_rate_limit`, desde
-`mark_success`); sin eso el contador solo sube y se clava en el techo de 6 h.
+`mark_success`); sin eso el contador solo sube y se clava en el techo.
 
 **`fetch_quotes` va en lote de verdad, y no lo parecía.** `yf.Tickers(...)` es
 perezoso: se construye en 3 ms y cada `fast_info` posterior es una petición

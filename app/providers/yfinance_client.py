@@ -21,6 +21,7 @@ from typing import Any
 from app.core.exceptions import (
     ProviderRateLimited,
     ProviderUnavailable,
+    ProviderUnreachable,
     SymbolNotFound,
 )
 from app.providers.base import (
@@ -40,6 +41,33 @@ logger = logging.getLogger(__name__)
 
 # Yahoo señaliza el rate limit de varias formas según el endpoint y la versión.
 _RATE_LIMIT_MARKERS = ("rate limit", "too many requests", "429")
+
+# Fallos en los que NO se llegó a hablar con Yahoo. Salen textuales del log
+# del agente de launchd, donde son el 80% de los errores:
+#
+#   Failed to perform, curl: (6) Could not resolve host: query2.finance...
+#   Failed to perform, curl: (28) Operation timed out after 946059 millise...
+#
+# "failed to perform" es el envoltorio de curl_cffi para CUALQUIER fallo de
+# transporte, así que por sí solo ya identifica la clase entera; los demás
+# marcadores cubren los caminos que no pasan por curl.
+_CONNECTION_MARKERS = (
+    "failed to perform",
+    "could not resolve host",
+    "temporary failure in name resolution",
+    "operation timed out",
+    "timed out",
+    "timeout",
+    "failed to connect",
+    "connection refused",
+    "connection reset",
+    "connection aborted",
+    "network is unreachable",
+    "max retries exceeded",
+    "remote disconnected",
+    "empty reply from server",
+    "ssl connect error",
+)
 
 
 def _clean(value: Any) -> float | None:
@@ -66,9 +94,18 @@ def _clean_int(value: Any) -> int | None:
 
 
 def _translate_error(exc: Exception, context: str) -> Exception:
+    """Clasifica un fallo del proveedor en las tres cosas distintas que puede ser.
+
+    El orden importa: el rate limit se comprueba PRIMERO porque un 429 llega
+    por una conexión que funcionó, y confundirlo con una caída de red haría
+    que reintentáramos pronto contra un proveedor que pidió justo lo
+    contrario.
+    """
     text = str(exc).lower()
     if any(marker in text for marker in _RATE_LIMIT_MARKERS):
         return ProviderRateLimited(f"Rate limit de Yahoo Finance en {context}: {exc}")
+    if any(marker in text for marker in _CONNECTION_MARKERS):
+        return ProviderUnreachable(f"Sin conexión con el proveedor en {context}: {exc}")
     return ProviderUnavailable(f"Fallo del proveedor en {context}: {exc}")
 
 

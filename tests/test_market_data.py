@@ -12,9 +12,10 @@ from decimal import Decimal
 from sqlalchemy import select
 
 from app.models import Asset, AssetQuote, DataSyncState, FxRateDaily, PriceHistory
-from app.providers.cache import ResourceType, SyncGate
+from app.providers.cache import UNREACHABLE_COOLDOWN_MAX, ResourceType, SyncGate
 from app.services.market_data import MarketDataService, fx_sanity_check
 from tests.fakes import (
+    DNS_DOWN,
     RATE_LIMIT,
     UNAVAILABLE,
     FakeProvider,
@@ -108,6 +109,97 @@ def test_a_rate_limit_is_not_blamed_on_the_symbols(db):
     assert provider_state.next_eligible_at is not None
 
 
+def test_a_network_outage_is_not_blamed_on_the_symbols(db):
+    """El caso que de verdad ocurre: 1.282 fallos de DNS contra 23 de 429.
+
+    Con el portátil suspendido a mitad de sincronización, cada lote de 25
+    símbolos cargaba con el mismo `Could not resolve host` y los 494 del
+    universo acababan en backoff exponencial individual, como si cada ticker
+    estuviera roto. Un `Could not resolve host` no dice NADA del símbolo: no
+    se llegó a preguntar por él.
+    """
+    assets = [make_asset(db, symbol=s) for s in ("AAPL", "MSFT", "KO")]
+    service = MarketDataService(db, FakeProvider(fail_with=DNS_DOWN))
+
+    service.refresh_quotes(assets)
+
+    for asset in assets:
+        state = db.scalar(
+            select(DataSyncState).where(
+                DataSyncState.resource_type == ResourceType.QUOTE,
+                DataSyncState.resource_key == asset.symbol,
+            )
+        )
+        assert state.consecutive_failures == 0, (
+            f"{asset.symbol} no tiene la culpa de que se caiga la red"
+        )
+
+    provider_state = db.scalar(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.PROVIDER
+        )
+    )
+    assert provider_state is not None and provider_state.consecutive_failures == 1
+
+
+def test_a_network_outage_cools_down_less_than_a_rate_limit(db):
+    """No son el mismo castigo, y confundirlos sale caro en los dos sentidos.
+
+    Un 429 es Yahoo pidiendo que pares: obedecer de más solo cuesta frescura.
+    Una red caída es un problema NUESTRO y puede resolverse en cualquier
+    segundo, así que un enfriamiento largo desperdiciaría las corridas
+    siguientes del agente de launchd.
+    """
+    gate = SyncGate(db)
+    now = dt.datetime.now(dt.UTC)
+
+    net_until = gate.mark_unreachable(DNS_DOWN)
+    gate.clear_rate_limit()
+    limit_until = gate.mark_rate_limited(RATE_LIMIT)
+    db.commit()
+
+    assert (net_until - now).total_seconds() < (limit_until - now).total_seconds()
+
+
+def test_the_network_cooldown_can_always_recover(db):
+    """El techo bajo evita un bloqueo, no es una preferencia estética.
+
+    Mientras el enfriamiento corre no se llama a nadie, y si no se llama a
+    nadie no hay respuesta correcta que pueda cerrarlo. Con un techo de seis
+    horas, un portátil que estuvo suspendido toda la noche despertaría dentro
+    de un castigo del que no puede salir solo.
+    """
+    gate = SyncGate(db)
+    for _ in range(20):
+        gate.mark_unreachable(DNS_DOWN)
+    db.commit()
+
+    until = gate.provider_cooldown_until()
+    espera = (until - dt.datetime.now(dt.UTC)).total_seconds()
+
+    assert espera <= UNREACHABLE_COOLDOWN_MAX * 1.25 + 1, (
+        "Una racha larga no puede encerrar al proveedor fuera del alcance"
+    )
+
+
+def test_a_network_outage_stops_the_sync_instead_of_grinding(db):
+    """Cortar en seco lo que ya no puede funcionar.
+
+    La sincronización del 18 de septiembre estuvo 67 minutos fallando contra
+    una red que no estaba y terminó con 0 cotizaciones, 0 barras y 0
+    fundamentales. Con el enfriamiento, el primer fallo silencia el resto del
+    pipeline y la corrida acaba en segundos.
+    """
+    asset = make_asset(db)
+    provider = FakeProvider(fail_with=DNS_DOWN)
+    service = MarketDataService(db, provider)
+
+    service.full_refresh([asset], ["USD"])
+
+    llamadas = len(provider.calls)
+    assert llamadas == 1, f"Tras la primera caída no se insiste (hubo {llamadas})"
+
+
 def test_an_ordinary_failure_is_still_blamed_on_the_symbols(db):
     """Lo contrario del anterior: un fallo normal SÍ es atribuible a lo pedido."""
     asset = make_asset(db)
@@ -149,7 +241,7 @@ def test_the_cooldown_silences_every_resource_not_just_quotes(db):
     assert provider.call_count("fetch_history") == 0
     assert provider.call_count("fetch_fundamentals") == 0
     assert provider.call_count("fetch_metadata") == 0
-    assert any("limitó las peticiones" in w for w in report.warnings)
+    assert any("no está respondiendo bien" in w for w in report.warnings)
 
 
 def test_the_cooldown_warning_is_said_once_not_five_times(db):
@@ -163,7 +255,7 @@ def test_the_cooldown_warning_is_said_once_not_five_times(db):
 
     report = service.full_refresh([asset], ["USD"], force=True)
 
-    cooldown = [w for w in report.warnings if "limitó las peticiones" in w]
+    cooldown = [w for w in report.warnings if "no está respondiendo bien" in w]
     assert len(cooldown) == 1, report.warnings
 
 

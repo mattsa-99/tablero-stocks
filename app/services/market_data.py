@@ -22,7 +22,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.exceptions import ProviderError, ProviderRateLimited, SymbolNotFound
+from app.core.exceptions import (
+    ProviderError,
+    ProviderRateLimited,
+    ProviderUnreachable,
+    SymbolNotFound,
+)
 from app.db.bulk import insert_ignore_duplicates
 from app.models import Asset, AssetQuote, AssetType, FundamentalSnapshot, FxRateDaily, PriceHistory
 from app.providers.base import MarketProvider
@@ -179,7 +184,7 @@ class MarketDataService:
         if until is None:
             return False
         report.note(
-            "Yahoo limitó las peticiones hace un momento. Se sirven los "
+            "Yahoo no está respondiendo bien ahora mismo. Se sirven los "
             f"últimos datos guardados; se reintenta a las {until:%H:%M} UTC"
         )
         return True
@@ -194,22 +199,36 @@ class MarketDataService:
     ) -> str:
         """Reparte la culpa de un fallo y devuelve el aviso para el usuario.
 
-        La distinción es la que separa degradar de averiarse. Un 429 no dice
-        nada sobre el símbolo que se pidió -dice que hay que parar de pedir-,
-        así que cargárselo a cada símbolo les sube su contador de fallos
-        consecutivos y los mete en un backoff exponencial individual, como si
-        el ticker estuviera roto. Medido aquí: las sincronizaciones del 16, 17
-        y 18 de septiembre marcaron 469, 420 y 494 símbolos como fallidos por
-        un límite que no tenía nada que ver con ellos.
+        La distinción es la que separa degradar de averiarse. Hay dos fallos
+        que NO son atribuibles a lo que se pidió, y son justo los que pasan:
 
-        Cualquier otro fallo del proveedor sí es atribuible a lo que se pidió,
-        y ahí el backoff por clave es exactamente lo que se quiere.
+        - **Un 429** dice que hay que parar de pedir, no que el ticker esté
+          mal. Las sincronizaciones del 16, 17 y 18 de septiembre de 2026
+          marcaron 469, 420 y 494 símbolos como fallidos por un límite ajeno.
+        - **Una caída de red** dice todavía menos: no se llegó a preguntar.
+          Es además el caso dominante -1.282 fallos de DNS contra 23 de rate
+          limit en el log del agente-, y el que producía los 25 mensajes
+          idénticos por lote que llenaban la terminal.
+
+        Cargárselos a cada símbolo les sube el contador de fallos consecutivos
+        y los mete en un backoff exponencial individual, como si el ticker
+        estuviera roto. Un universo entero en penitencia por una wifi caída.
+
+        Cualquier otro fallo del proveedor -una respuesta ilegible, un símbolo
+        que rompe el lote- sí es atribuible a lo que se pidió, y ahí el
+        backoff por clave es exactamente lo que se quiere.
         """
         if isinstance(exc, ProviderRateLimited):
             until = self.gate.mark_rate_limited(exc)
             return (
                 f"{context}: Yahoo limitó las peticiones. Se sirven los "
                 f"últimos datos guardados; se reintenta a las {until:%H:%M} UTC"
+            )
+        if isinstance(exc, ProviderUnreachable):
+            until = self.gate.mark_unreachable(exc)
+            return (
+                f"{context}: sin conexión con Yahoo. Se sirven los últimos "
+                f"datos guardados; se reintenta a las {until:%H:%M} UTC"
             )
         for key in keys:
             self.gate.mark_failure(resource_type, key, ttl, exc)
