@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Dashboard de inversiones: FastAPI + SQLite + yfinance, con frontend Jinja2 +
 Tailwind + Alpine.js + Chart.js servido por la misma app. Contexto de uso:
-cartera en **COP** con activos cotizados en **USD**.
+inversor en Colombia que opera con brokers en **USD** (eToro, XTB, IBKR) y un
+comisionista local en **COP** para la BVC.
+
+La divisa base por defecto es **USD**, y no es una simplificación: es la
+divisa de tres de los cuatro brokers, reduce la superficie de conversión de
+476 activos a 18 y desbloquea la curva de valor y la comparación con el índice
+sin necesidad de tipos de cambio. El peso NO se esconde: la atribución de
+divisa lo separa explícitamente (ver más abajo).
 
 El código, los comentarios y los mensajes de la interfaz están **en español**.
 Mantén ese idioma al añadir código.
@@ -561,8 +568,83 @@ columnas aportó más que el `WITHOUT ROWID`.
 objetos ORM (107 ms → 23 ms con 120 activos). Para escribir, `app/db/bulk.py::
 insert_ignore_duplicates` (ON CONFLICT DO NOTHING, consciente del dialecto).
 
+### Rendimiento en el tiempo
+
+`app/services/performance.py` reproduce el ledger a lo largo del calendario de
+cotización en vez de una sola vez. Todo se deriva, igual que el resto: no hay
+tabla de valores históricos que pudiera desincronizarse.
+
+**`close` y NO `adj_close`.** `adj_close` reescribe el pasado también por
+dividendos, y esos ya están en el ledger como entradas de caja: contarlos dos
+veces inflaría la curva. Y el último punto tiene que coincidir con el KPI que
+se dibuja justo encima, que usa el precio real.
+`test_the_last_point_agrees_with_the_dashboard` lo fija. Para medir
+RENDIMIENTO (momentum, volatilidad, correlación) sigue mandando `adj_close`:
+sin ajustar por splits, un 2:1 invierte el momentum. De ahí el parámetro
+`adjusted` de `get_price_series_dated`.
+
+**Relleno hacia adelante.** La BVC y la NYSE no cierran los mismos días. Sin
+arrastrar el último valor conocido, cada festivo de un mercado abriría un
+hueco en la curva del otro. Un día SIN precio no se dibuja: misma regla que en
+todo el sistema, ausente es None y nunca 0.
+
+**El índice recibe la misma aportación el mismo día.** La pregunta no es
+«cuánto subió SPY» sino «cuánto tendría yo si ese dinero, puesto ese día,
+hubiera ido a SPY». Cuando la cartera no registra depósitos -deliberado, es lo
+que permite cargar un histórico ya existente- se toman las compras como
+aportación; sin eso la caja queda negativa por el importe entero y
+`total_value` muestra solo la plusvalía (88.870 COP en vez de 2,2 millones en
+la cartera de prueba).
+
+**XIRR por bisección**, no por Newton, que diverge con flujos irregulares -lo
+que produce una cartera real- y devolvería un número plausible y falso. No se
+anualiza por debajo de 90 días: sobre 18 días multiplica por 20 y da un «129%
+anual» que solo significa «subió un 4% en tres semanas».
+
+### Atribución de divisa
+
+`unrealized_pnl` mezclaba lo que hizo la empresa con lo que hizo el cambio.
+Medido: SPY subió 16,6% en dólares a un año mientras quien mide en pesos
+perdía 5,5%, porque el peso se revaluó 19%. La descomposición es EXACTA:
+
+    efecto activo = cantidad · (precio_hoy − coste_medio_local) · fx_hoy
+    efecto divisa = cantidad · coste_medio_local · (fx_hoy − fx_medio)
+
+y suma el P&L no realizado. El efecto del activo se mide al tipo de HOY porque
+es la convención que deja el residuo en cero; repartir el término cruzado de
+otro modo haría que las dos cifras no sumaran el total.
+
+Para eso el replay lleva el coste **también en divisa local**
+(`AssetPosition.total_cost_local`). Al vender se retira en la misma proporción
+que el de divisa base, no con un coste medio local calculado aparte: con dos
+cálculos independientes el redondeo los separaría y la atribución dejaría de
+cuadrar.
+
+### Histórico de tipos de cambio
+
+`refresh_fx_history` rellena los CIERRES diarios. Dos reglas:
+
+- **El día en curso no lo toca**: el «cierre» que Yahoo da para hoy es el
+  último precio, y guardarlo lo congelaría como si la jornada hubiera
+  terminado. Ese día lo mantiene `refresh_fx` con la cotización viva.
+- **Un día ya cerrado SÍ se pisa** (`bulk.upsert`, no `insert_ignore_duplicates`).
+  Una fila escrita por el refresco de jornada guarda la cotización viva del
+  momento en que se pidió, no el cierre: medido sobre USD/COP, esas filas se
+  desviaban del cierre entre 0,1% y 0,9%.
+
+El relleno mira el rango COMPLETO almacenado, no solo la última fecha: con
+solo el máximo únicamente sabe avanzar, y sobre la base real traía 2 filas
+dejando intactos tres años de hueco anterior.
+
 ## Trampas conocidas
 
+- **`yf.download` NO aplana el MultiIndex con un solo símbolo.** Las columnas
+  siguen siendo `('AAPL', 'Close')`, así que leer el frame entero devuelve
+  None en todas las filas y CERO barras sin lanzar nada. Estuvo roto en
+  `fetch_history` y en `_download_quotes` a la vez, y solo mordía con
+  exactamente un símbolo: la carga perezosa y los `?symbols=` tecleados. Se
+  lee con `_sub_frame`, que acepta las dos formas porque yfinance ha cambiado
+  este comportamiento entre versiones.
 - **Tailwind no aplica `/10` a un color que es `var(--good)`.** No puede
   componer el canal alfa sobre una custom property opaca, así que la utilidad
   **no se emite** y la clase queda muerta en el HTML, sin advertencia. Regía

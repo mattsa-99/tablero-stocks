@@ -15,9 +15,29 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./tablero.db"
 
-    # Divisa base por defecto al crear un portafolio. El contexto de uso es
-    # Colombia: portafolio en COP con activos mayoritariamente en USD.
-    default_base_currency: str = "COP"
+    # Divisa base por defecto al crear un portafolio.
+    #
+    # USD y no COP, aunque el usuario esté en Colombia, por tres razones
+    # medidas:
+    #
+    # 1. CUADRAR CON EL BROKER. eToro, XTB e Interactive Brokers llevan la
+    #    cuenta en dólares; solo el comisionista local va en pesos. Con base
+    #    COP ninguna cifra del tablero coincidiría con la pantalla del broker,
+    #    y esa reconciliación es lo que hace que uno se fíe del tablero.
+    # 2. MENOS SUPERFICIE DE CONVERSIÓN. Del universo de ingesta, 476 activos
+    #    cotizan en USD y 18 en COP. Con base USD la conversión afecta a 18
+    #    posiciones posibles en vez de a 476.
+    # 3. DESBLOQUEA MÉTRICAS. La comparación con el índice y la curva de valor
+    #    no necesitan ningún tipo de cambio para lo que cotiza en dólares.
+    #
+    # Esto NO esconde el peso: `PortfolioSummary.fx_pnl` separa explícitamente
+    # cuánto del resultado vino de la divisa, que es justo lo que antes estaba
+    # untado e invisible dentro de cada posición.
+    #
+    # `base_currency` no es modificable después de crear el portafolio
+    # (ver `schemas/portfolio.py`): cambiarla invalidaría todos los
+    # `fx_rate_to_base` ya congelados en el ledger.
+    default_base_currency: str = "USD"
 
     # Solo afecta a la presentación. El almacenamiento es siempre UTC.
     display_timezone: str = "America/Bogota"
