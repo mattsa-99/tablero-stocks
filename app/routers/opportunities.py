@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from decimal import Decimal
+from typing import Annotated
+
 from fastapi import APIRouter, BackgroundTasks, Query
 
 from app.models import Asset
 from app.repositories import portfolio as portfolio_repo
 from app.routers.dependencies import DbSession, ProviderDep, SessionFactory
+from app.schemas.ficha import FichaResponse, SizingRead
 from app.schemas.opportunity import OpportunityResponse
+from app.services import ficha as ficha_service
 from app.services import ingestion as ingestion_service
 from app.services import opportunities as opportunity_service
 from app.services import refresh_jobs
@@ -146,3 +151,52 @@ def get_opportunities(
     response.refreshing = (refresh and bool(assets)) or refresh_jobs.refresh_running(scope)
     response.warnings = [*warnings, *response.warnings]
     return response
+
+
+@router.get("/{symbol}/ficha", response_model=FichaResponse)
+def get_ficha(
+    symbol: str,
+    db: DbSession,
+    portfolio_id: int = Query(..., description="Portafolio contra el que se contextualiza"),
+):
+    """Ficha de compra de UNA empresa: score, banderas, salud, pares y cartera.
+
+    Lee lo ya guardado y no llama al proveedor: es rápida y determinista. NO es
+    una recomendación: el veredicto solo dice si el filtro encontró problemas.
+    """
+    portfolio = portfolio_repo.get_portfolio(db, portfolio_id)
+    return ficha_service.build_ficha(db, portfolio, symbol)
+
+
+@router.get("/{symbol}/sizing", response_model=SizingRead)
+def get_sizing(
+    symbol: str,
+    db: DbSession,
+    portfolio_id: Annotated[int, Query()],
+    capital: Annotated[
+        Decimal | None,
+        Query(
+            gt=0,
+            description="Capital total en divisa base. Por defecto, el de la cartera "
+            "(posiciones + efectivo positivo)",
+        ),
+    ] = None,
+    risk_budget_pct: Annotated[
+        float | None,
+        Query(
+            gt=0,
+            le=20,
+            description="Cuánto de la cartera aceptas perder por esta posición si "
+            "repite su peor caída, en %",
+        ),
+    ] = None,
+    max_position_pct: Annotated[
+        float | None, Query(gt=0, le=100, description="Tope de peso por posición, en %")
+    ] = None,
+):
+    """Cuánto poner en esta empresa con otros supuestos (recalcula sin rehacer la ficha)."""
+    portfolio = portfolio_repo.get_portfolio(db, portfolio_id)
+    return ficha_service.build_sizing(
+        db, portfolio, symbol,
+        capital=capital, risk_budget_pct=risk_budget_pct, max_position_pct=max_position_pct,
+    )

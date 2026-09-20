@@ -353,3 +353,18 @@ def get_active_assets(db: Session) -> list[Asset]:
     return list(
         db.scalars(select(Asset).where(Asset.is_active.is_(True)).order_by(Asset.symbol)).all()
     )
+
+
+def get_latest_fundamental_with_raw(db: Session, asset_id: int) -> FundamentalSnapshot | None:
+    """Último snapshot de UN activo, con el payload íntegro `raw`.
+
+    Aparte de `get_latest_fundamentals` a propósito: aquella difiere `raw` para
+    no deserializar 494 blobs por petición. La ficha mira una sola empresa y sí
+    lo necesita, así que lo pide explícitamente.
+    """
+    return db.scalar(
+        select(FundamentalSnapshot)
+        .where(FundamentalSnapshot.asset_id == asset_id)
+        .order_by(FundamentalSnapshot.as_of.desc())
+        .limit(1)
+    )
