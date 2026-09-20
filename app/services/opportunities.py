@@ -29,6 +29,7 @@ from app.core.exceptions import InsufficientUniverse
 from app.models import (
     Asset,
     AssetQuote,
+    AssetType,
     DataSyncState,
     FundamentalSnapshot,
     Portfolio,
@@ -38,6 +39,7 @@ from app.models import (
 from app.repositories import market as market_repo
 from app.schemas.opportunity import (
     AbsoluteAssessment,
+    DataFreshness,
     FactorDetail,
     OpportunityRead,
     OpportunityResponse,
@@ -59,6 +61,8 @@ from app.services.scoring import (
     NEUTRAL_SCORE,
     average_available,
     diversification_score,
+    group_medians,
+    grouped_percentile_ranks,
     invert,
     percentile_ranks,
 )
@@ -91,6 +95,8 @@ class _Candidate:
     drawdown: float | None = None
     beta: float | None = None
     current_price: float | None = None
+    price_time: dt.datetime | None = None
+    fundamentals_as_of: dt.date | None = None
     # Métricas de calidad: solo alimentan la calificación absoluta, no el score
     # relativo. Un ETF no las tiene y eso no lo hace peor candidato.
     roe: float | None = None
@@ -116,10 +122,24 @@ class _ScoredUniverse:
     grade_counts: dict[str, int]
     region_counts: dict[str, int]
     quality_warning: str | None
+    freshness: DataFreshness
     warnings: tuple[str, ...]
     excluded: dict[str, str]
     weights: dict[str, float]
     sector_threshold_pct: float
+
+
+# Tipos de activo que se comparan POR SECTOR. Un ETF sectorial trae sector y
+# aun así no es una empresa: su P/E es el de su cesta, y mezclarlo con las
+# empresas del sector movería la mediana con un número que no es de nadie.
+_SECTOR_COMPARABLE_TYPES = frozenset({AssetType.STOCK, AssetType.ADR, AssetType.REIT})
+
+
+def sector_group(asset: Asset) -> str | None:
+    """Sector contra el que se compara el múltiplo de esta empresa, o None."""
+    if asset.sector and asset.asset_type in _SECTOR_COMPARABLE_TYPES:
+        return asset.sector
+    return None
 
 
 def _positive_or_none(value: float | None) -> float | None:
@@ -164,9 +184,11 @@ def _collect_candidates(
 
         quote = quotes.get(asset.id)
         candidate.current_price = quote.price if quote else None
+        candidate.price_time = (quote.quote_time or quote.fetched_at) if quote else None
 
         snapshot = fundamentals.get(asset.id)
         if snapshot is not None:
+            candidate.fundamentals_as_of = snapshot.as_of
             candidate.trailing_pe = _positive_or_none(snapshot.trailing_pe)
             candidate.forward_pe = _positive_or_none(snapshot.forward_pe)
             candidate.price_to_book = _positive_or_none(snapshot.price_to_book)
@@ -225,14 +247,31 @@ def _collect_candidates(
 def _factor_scores(
     candidates: list[_Candidate],
 ) -> tuple[list[float | None], list[float | None], list[float | None]]:
-    """Calcula V, M y R para todo el universo. Los rangos son cross-seccionales."""
+    """Calcula V, M y R para todo el universo. Los rangos son cross-seccionales.
+
+    VALORACIÓN RELATIVA AL SECTOR. Los cuatro múltiplos se ordenan DENTRO del
+    sector de cada empresa cuando éste tiene pares suficientes
+    (`opportunity_sector_min_peers`), y contra el universo entero cuando no. Así
+    50 significa «en la mediana de mi sector», y un banco no sale barato solo
+    por ser un banco. Momentum y riesgo NO se ajustan por sector: lo que sube
+    o se mueve mucho lo hace igual para quien lo compra, sea del sector que sea.
+    """
+
+    def value_ranks(values: list[float | None]) -> list[float | None]:
+        if not settings.opportunity_sector_neutral_value:
+            return percentile_ranks(values)
+        return grouped_percentile_ranks(
+            values,
+            [sector_group(c.asset) for c in candidates],
+            settings.opportunity_sector_min_peers,
+        )
 
     # --- Value: todas "menor es mejor", por eso se invierten ---
     value_components = [
-        invert(percentile_ranks([c.trailing_pe for c in candidates])),
-        invert(percentile_ranks([c.forward_pe for c in candidates])),
-        invert(percentile_ranks([c.price_to_book for c in candidates])),
-        invert(percentile_ranks([c.ev_to_ebitda for c in candidates])),
+        invert(value_ranks([c.trailing_pe for c in candidates])),
+        invert(value_ranks([c.forward_pe for c in candidates])),
+        invert(value_ranks([c.price_to_book for c in candidates])),
+        invert(value_ranks([c.ev_to_ebitda for c in candidates])),
     ]
     value = [
         average_available([component[i] for component in value_components])
@@ -296,6 +335,17 @@ def _to_signal_detail(signal) -> SignalDetail:
     )
 
 
+def _freshness(rows: list[OpportunityRead]) -> DataFreshness:
+    prices = [r.price_as_of for r in rows if r.price_as_of is not None]
+    funds = [r.fundamentals_as_of for r in rows if r.fundamentals_as_of is not None]
+    return DataFreshness(
+        prices_newest=max(prices, default=None),
+        prices_oldest=min(prices, default=None),
+        fundamentals_newest=max(funds, default=None),
+        fundamentals_oldest=min(funds, default=None),
+    )
+
+
 def _confidence(completeness: float) -> str:
     if completeness >= 0.9:
         return "high"
@@ -332,7 +382,8 @@ def _score_universe(
     if benchmark_pe is None:
         warnings.append(
             "Sin referencia de mercado (SPY o equivalente con P/E): la señal de "
-            "valoración absoluta queda sin datos en todas las calificaciones."
+            "valoración absoluta solo se calcula para las empresas cuyo sector "
+            "tiene pares suficientes; el resto queda sin dato de valoración."
         )
 
     summary = portfolio_service.get_summary(db, portfolio)
@@ -342,6 +393,22 @@ def _score_universe(
             "La cartera no tiene posiciones valoradas: el factor de diversificación "
             "trata todos los sectores como ausentes"
         )
+
+    # Mediana de P/E por sector, para anclar la valoración ABSOLUTA. Se calcula
+    # con el universo completo y ANTES de filtrar: es la referencia de una
+    # empresa y no debe cambiar porque el usuario oculte a sus pares.
+    sector_groups = [sector_group(c.asset) for c in candidates]
+    min_peers = settings.opportunity_sector_min_peers
+    sector_trailing = (
+        group_medians([c.trailing_pe for c in candidates], sector_groups, min_peers)
+        if settings.opportunity_sector_neutral_value
+        else {}
+    )
+    sector_forward = (
+        group_medians([c.forward_pe for c in candidates], sector_groups, min_peers)
+        if settings.opportunity_sector_neutral_value
+        else {}
+    )
 
     w_value = settings.opportunity_weight_value
     w_momentum = settings.opportunity_weight_momentum
@@ -406,6 +473,10 @@ def _score_universe(
         # acotada por construcción.
         score = max(0.0, min(100.0, score))
 
+        group = sector_groups[index]
+        sector_stat = sector_trailing.get(group) if group else None
+        forward_stat = sector_forward.get(group) if group else None
+
         assessment = grading.assess(
             trailing_pe=candidate.trailing_pe,
             forward_pe=candidate.forward_pe,
@@ -419,6 +490,9 @@ def _score_universe(
             profit_margin=candidate.profit_margin,
             debt_to_equity=candidate.debt_to_equity,
             revenue_growth=candidate.revenue_growth,
+            sector_trailing_pe=sector_stat[0] if sector_stat else None,
+            sector_forward_pe=forward_stat[0] if forward_stat else None,
+            sector_name=group,
         )
 
         completeness = (3 - missing) / 3
@@ -473,6 +547,12 @@ def _score_universe(
                     },
                 ),
                 current_price=candidate.current_price,
+                price_as_of=candidate.price_time,
+                fundamentals_as_of=candidate.fundamentals_as_of,
+                value_basis="sector" if sector_stat else "universe",
+                value_reference=group if sector_stat else None,
+                sector_pe=round(sector_stat[0], 2) if sector_stat else None,
+                sector_peer_count=sector_stat[1] if sector_stat else None,
                 exposure_bucket=bucket,
                 exposure_is_assumed=bucket_assumed,
                 sector_weight_pct=round(sector_weight * 100, 2),
@@ -535,6 +615,7 @@ def _score_universe(
         grade_counts=grade_counts,
         region_counts=region_counts,
         quality_warning=quality_warning,
+        freshness=_freshness(rows),
         warnings=tuple(warnings),
         excluded=excluded,
         weights={
@@ -644,6 +725,8 @@ def _universe_fingerprint(
         settings.opportunity_weight_diversification,
         settings.opportunity_weight_risk,
         settings.opportunity_sector_threshold,
+        settings.opportunity_sector_neutral_value,
+        settings.opportunity_sector_min_peers,
         settings.opportunity_min_universe,
         settings.price_series_max_age_days,
         settings.price_history_days,
@@ -728,6 +811,7 @@ def compute_opportunities(
         grade_counts=scored.grade_counts,
         region_counts=scored.region_counts,
         universe_quality_warning=scored.quality_warning,
+        freshness=scored.freshness,
         warnings=list(scored.warnings),
         excluded=scored.excluded,
     )

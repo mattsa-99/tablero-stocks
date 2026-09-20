@@ -135,10 +135,32 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     opportunity_min_universe: int = 5
     opportunity_sector_threshold: float = 0.30
+
+    # Tamaño de posición (ver services/sizing.py). Son PUNTOS DE PARTIDA de
+    # juicio, no resultado de una optimización: el usuario puede cambiarlos en
+    # la ficha para ver qué pasa.
+    #
+    # Presupuesto de riesgo: cuánto de la cartera aceptas perder por UNA
+    # posición si repite su peor caída. Un 2% con 10-20 posiciones deja que un
+    # desastre aislado duela sin arruinar el plan.
+    position_risk_budget_pct: float = 2.0
+    # Tope por posición, aunque el riesgo permitiera más.
+    position_max_weight_pct: float = 10.0
     opportunity_weight_value: float = 0.35
     opportunity_weight_momentum: float = 0.30
     opportunity_weight_diversification: float = 0.15
     opportunity_weight_risk: float = 0.20
+
+    # Valoración RELATIVA AL SECTOR. Un banco cotiza a P/E y P/B estructuralmente
+    # más bajos que una tecnológica, así que rankear los múltiplos contra los
+    # 494 activos mezclados premia al sector barato y no a la empresa barata.
+    # Con esto activo, cada múltiplo se ordena DENTRO de su sector cuando hay
+    # pares suficientes; con menos, se usa el universo entero (y se dice).
+    opportunity_sector_neutral_value: bool = True
+    # Mínimo de pares con dato para fiarse de un percentil o de una mediana de
+    # sector. Con 3 empresas, «el más barato de su sector» sale con 83 puntos
+    # por no tener rivales: es el mismo ruido que el universo mínimo evita.
+    opportunity_sector_min_peers: int = 8
 
     provider_timeout_seconds: int = 20
 

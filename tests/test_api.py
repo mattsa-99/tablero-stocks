@@ -444,3 +444,14 @@ def test_provider_failure_degrades_instead_of_500(client, portfolio_id, provider
     response = client.get(f"/api/portfolios/{portfolio_id}")
     assert response.status_code == 200
     assert response.json()["positions"][0]["symbol"] == "CHEAP"
+
+
+def test_opportunities_declare_how_old_their_data_is(client, portfolio_id):
+    body = opportunities(client, portfolio_id).json()
+    fresh = body["freshness"]
+    assert fresh["prices_newest"] is not None
+    assert fresh["fundamentals_newest"] is not None
+    assert fresh["fundamentals_oldest"] <= fresh["fundamentals_newest"]
+    row = body["opportunities"][0]
+    assert row["price_as_of"] is not None
+    assert row["fundamentals_as_of"] is not None

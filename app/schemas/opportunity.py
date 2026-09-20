@@ -51,6 +51,22 @@ class AbsoluteAssessment(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class DataFreshness(BaseModel):
+    """De cuándo son los datos que alimentan el ranking.
+
+    Existe porque un ranking se lee como si fuera de HOY. Con los precios de
+    hace una semana y los fundamentales de hace dos, el orden puede ser otro, y
+    nada en la pantalla lo delataba.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    prices_newest: dt.datetime | None = None
+    prices_oldest: dt.datetime | None = None
+    fundamentals_newest: dt.date | None = None
+    fundamentals_oldest: dt.date | None = None
+
+
 class OpportunityRead(BaseModel):
     """Una fila del ranking, con el desglose que la hace interpretable."""
 
@@ -76,6 +92,26 @@ class OpportunityRead(BaseModel):
     risk: FactorDetail
 
     current_price: float | None
+    price_as_of: dt.datetime | None = Field(
+        default=None, description="Cuándo se cotizó ese precio"
+    )
+    fundamentals_as_of: dt.date | None = Field(
+        default=None, description="Fecha de los fundamentales usados"
+    )
+    value_basis: str = Field(
+        default="universe",
+        description="Contra qué se ordenaron los múltiplos: 'sector' (sus pares) o "
+        "'universe' (todo el universo, si el sector tiene pocos pares o no aplica)",
+    )
+    value_reference: str | None = Field(
+        default=None, description="Sector usado como referencia de valoración"
+    )
+    sector_pe: float | None = Field(
+        default=None, description="Mediana del P/E trailing de su sector (referencia)"
+    )
+    sector_peer_count: int | None = Field(
+        default=None, description="Empresas con P/E positivo en que se basa esa mediana"
+    )
     exposure_bucket: str = Field(
         description="Cubo de exposición usado para diversificar: sector GICS o clase de activo"
     )
@@ -114,6 +150,7 @@ class OpportunityResponse(BaseModel):
     weights: dict[str, float]
     sector_threshold_pct: float
 
+    freshness: DataFreshness = Field(default_factory=DataFreshness)
     benchmark_symbol: str | None = Field(
         default=None, description="Referencia de mercado usada para la valoración absoluta"
     )

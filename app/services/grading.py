@@ -135,6 +135,9 @@ def _valuation_signal(
     forward_pe: float | None,
     price_to_book: float | None,
     market_pe: float | None,
+    sector_trailing_pe: float | None = None,
+    sector_forward_pe: float | None = None,
+    sector_name: str | None = None,
 ) -> Signal:
     inputs = {
         "trailing_pe": trailing_pe,
@@ -153,39 +156,60 @@ def _valuation_signal(
     # como una carencia de información en lugar de como la señal negativa que
     # son.
     pe = None
+    sector_pe = None
     if (trailing_pe or 0) > 0:
         pe = trailing_pe
+        sector_pe = sector_trailing_pe
     elif (forward_pe or 0) > 0:
         pe = forward_pe
+        sector_pe = sector_forward_pe
     elif trailing_pe is not None or forward_pe is not None:
         return Signal(
             "valuation", "Valoración", -1,
             "La empresa no tiene beneficios positivos", inputs,
         )
 
-    if pe is None or market_pe is None or market_pe <= 0:
+    # El ancla es la mediana de SU SECTOR cuando existe, y el índice solo como
+    # respaldo. Un banco a P/E 9,6 «cotiza al 39% del mercado» y parece una
+    # ganga, pero los bancos cotizan así casi siempre: contra otros bancos la
+    # misma cifra puede ser exactamente lo normal. Se compara trailing con
+    # trailing y forward con forward: mezclarlos sesgaría a favor del forward,
+    # que casi siempre es menor.
+    use_sector = sector_pe is not None and sector_pe > 0
+    anchor = sector_pe if use_sector else market_pe
+    reference = f"de su sector ({sector_name})" if use_sector and sector_name else (
+        "de su sector" if use_sector else "del mercado"
+    )
+    inputs["reference_pe"] = anchor
+
+    if pe is None or anchor is None or anchor <= 0:
         return Signal(
             "valuation", "Valoración", None,
             "Sin P/E propio o sin referencia de mercado", inputs,
         )
 
-    ratio = pe / market_pe
-    inputs["pe_vs_market"] = round(ratio, 3)
+    ratio = pe / anchor
+    # UNA sola clave. Antes se escribían `pe_vs_market` y `pe_vs_reference` con
+    # el MISMO valor, y el nombre viejo mentía en cuanto el ancla pasó a ser la
+    # mediana del sector: decía "frente al mercado" sobre una cifra que ya no
+    # se calculaba contra el mercado. `reference_pe` de arriba dice cuál es el
+    # ancla usada, así que la pareja se lee sola.
+    inputs["pe_vs_reference"] = round(ratio, 3)
 
     if ratio < 0.7:
         return Signal("valuation", "Valoración", 2,
-                      f"Cotiza a {ratio:.0%} del P/E del mercado: muy por debajo", inputs)
+                      f"Cotiza a {ratio:.0%} del P/E {reference}: muy por debajo", inputs)
     if ratio < 0.9:
         return Signal("valuation", "Valoración", 1,
-                      f"Cotiza a {ratio:.0%} del P/E del mercado: por debajo", inputs)
+                      f"Cotiza a {ratio:.0%} del P/E {reference}: por debajo", inputs)
     if ratio <= 1.3:
         return Signal("valuation", "Valoración", 0,
-                      f"Cotiza a {ratio:.0%} del P/E del mercado: en línea", inputs)
+                      f"Cotiza a {ratio:.0%} del P/E {reference}: en línea", inputs)
     if ratio <= 1.8:
         return Signal("valuation", "Valoración", -1,
-                      f"Cotiza a {ratio:.0%} del P/E del mercado: cara", inputs)
+                      f"Cotiza a {ratio:.0%} del P/E {reference}: cara", inputs)
     return Signal("valuation", "Valoración", -2,
-                  f"Cotiza a {ratio:.0%} del P/E del mercado: muy cara", inputs)
+                  f"Cotiza a {ratio:.0%} del P/E {reference}: muy cara", inputs)
 
 
 # ---------------------------------------------------------------------------
@@ -418,10 +442,22 @@ def assess(
     profit_margin: float | None = None,
     debt_to_equity: float | None = None,
     revenue_growth: float | None = None,
+    sector_trailing_pe: float | None = None,
+    sector_forward_pe: float | None = None,
+    sector_name: str | None = None,
 ) -> Assessment:
-    """Califica un activo en términos absolutos, sin mirar a otros candidatos."""
+    """Califica un activo en términos absolutos, sin mirar a otros candidatos.
+
+    `sector_*` son opcionales: si se pasan, la valoración se ancla en la
+    MEDIANA de P/E del sector de la empresa en lugar de en la del índice. Es
+    seguir siendo absoluto -no depende de qué otros candidatos se estén
+    mostrando ni de sus puestos-, pero contra la referencia correcta.
+    """
     signals = [
-        _valuation_signal(trailing_pe, forward_pe, price_to_book, market_pe),
+        _valuation_signal(
+            trailing_pe, forward_pe, price_to_book, market_pe,
+            sector_trailing_pe, sector_forward_pe, sector_name,
+        ),
         _trend_signal(sma_trend, momentum_12_1),
         _risk_signal(volatility, max_drawdown),
         _quality_signal(roe, profit_margin, debt_to_equity, revenue_growth),
