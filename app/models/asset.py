@@ -11,6 +11,8 @@ from app.db.types import UtcDateTime
 from app.models.enums import AssetType, sa_enum
 
 if TYPE_CHECKING:
+    from app.models.fixed_income import FixedIncomeTerms
+    from app.models.fund import FundProfile
     from app.models.fundamentals import FundamentalSnapshot
     from app.models.market import AssetQuote, PriceHistory
     from app.models.transaction import Transaction
@@ -44,6 +46,29 @@ class Asset(Base, TimestampMixin):
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
     exchange: Mapped[str | None] = mapped_column(String(30))
 
+    # Categoría Morningstar del fondo, tal como la devuelve el proveedor
+    # (`info["category"]`): "High Yield Bond", "Large Blend", "Digital Assets"...
+    #
+    # Se guarda CRUDA, sin interpretar, por la misma razón que el sector: es un
+    # dato verificado del proveedor y la interpretación -a qué clase de activo
+    # corresponde- se deriva en `services/asset_class.py`, donde puede cambiar
+    # sin migración. Es lo único que distingue un fondo de bonos de uno de
+    # acciones sin llamadas extra: viene en la misma respuesta que el resto de
+    # los metadatos, y la cobertura medida es del 100% (182 de 182 fondos).
+    fund_category: Mapped[str | None] = mapped_column(String(60))
+
+    # CLASE DECLARADA A MANO, para lo que el proveedor no sabe clasificar.
+    #
+    # Yahoo no cubre la composición de los fondos de la BVC: `GXTESCOL.CL` es
+    # un ETF de deuda pública colombiana y llega sin categoría ni perfil, así
+    # que se le supondría de acciones y contaría como renta variable amplia en
+    # el reparto de la cartera. Justo lo contrario de para qué se compra.
+    #
+    # Se declara en `app/data/catalog.json`, que es donde ya se declara la
+    # pertenencia al universo: un dato verificado por una persona, no una
+    # heurística. Por eso NO cuenta como supuesto.
+    declared_asset_class: Mapped[str | None] = mapped_column(String(32))
+
     # Necesarios para el análisis de diversificación de la fase Quant.
     sector: Mapped[str | None] = mapped_column(String(80))
     industry: Mapped[str | None] = mapped_column(String(120))
@@ -64,6 +89,18 @@ class Asset(Base, TimestampMixin):
         back_populates="asset", cascade="all, delete-orphan", passive_deletes=True
     )
     quote: Mapped[AssetQuote | None] = relationship(
+        back_populates="asset",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
+    )
+    fund_profile: Mapped[FundProfile | None] = relationship(
+        back_populates="asset",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
+    )
+    fixed_income_terms: Mapped[FixedIncomeTerms | None] = relationship(
         back_populates="asset",
         cascade="all, delete-orphan",
         passive_deletes=True,

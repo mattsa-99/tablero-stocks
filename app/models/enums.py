@@ -38,9 +38,32 @@ class AssetType(StrEnum):
     ETF = "ETF"
     ADR = "ADR"
     REIT = "REIT"
+    # RENTA FIJA DIRECTA: un TES, un CDT o una FIC concretos.
+    #
+    # Es el único tipo que NO viene de un proveedor: se carga a mano. Yahoo no
+    # cotiza ninguno, y no es una carencia que vaya a arreglarse: un CDT de
+    # Bancolombia a 360 días al 12,3% es un contrato entre dos partes, no un
+    # instrumento con mercado. Ver `services/fixed_income.py`.
+    FIXED_INCOME = "FIXED_INCOME"
     FUND = "FUND"
     CRYPTO = "CRYPTO"
     OTHER = "OTHER"
+
+
+class RateKind(StrEnum):
+    """Cómo se determina la tasa de un instrumento de renta fija.
+
+    Importa porque cambia qué riesgo se corre. Una tasa FIJA te protege si las
+    tasas bajan y te perjudica si suben; una indexada hace lo contrario. Y la
+    indexada a UVR es la única que garantiza una rentabilidad REAL, porque la
+    unidad misma se ajusta con la inflación.
+    """
+
+    FIXED = "FIXED"      # tasa efectiva anual pactada
+    IBR = "IBR"          # IBR + spread
+    DTF = "DTF"          # DTF + spread
+    UVR = "UVR"          # UVR + spread (rentabilidad real)
+    IPC = "IPC"          # IPC + spread
 
 
 class JournalKind(StrEnum):

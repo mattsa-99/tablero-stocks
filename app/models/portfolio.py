@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, IdType, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.allocation import AllocationTarget
     from app.models.transaction import Transaction
 
 
@@ -39,6 +40,12 @@ class Portfolio(Base, TimestampMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by="Transaction.executed_at",
+    )
+    allocation_targets: Mapped[list[AllocationTarget]] = relationship(
+        back_populates="portfolio",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AllocationTarget.asset_class",
     )
 
     def __repr__(self) -> str:
