@@ -238,12 +238,22 @@ def test_opportunities_ranks_the_universe(client, portfolio_id):
     assert body["universe_size"] >= 5
     assert len(body["opportunities"]) <= 10
 
-    scores = [row["score"] for row in body["opportunities"]]
-    assert scores == sorted(scores, reverse=True), "Debe venir ordenado por score"
+    filas = body["opportunities"]
+    scores = [row["score"] for row in filas]
     assert all(0 <= score <= 100 for score in scores)
-    assert [row["rank"] for row in body["opportunities"]] == list(
-        range(1, len(scores) + 1)
-    )
+
+    # ORDEN DE PRESENTACIÓN: la calificación manda sobre el score. Ordenar
+    # solo por score ponía a ETB.CL -calificación «Mala»- en el puesto 2 de
+    # 490, encima de cien empresas mejor calificadas.
+    orden = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "SIN_CALIFICAR": 5}
+    clave = [(orden[row["assessment"]["grade"]], -row["score"]) for row in filas]
+    assert clave == sorted(clave), "Primero la calificación, luego el score"
+
+    # Dentro de una misma clase y calificación, el score sigue mandando.
+    for fila in filas:
+        assert fila["rank"] >= 1
+        assert fila["class_size"] >= 1
+        assert fila["rank"] <= fila["class_size"]
 
 
 def test_score_equals_sum_of_contributions(client, portfolio_id):
@@ -277,7 +287,15 @@ def test_risk_contribution_is_negative(client, portfolio_id):
 
 
 def test_sector_concentration_penalizes_candidates(client, portfolio_id):
-    """Con la cartera 100% en Technology, sus candidatos deben perder puntos."""
+    """Con la cartera cargada de Technology, sus candidatos deben perder puntos.
+
+    La línea base se toma con la cartera YA con una posición, no vacía. Con la
+    cartera vacía el factor queda sin medir -no hay nada contra lo que
+    diversificar- y comparar ese estado con uno medido no diría nada sobre la
+    penalización, que es lo único que este test quiere comprobar.
+    """
+    buy(client, portfolio_id, "SOLID", qty="1", price="100", fx="4000")
+
     baseline = opportunities(client, portfolio_id).json()
     before = {r["symbol"]: r["diversification"]["score"] for r in baseline["opportunities"]}
 
@@ -290,7 +308,8 @@ def test_sector_concentration_penalizes_candidates(client, portfolio_id):
     assert after["CHEAP"] == pytest.approx(before["CHEAP"]), "Energy no debe verse afectado"
 
     penalized = next(r for r in after_body["opportunities"] if r["symbol"] == "EXPENSIVE")
-    assert float(penalized["sector_weight_pct"]) == pytest.approx(100.0)
+    # No es el 100% exacto porque queda la posición pequeña de Healthcare.
+    assert float(penalized["sector_weight_pct"]) > 95.0
     assert any("penalización" in note for note in penalized["notes"])
 
 
@@ -304,6 +323,115 @@ def test_small_universe_is_rejected(client, portfolio_id, provider):
     response = client.get(f"/api/opportunities?portfolio_id={portfolio_id}")
     assert response.status_code == 422
     assert "candidatos" in response.json()["detail"]
+
+
+def seed_universe(db, count=6):
+    """Universo YA INGESTADO: activos con histórico y fundamentales guardados.
+
+    Sembrarlo es lo que hace significativo el test de más abajo: con el
+    universo vacío el endpoint no pide nada porque no hay nada que pedir, y
+    la comprobación pasaría sin demostrar nada.
+    """
+    import math
+
+    from app.models import Asset, AssetType, FundamentalSnapshot, PriceHistory
+
+    today = dt.date.today()
+    for n in range(count):
+        asset = Asset(
+            symbol=f"UNIV{n}", name=f"Universo {n}", sector="Technology",
+            asset_type=AssetType.STOCK, currency="USD", is_universe=True,
+        )
+        db.add(asset)
+        db.flush()
+        price = 100.0
+        for day in range(320):
+            price *= (1 + 0.0012) * (1 + 0.02 * math.sin(day / 5))
+            db.add(PriceHistory(
+                asset_id=asset.id, date=today - dt.timedelta(days=320 - day),
+                close=price, adj_close=price,
+            ))
+        db.add(FundamentalSnapshot(
+            asset_id=asset.id, as_of=today, trailing_pe=18.0 + n,
+            return_on_equity=0.20, profit_margin=0.15, debt_to_equity=50.0,
+            revenue_growth=0.12, fetched_at=dt.datetime.now(UTC),
+        ))
+    db.commit()
+
+
+def test_the_view_never_runs_the_weekly_job_in_the_request(
+    client, portfolio_id, provider, db_of
+):
+    """Abrir la vista no puede disparar la sincronización completa.
+
+    Es el fallo que motivó todo esto: el router llamaba a `full_refresh`
+    -cuyo docstring dice "cadencia objetivo: dos veces por semana"- sobre los
+    494 símbolos del universo, dentro de la petición. Medido el 19-09-2026
+    contra la cartera real: 269 s de espera frente a 0,23 s de puntuar lo que
+    ya estaba guardado.
+
+    Se comprueba por los recursos CAROS -fundamentales y metadatos, los que
+    pasan por `.info` a ~0,76 s por símbolo, y el histórico-. Las cotizaciones
+    sí se piden, pero después de responder.
+    """
+    seed_universe(db_of)
+
+    response = client.get(f"/api/opportunities?portfolio_id={portfolio_id}")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["universe_size"] >= 5, "El universo tiene que existir"
+    assert provider.call_count("fetch_fundamentals") == 0, (
+        "Los fundamentales son trimestrales: no se piden al abrir una página"
+    )
+    assert provider.call_count("fetch_history") == 0, (
+        "Las barras diarias son cierres inmutables: tampoco"
+    )
+    assert provider.call_count("fetch_metadata") == 0, (
+        "Los metadatos tienen TTL de 30 días: menos todavía"
+    )
+
+
+def test_the_background_refresh_does_ask_for_prices(client, portfolio_id, provider, db_of):
+    """El contrapunto: no pedir nada caro no significa no refrescar nada.
+
+    Lo que sí cambia intradía es el precio -de ahí sale `fresh_trailing_pe`-,
+    y eso se sigue trayendo, solo que después de haber respondido.
+    """
+    seed_universe(db_of)
+
+    client.get(f"/api/opportunities?portfolio_id={portfolio_id}")
+
+    assert provider.call_count("fetch_quotes") > 0
+
+
+def test_a_symbol_typed_by_the_user_is_loaded_in_line(client, portfolio_id, provider):
+    """Lo que el usuario escribe SÍ se trae ahora: lo está esperando.
+
+    Es la excepción deliberada a "nada de red en la petición". Un candidato
+    tecleado no tiene histórico, y sin él no se puede puntuar: pasarlo al
+    refresco de fondo lo dejaría fuera del ranking que se pidió a propósito.
+    Son un puñado de símbolos, no 494.
+    """
+    body = opportunities(client, portfolio_id).json()
+
+    assert provider.call_count("fetch_history") > 0
+    assert [o["symbol"] for o in body["opportunities"]], "Se puntúan los tecleados"
+
+
+def test_the_response_says_whether_a_refresh_is_running(client, portfolio_id):
+    """Sin esta señal la vista no sabe que merece la pena volver a preguntar."""
+    body = opportunities(client, portfolio_id).json()
+    assert body["refreshing"] is True
+
+
+def test_asking_not_to_refresh_touches_no_network_at_all(client, portfolio_id, provider):
+    """`refresh=false` es el camino que la vista usa para repreguntar."""
+    opportunities(client, portfolio_id)
+    provider.calls.clear()
+
+    client.get(f"/api/opportunities?portfolio_id={portfolio_id}&refresh=false")
+
+    assert provider.calls == [], "Repreguntar se sirve entero desde la base"
 
 
 def test_response_carries_the_disclaimer(client, portfolio_id):
@@ -335,3 +463,14 @@ def test_provider_failure_degrades_instead_of_500(client, portfolio_id, provider
     response = client.get(f"/api/portfolios/{portfolio_id}")
     assert response.status_code == 200
     assert response.json()["positions"][0]["symbol"] == "CHEAP"
+
+
+def test_opportunities_declare_how_old_their_data_is(client, portfolio_id):
+    body = opportunities(client, portfolio_id).json()
+    fresh = body["freshness"]
+    assert fresh["prices_newest"] is not None
+    assert fresh["fundamentals_newest"] is not None
+    assert fresh["fundamentals_oldest"] <= fresh["fundamentals_newest"]
+    row = body["opportunities"][0]
+    assert row["price_as_of"] is not None
+    assert row["fundamentals_as_of"] is not None

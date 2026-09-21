@@ -40,11 +40,37 @@ class AssetPosition:
     realized_pnl: Decimal = ZERO
     dividend_income: Decimal = ZERO
 
+    # El MISMO coste, en la divisa en que cotiza el activo. Es la única pieza
+    # que faltaba para poder separar cuánto del resultado viene del activo y
+    # cuánto de la divisa, que en una cartera que compra fuera es la diferencia
+    # entre "elegí mal" y "se movió el cambio". Medido sobre SPY a un año: +16,6%
+    # en dólares y −5,5% para quien mide en pesos.
+    total_cost_local: Decimal = ZERO
+
     @property
     def average_cost(self) -> Decimal:
         if self.quantity <= ZERO:
             return ZERO
         return self.total_cost / self.quantity
+
+    @property
+    def average_cost_local(self) -> Decimal:
+        """Coste medio por título en la divisa del activo."""
+        if self.quantity <= ZERO:
+            return ZERO
+        return self.total_cost_local / self.quantity
+
+    @property
+    def average_fx(self) -> Decimal | None:
+        """Tipo de cambio medio al que se compró lo que se mantiene.
+
+        Es el cociente de los dos costes, no una media de los tipos: pondera
+        cada compra por su importe, que es lo que hace que la atribución
+        cuadre exactamente con el P&L total.
+        """
+        if self.total_cost_local <= ZERO:
+            return None
+        return self.total_cost / self.total_cost_local
 
     @property
     def is_open(self) -> bool:
@@ -111,6 +137,7 @@ def replay_ledger(
             cost = _base(tx.quantity * tx.price, fx) + fees
             position.quantity += tx.quantity
             position.total_cost += cost
+            position.total_cost_local += tx.quantity * tx.price + tx.fees
             position.total_invested += cost
             result.cash_balance -= cost
 
@@ -132,10 +159,17 @@ def replay_ledger(
                 # El coste medio se captura ANTES de mutar la posición: vender
                 # no cambia el coste medio de lo que queda.
                 cost_removed = position.average_cost * quantity
+                # En la misma proporción que el coste en divisa base, no con un
+                # coste medio local calculado aparte: así los dos costes se
+                # vacían a la vez y `average_fx` sigue siendo el tipo medio de
+                # lo que QUEDA. Con dos cálculos independientes, el redondeo
+                # los separaría y la atribución dejaría de cuadrar.
+                cost_removed_local = position.average_cost_local * quantity
                 proceeds = _base(quantity * tx.price, fx) - fees
                 position.realized_pnl += proceeds - cost_removed
                 position.quantity -= quantity
                 position.total_cost -= cost_removed
+                position.total_cost_local -= cost_removed_local
                 result.cash_balance += proceeds
 
             _close_if_residual(position)
@@ -176,6 +210,10 @@ def _close_if_residual(position: AssetPosition) -> None:
         position.realized_pnl -= position.total_cost
         position.quantity = ZERO
         position.total_cost = ZERO
+        # El coste local se vacía con el otro. Dejarlo con residuo haría que
+        # `average_fx` dividiera por un número diminuto y devolviera un tipo de
+        # cambio absurdo en una posición ya cerrada.
+        position.total_cost_local = ZERO
 
 
 def validate_new_transaction(

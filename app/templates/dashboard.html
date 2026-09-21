@@ -5,6 +5,7 @@
 <script src="{{ static_url('/static/js/combobox.js') }}"></script>
 <script src="{{ static_url('/static/js/portfolio.js') }}"></script>
 <script src="{{ static_url('/static/js/simulation.js') }}"></script>
+<script src="{{ static_url('/static/js/import.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -47,6 +48,12 @@
         Simular
       </button>
 
+      <button @click="$dispatch('open-import-modal')"
+              class="rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm text-ink-soft
+                     transition-colors hover:border-line-strong hover:text-ink">
+        Importar CSV
+      </button>
+
       <button @click="$dispatch('open-transaction-modal')"
               class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
         Nueva transacción
@@ -87,7 +94,7 @@
         <!-- Un grado menos en móvil: a 390px una cifra COP de nueve dígitos
              llega justo al borde de la tarjeta con text-2xl. -->
         <p class="tabular text-xl font-semibold sm:text-2xl"
-           :class="kpi.kind === 'money' ? 'text-ink' : $fmt.pnlClass(kpi.value)"
+           :class="kpi.kind === 'money' ? 'text-ink' : $fmt.pnlClass(kpi.value, kpi.kind === 'signed' ? $fmt.decimalsFor(currency) : 2)"
            x-text="kpi.kind === 'money' ? $fmt.money(kpi.value, currency)
                  : kpi.kind === 'pct'   ? $fmt.signedPct(kpi.value)
                  : $fmt.signed(kpi.value, currency)"></p>
@@ -101,8 +108,108 @@
       <div class="rounded-lg border border-line bg-surf px-3.5 py-2.5">
         <p class="mb-1 text-ink-mute" x-text="item.label"></p>
         <p class="tabular text-sm font-medium"
-           :class="item.signed ? $fmt.pnlClass(item.value) : 'text-ink'"
+           :class="item.signed ? $fmt.pnlClass(item.value, $fmt.decimalsFor(currency)) : 'text-ink'"
            x-text="item.signed ? $fmt.signed(item.value, currency) : $fmt.money(item.value, currency)"></p>
+      </div>
+    </template>
+  </div>
+
+  <!-- Atribución de divisa. Solo si hay algo que atribuir: con todo en la
+       divisa base los dos valores son null, y un «0» invitaría a leer "la
+       divisa no aportó" cuando lo cierto es que no interviene. -->
+  <div class="mb-6 rounded-lg border border-line bg-surf px-4 py-3" x-show="hasAttribution" x-cloak>
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+      <p class="text-xs font-medium text-ink-soft">
+        De dónde viene el P&amp;L no realizado
+      </p>
+      <template x-for="item in attribution" :key="item.label">
+        <div class="flex items-baseline gap-2">
+          <span class="text-xs text-ink-mute" x-text="item.label"></span>
+          <span class="tabular text-sm font-medium"
+                :class="$fmt.pnlClass(item.value, $fmt.decimalsFor(currency))"
+                x-text="$fmt.signed(item.value, currency)"></span>
+        </div>
+      </template>
+      <span class="text-xs text-ink-mute">
+        Las dos cifras suman exactamente el P&amp;L no realizado.
+      </span>
+    </div>
+  </div>
+
+  <!-- ================= Curva de valor ================= -->
+  <section class="mb-6 rounded-2xl border border-line bg-surf p-4 sm:p-5" x-show="!isEmpty" x-cloak>
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="text-sm font-semibold">Evolución</h2>
+        <p class="mt-0.5 text-xs text-ink-mute">
+          Tu cartera frente a lo aportado y a lo que habría dado el mismo dinero
+          en el índice.
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <template x-if="vsBenchmark">
+          <div class="flex items-baseline gap-1.5 text-xs">
+            <span class="text-ink-mute">vs</span>
+            <span class="font-medium text-ink-soft" x-text="vsBenchmark.symbol"></span>
+            <span class="tabular font-medium"
+                  :class="$fmt.pnlClass(vsBenchmark.diff, $fmt.decimalsFor(currency))"
+                  x-text="$fmt.signedPct(vsBenchmark.pct, 1)"></span>
+          </div>
+        </template>
+        <div class="flex gap-1">
+          <template x-for="r in seriesRanges" :key="r.days">
+            <button type="button" @click="setSeriesRange(r.days)"
+                    :class="rangeClass(r.days)"
+                    class="rounded-md border px-2.5 py-1 text-xs font-medium transition-colors
+                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1"
+                    x-text="r.label"></button>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div class="relative h-64 sm:h-72" x-show="hasSeries">
+      <canvas x-ref="valueChart" aria-label="Evolución del valor de la cartera"></canvas>
+    </div>
+
+    <div x-show="seriesLoading" class="h-64 animate-pulse rounded-lg bg-surf-2 sm:h-72"></div>
+
+    <p x-show="seriesTooShort && !seriesLoading" x-cloak
+       class="py-12 text-center text-sm text-ink-mute">
+      Todavía no hay histórico suficiente para dibujar la evolución.
+      Vuelve tras la próxima sincronización.
+    </p>
+
+    <!-- XIRR. Se omite bajo un trimestre: anualizar un tramo corto multiplica
+         el ruido, y un «129% anual» sobre tres semanas es un número
+         impresionante y vacío. -->
+    <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-3 text-xs"
+         x-show="xirr !== null" x-cloak>
+      <div class="flex items-baseline gap-2">
+        <span class="text-ink-mute">Retorno anualizado</span>
+        <span class="tabular text-sm font-medium" :class="$fmt.pnlClass(xirr)"
+              x-text="$fmt.signedPct(xirr, 1)"></span>
+      </div>
+      <template x-if="benchmarkXirr !== null">
+        <div class="flex items-baseline gap-2">
+          <span class="text-ink-mute" x-text="'El índice (' + series.benchmark_symbol + ')'"></span>
+          <span class="tabular text-sm font-medium" :class="$fmt.pnlClass(benchmarkXirr)"
+                x-text="$fmt.signedPct(benchmarkXirr, 1)"></span>
+        </div>
+      </template>
+      <span class="text-ink-mute">
+        Ponderado por dinero: tiene en cuenta cuándo entró cada aporte.
+      </span>
+    </div>
+  </section>
+
+  <!-- ================= Riesgo ================= -->
+  <div class="mb-6 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4" x-show="risk.length" x-cloak>
+    <template x-for="m in risk" :key="m.label">
+      <div class="rounded-lg border border-line bg-surf px-3.5 py-2.5" :title="m.hint">
+        <p class="mb-1 text-ink-mute" x-text="m.label"></p>
+        <p class="tabular text-sm font-medium text-ink"
+           x-text="m.kind === 'pct' ? $fmt.pct(m.value, 1) : $fmt.num(m.value).toFixed(0)"></p>
       </div>
     </template>
   </div>
@@ -193,16 +300,23 @@
                   <td class="tabular px-4 py-3 text-right text-ink-soft" x-text="$fmt.money(p.average_cost, currency)"></td>
                   <td class="tabular px-4 py-3 text-right">
                     <span class="text-ink-soft" x-text="p.current_price ? $fmt.money(p.current_price, p.currency) : '—'"></span>
+                    {# El MISMO precio en divisa base, solo cuando difieren. Un
+                       activo de la BVC cotiza en pesos dentro de una cartera en
+                       dólares: sin las dos cifras hay que hacer la cuenta a
+                       mano cada vez. Con la divisa base repetiría el renglón. #}
+                    <p x-show="p.currency !== currency && p.current_price_base" x-cloak
+                       class="tabular mt-0.5 text-[11px] text-ink-mute"
+                       x-text="'= ' + $fmt.money(p.current_price_base, currency)"></p>
                     <p x-show="p.day_change_pct !== null" x-cloak class="tabular mt-0.5 text-[11px]"
                        :class="$fmt.pnlClass(p.day_change_pct)" x-text="$fmt.signedPct(p.day_change_pct, 2)"></p>
                   </td>
                   <td class="tabular px-4 py-3 text-right font-medium" x-text="$fmt.money(p.market_value, currency)"></td>
-                  <td class="tabular px-4 py-3 text-right" :class="$fmt.pnlClass(p.unrealized_pnl)">
+                  <td class="tabular px-4 py-3 text-right" :class="$fmt.pnlClass(p.unrealized_pnl, $fmt.decimalsFor(currency))">
                     <span x-text="$fmt.signed(p.unrealized_pnl, currency)"></span>
                     <p x-show="p.unrealized_return_pct !== null" x-cloak class="tabular mt-0.5 text-[11px] opacity-80"
                        x-text="$fmt.signedPct(p.unrealized_return_pct)"></p>
                   </td>
-                  <td class="tabular px-4 py-3 text-right" :class="$fmt.pnlClass(p.realized_pnl)"
+                  <td class="tabular px-4 py-3 text-right" :class="$fmt.pnlClass(p.realized_pnl, $fmt.decimalsFor(currency))"
                       x-text="$fmt.signed(p.realized_pnl, currency)"></td>
                   <td class="tabular px-4 py-3 text-right text-ink-soft" x-text="$fmt.pct(p.weight_pct, 1)"></td>
                 </tr>
@@ -556,6 +670,137 @@
           </div>
         </footer>
       </aside>
+    </div>
+  </div>
+
+  <!-- ================= Modal: importar CSV ================= -->
+  <div x-data="importModal()" @open-import-modal.window="open()" x-cloak>
+    <div x-show="isOpen" class="fixed inset-0 z-50 grid place-items-start overflow-y-auto bg-black/60 p-4 sm:place-items-center"
+         @click.self="close()" @keydown.escape.window="close()" x-transition.opacity
+         role="dialog" aria-modal="true" aria-labelledby="imp-title">
+      <div class="my-4 w-full max-w-3xl rounded-2xl border border-line bg-surf shadow-2xl">
+        <header class="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div>
+            <h2 id="imp-title" class="text-base font-semibold">Importar operaciones desde CSV</h2>
+            <p class="mt-0.5 max-w-xl text-xs leading-relaxed text-ink-mute">
+              Solo se acepta la plantilla del Tablero: cada broker exporta distinto y adivinar mal
+              corrompería tu coste medio. Se revisa todo antes de escribir, y si una sola fila falla
+              <strong>no se importa ninguna</strong>.
+            </p>
+            {# Faltaba lo más básico: para QUÉ sirve. El modal explicaba muy bien
+               cómo funciona y nada sobre cuándo usarlo. #}
+            <p class="mt-2 text-xs text-ink-mute">
+              Úsalo para cargar de golpe el histórico de tu bróker o varias
+              operaciones a la vez. Para una sola, es más rápido
+              «Nueva transacción». La columna del tipo de cambio puedes dejarla
+              vacía: se resuelve sola.
+            </p>
+          </div>
+          <button @click="close()" class="text-ink-mute transition-colors hover:text-ink" aria-label="Cerrar">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </header>
+
+        <div class="space-y-4 px-5 py-5">
+          <div class="flex flex-wrap items-center gap-3">
+            {# La plantilla se pide CON el portafolio: se genera en su divisa base.
+               Sin el parámetro saldría en la divisa por defecto, que puede no ser
+               la tuya, y copiarla tal cual montaría el ledger al revés. #}
+            <a :href="`/api/transactions/import/template?portfolio_id=${$store.app.selectedId}`" download
+               class="rounded-lg border border-line px-3 py-2 text-xs text-ink-soft transition-colors hover:border-line-strong hover:text-ink">
+              Descargar plantilla
+            </a>
+            <label class="cursor-pointer rounded-lg bg-s1 px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90">
+              Elegir archivo CSV
+              <input type="file" accept=".csv,text/csv" class="sr-only" @change="onFile($event)">
+            </label>
+            <span class="text-xs text-ink-mute" x-text="fileName ?? 'Ningún archivo elegido'"></span>
+          </div>
+
+          <p class="text-[11px] leading-relaxed text-ink-mute">
+            Columnas: date, type, symbol, quantity, price, amount, fees, currency, fx_rate_to_base, notes,
+            external_id. Punto decimal, sin separador de miles. Fecha AAAA-MM-DD (mediodía de Bogotá) o con hora y desfase.
+            Depósitos, retiros y dividendos usan <em>amount</em>; compras y ventas, <em>quantity</em> y <em>price</em>.
+          </p>
+
+          <p x-show="busy" class="text-xs text-ink-mute">Revisando…</p>
+          <p x-show="error" x-cloak class="text-xs text-bad" x-text="error"></p>
+
+          <div x-show="report" x-cloak class="space-y-3">
+            <div class="rounded-xl border p-3.5"
+                 :class="report?.errors.length ? 'border-bad/40 bg-bad/10' : 'border-good/40 bg-good/10'">
+              <p class="text-sm font-medium" :class="report?.errors.length ? 'text-bad' : 'text-good'"
+                 x-text="report?.errors.length ? 'Hay problemas por corregir' : 'Revisión limpia'"></p>
+              <p class="mt-1 text-xs leading-relaxed text-ink-soft" x-text="report?.message"></p>
+              <p class="tabular mt-1.5 text-[11px] text-ink-mute">
+                <span x-text="report?.total_rows"></span> <span x-text="report?.total_rows === 1 ? 'fila' : 'filas'"></span> ·
+                <span x-text="report?.new_rows"></span> nuevas ·
+                <span x-text="report?.duplicate_rows"></span> ya importadas
+              </p>
+            </div>
+
+            <ul x-show="report?.errors.length" class="space-y-1">
+              <template x-for="(issue, i) in (report?.errors ?? [])" :key="i">
+                <li class="flex gap-2 rounded-lg border border-bad/30 px-2.5 py-1.5 text-[11px]">
+                  <span class="tabular w-16 shrink-0 font-medium text-bad"
+                        x-text="issue.line ? 'Línea ' + issue.line : 'Archivo'"></span>
+                  <span class="text-ink-soft" x-text="issue.message"></span>
+                </li>
+              </template>
+            </ul>
+
+            <ul x-show="report?.warnings.length" class="space-y-1">
+              <template x-for="(w, i) in (report?.warnings ?? [])" :key="i">
+                <li class="rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-ink-soft"
+                    x-text="w"></li>
+              </template>
+            </ul>
+
+            <div x-show="previewRows.length" class="overflow-x-auto rounded-lg border border-line">
+              <table class="w-full text-[11px]">
+                <thead class="bg-surf-2 text-ink-mute">
+                  <tr>
+                    <th class="px-2 py-1.5 text-left font-medium">Línea</th>
+                    <th class="px-2 py-1.5 text-left font-medium">Fecha</th>
+                    <th class="px-2 py-1.5 text-left font-medium">Tipo</th>
+                    <th class="px-2 py-1.5 text-left font-medium">Símbolo</th>
+                    <th class="px-2 py-1.5 text-right font-medium">Cantidad</th>
+                    <th class="px-2 py-1.5 text-right font-medium">Precio / importe</th>
+                    <th class="px-2 py-1.5 text-left font-medium">Divisa</th>
+                    <th class="px-2 py-1.5 text-left font-medium">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in previewRows" :key="row.line">
+                    <tr class="border-t border-line" :class="row.status === 'duplicate' && 'opacity-50'">
+                      <td class="tabular px-2 py-1" x-text="row.line"></td>
+                      <td class="tabular px-2 py-1" x-text="row.date"></td>
+                      <td class="px-2 py-1" x-text="typeLabel(row.type)"></td>
+                      <td class="px-2 py-1 font-medium" x-text="row.symbol ?? '—'"></td>
+                      <td class="tabular px-2 py-1 text-right" x-text="row.quantity ?? '—'"></td>
+                      <td class="tabular px-2 py-1 text-right" x-text="row.price ?? row.amount ?? '—'"></td>
+                      <td class="px-2 py-1" x-text="row.currency"></td>
+                      <td class="px-2 py-1" x-text="row.status === 'duplicate' ? 'ya importada' : 'nueva'"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <footer class="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
+          <button @click="close()" class="rounded-lg px-3 py-2 text-sm text-ink-soft transition-colors hover:bg-surf-2 hover:text-ink">
+            Cancelar
+          </button>
+          <button @click="run(false)" :disabled="!canImport || busy"
+                  class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40">
+            Importar <span x-show="canImport" x-text="report?.new_rows"></span> operaciones
+          </button>
+        </footer>
+      </div>
     </div>
   </div>
 

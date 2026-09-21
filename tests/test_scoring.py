@@ -185,6 +185,53 @@ def test_volatility_none_below_minimum_window():
     assert annualized_volatility([100.0] * 30) is None
 
 
+def test_crypto_volatility_is_annualised_over_365_days():
+    """El fallo medido: BTC salía con 39,1% cuando su volatilidad es 47,1%.
+
+    Misma serie, dos anualizaciones. Con 252 sobre un mercado que abre los 365
+    días, la cifra sale sqrt(252/365) = 0,831 veces la real, o sea un 20,5%
+    por debajo. Y entraba en el mismo rango percentil que las acciones.
+    """
+    import math
+    import random
+
+    random.seed(7)
+    serie = [100.0]
+    for _ in range(400):
+        serie.append(serie[-1] * math.exp(random.gauss(0, 0.03)))
+
+    # Misma ventana en las dos para aislar el factor de anualización: la
+    # ventana por defecto también cambia con la cadencia, y eso se comprueba
+    # aparte.
+    bolsa = annualized_volatility(serie, window=300, periods_per_year=252)
+    cripto = annualized_volatility(serie, window=300, periods_per_year=365)
+    assert cripto == pytest.approx(bolsa * math.sqrt(365 / 252), rel=1e-9)
+    assert cripto / bolsa == pytest.approx(1.204, abs=0.001)
+
+    # Y la ventana por defecto sí es un año de ESE mercado: 366 barras contra
+    # 253. Dos cosas distintas que antes estaban pegadas a la misma constante.
+    assert annualized_volatility(serie[:253], periods_per_year=252) is not None
+    assert annualized_volatility(serie[:253], periods_per_year=365) is not None
+
+
+def test_crypto_momentum_covers_twelve_real_months():
+    """«12-1» son doce meses de calendario, no 252 barras.
+
+    En una serie diaria de 365 barras al año, mirar 252 atrás son ocho meses.
+    El indicador dejaba de ser el que dice su nombre justo en la clase más
+    volátil del universo.
+    """
+    # Serie que sube de forma constante: el retorno medido delata la ventana.
+    serie = [100.0 * (1.001**i) for i in range(400)]
+
+    bolsa = momentum_12_1(serie, 252)
+    cripto = momentum_12_1(serie, 365)
+    assert cripto > bolsa, "Doce meses de calendario abarcan más subida que 252 barras"
+    # 365 - 30 = 335 barras de subida compuesta frente a 252 - 21 = 231.
+    assert cripto == pytest.approx(1.001**335 - 1, rel=1e-6)
+    assert bolsa == pytest.approx(1.001**231 - 1, rel=1e-6)
+
+
 def test_max_drawdown_measures_peak_to_trough():
     prices = [100.0] * 30 + [50.0] * 30 + [80.0] * 30
     assert max_drawdown(prices) == pytest.approx(0.5)

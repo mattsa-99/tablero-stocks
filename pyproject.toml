@@ -3,6 +3,11 @@ name = "tablero-stocks"
 version = "0.1.0"
 description = "Dashboard de inversiones: portafolios, transacciones, rendimiento y oportunidades"
 requires-python = ">=3.12"
+# Se declara TODO lo que el código de `app/` importa, aunque llegue de
+# rebote por otra dependencia. `test_every_runtime_import_is_declared` lo
+# comprueba: durante un tiempo `apscheduler` funcionó solo porque estaba
+# instalado a mano en un entorno, y `httpx` porque vivía en el extra `dev`
+# mientras el código de producción ya lo importaba.
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
@@ -12,13 +17,29 @@ dependencies = [
     "pydantic-settings>=2.6",
     "jinja2>=3.1",
     "yfinance>=0.2.50",
+    # El planificador del refresco de fondo (`app/core/scheduler.py`).
+    "apscheduler>=3.10",
+    # Cliente HTTP de los proveedores que no son yfinance: Banrep y
+    # datos.gov.co. Estaba solo en `dev`, y una instalación de producción sin
+    # ese extra rompía al primer refresco de tasas.
+    "httpx>=0.28",
+    # El bundle de CA sobre el que se añade el intermedio que Banrep omite.
+    # Ver `app/providers/banrep.py`.
+    "certifi>=2024.0",
+    # Llega con FastAPI, pero `app/main.py` la importa DIRECTAMENTE: se
+    # declara lo que se usa, no lo que se hereda.
+    "starlette>=0.40",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
-    "httpx>=0.28",
     "ruff>=0.8",
+]
+# El asesor MCP es opcional a propósito: el tablero funciona entero sin él, y
+# no debe arrastrar una dependencia que solo usa quien conecta Claude Desktop.
+mcp = [
+    "mcp>=1.15",
 ]
 
 [build-system]
@@ -26,9 +47,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["app"]
+packages = ["app", "mcp_server"]
 
 [tool.pytest.ini_options]
+# `slow` marca los que arrancan un subproceso (el servidor MCP por stdio):
+# tardan segundos frente a milisegundos y se pueden excluir con -m 'not slow'.
+markers = ["slow: arranca un subproceso y tarda segundos"]
 testpaths = ["tests"]
 filterwarnings = ["error::DeprecationWarning"]
 

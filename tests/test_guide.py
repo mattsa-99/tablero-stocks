@@ -24,6 +24,7 @@ UI_SOURCES = (
     ROOT / "app" / "templates" / "base.html",
     ROOT / "app" / "templates" / "dashboard.html",
     ROOT / "app" / "templates" / "opportunities.html",
+    ROOT / "app" / "templates" / "journal.html",
     ROOT / "app" / "static" / "js" / "portfolio.js",
     ROOT / "app" / "static" / "js" / "simulation.js",
     ROOT / "app" / "static" / "js" / "opportunities.js",
@@ -59,6 +60,12 @@ CITED_LABELS = [
     "Mayor posición",
     "Sincronizar",
     "Limpiar filtros",
+    "Ver todos",
+    "Ver ficha de compra",
+    "Recalcular",
+    "Anotar en el diario",
+    "Anotar decisión",
+    "Importar CSV",
 ]
 
 
@@ -150,6 +157,8 @@ def prose() -> str:
         ("el ticker puede no ser el instrumento", "no ser el instrumento"),
         ("el coste medio no es fiscal", "no es una declaración fiscal"),
         ("el simulador no escribe nada", "no escribe nada"),
+        ("sin banderas rojas no es «compra»", "no significa «compra»"),
+        ("anotar en el diario no opera", "no registra ninguna operación"),
     ],
 )
 def test_the_guide_states_its_limits(claim, needle):

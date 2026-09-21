@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import AssetType
 
@@ -31,6 +31,10 @@ class PositionRead(BaseModel):
     # de activo para ETFs amplios, renta fija y materias primas. Sin esto, un
     # ETF de índice contaba como "sector desconocido".
     exposure_bucket: str = "Desconocido"
+    asset_class: str = Field(
+        default="accion",
+        description="Clase de activo, la dimensión del plan de asignación",
+    )
 
     # --- Derivado del ledger (exacto, en divisa base) ---
     quantity: Decimal
@@ -42,6 +46,12 @@ class PositionRead(BaseModel):
 
     # --- Mercado (puede faltar o estar obsoleto) ---
     current_price: Decimal | None  # en divisa nativa
+    # El MISMO precio, ya convertido a divisa base. Se publica calculado y no
+    # se deja al frontend multiplicar: un activo de la BVC cotiza en pesos y en
+    # una cartera en dólares hay que poder leer las dos cifras sin hacer
+    # cuentas, y la multiplicación en JavaScript sobre un Decimal serializado
+    # como string es justo donde se cuelan los errores.
+    current_price_base: Decimal | None = None
     price_as_of: dt.datetime | None
     is_stale: bool
     fx_rate_to_base: Decimal  # tipo de cambio actual, no el histórico
@@ -52,6 +62,16 @@ class PositionRead(BaseModel):
     unrealized_return_pct: Decimal | None
     day_change_pct: Decimal | None
     weight_pct: Decimal | None
+
+    # --- Atribución: cuánto del resultado es el activo y cuánto la divisa ---
+    #
+    # Suman exactamente `unrealized_pnl`. Solo valen None cuando el activo
+    # cotiza en la divisa base (no hay nada que atribuir) o cuando falta el
+    # precio o el tipo de cambio.
+    asset_pnl: Decimal | None = None
+    fx_pnl: Decimal | None = None
+    average_cost_local: Decimal | None = None  # coste medio en divisa nativa
+    average_fx_rate: Decimal | None = None  # tipo medio al que se compró
 
 
 class PortfolioSummary(BaseModel):
@@ -77,6 +97,19 @@ class PortfolioSummary(BaseModel):
     total_return_pct: Decimal | None
 
     positions: list[PositionRead]
+
+    # --- Atribución de divisa a nivel de cartera ---
+    asset_pnl: Decimal | None = None
+    fx_pnl: Decimal | None = None
+
+    # --- Riesgo y concentración ---
+    #
+    # El motor de oportunidades y el simulador ya medían esto, pero solo para
+    # sus propios fines: la pantalla principal no enseñaba ninguna de las tres.
+    diversification_index: Decimal | None = None  # 100·(1−HHI) por cubo
+    top_position_pct: Decimal | None = None  # peso de la mayor posición
+    annualized_volatility_pct: float | None = None
+    max_drawdown_pct: float | None = None
 
     # Transparencia sobre la calidad del dato: el frontend debe poder avisar
     # en vez de presentar cifras incompletas como si fueran definitivas.

@@ -38,6 +38,7 @@ from app.schemas.simulation import (
     SimulationResponse,
 )
 from app.services import exposure as exposure_service
+from app.services.metrics import diversification_index, herfindahl
 from app.services.pnl import LedgerReplay, replay_ledger
 
 logger = logging.getLogger(__name__)
@@ -66,32 +67,6 @@ def _pct(numerator: Decimal, denominator: Decimal) -> Decimal | None:
     return None if ratio is None else ratio * HUNDRED
 
 
-def herfindahl(weights: list[Decimal]) -> Decimal:
-    """Índice Herfindahl-Hirschman sobre pesos que suman 1.
-
-    HHI = Σ wᵢ². Vale 1 con todo en un solo sitio y 1/n con n partes iguales,
-    así que mide concentración de forma continua en lugar de "¿supera el 30%?".
-    """
-    return sum((w * w for w in weights), ZERO)
-
-
-def diversification_index(weights: list[Decimal]) -> Decimal | None:
-    """Índice de diversificación 0-100 = 100 · (1 − HHI).
-
-    Interpretación honesta: es una escala RELATIVA, pensada para comparar el
-    antes y el después de una misma cartera —que es exactamente el trabajo del
-    simulador—, no una nota absoluta. Con los 11 sectores GICS el techo real es
-    100·(1−1/11) ≈ 90,9: el 100 es inalcanzable por construcción, así que un 72
-    no significa "aprobado raspado".
-
-    Se elige HHI y no el conteo de sectores porque este último no distingue una
-    cartera con 5 sectores al 20% de otra con 5 donde uno pesa el 96%.
-    """
-    if not weights:
-        return None
-    return (Decimal("1") - herfindahl(weights)) * HUNDRED
-
-
 def effective_holdings(weights: list[Decimal]) -> Decimal | None:
     """Número efectivo de posiciones = 1/HHI.
 
@@ -115,13 +90,22 @@ def _value_replay(
     real_ids = [aid for aid in assets if aid > 0]
     quotes = market_repo.get_quotes(db, real_ids)
 
-    fx_cache: dict[str, Decimal | None] = {}
+    # Mismo deduplicado que en `portfolio.build_positions`, y por la misma
+    # razón: el "antes" del simulador y el portafolio real tienen que valorar
+    # con los mismos tipos, o la comparación que el simulador promete no
+    # significaría nada.
+    fx_by_currency = market_repo.get_fx_rates(
+        db, (a.currency for a in assets.values()), base_currency
+    )
 
     def fx_for(currency: str) -> Decimal | None:
-        currency = currency.upper()
-        if currency not in fx_cache:
-            fx_cache[currency] = market_repo.get_fx_rate(db, currency, base_currency)
-        return fx_cache[currency]
+        key = currency.upper()
+        if key not in fx_by_currency:
+            # Una divisa que no venía en `assets` se resuelve igualmente: el
+            # deduplicado es una optimización, nunca un silencio que devuelva
+            # "sin tipo" por no haberlo buscado.
+            fx_by_currency[key] = market_repo.get_fx_rate(db, key, base_currency)
+        return fx_by_currency[key]
 
     by_sector: dict[str, Decimal] = {}
     by_symbol: dict[str, Decimal] = {}

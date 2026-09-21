@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Plan de asignación · Tablero{% endblock %}
+
+{% block content %}
+<div x-data="planPage()" x-init="init()" class="mx-auto max-w-5xl px-4 py-8">
+
+  <header class="mb-6">
+    <h1 class="text-2xl font-semibold">Plan de asignación</h1>
+    <p class="mt-1 max-w-3xl text-sm text-ink-soft">
+      Cuánto quieres en cada clase de activo, y cuánto tienes de verdad.
+      <strong class="font-medium text-ink">El plan es tuyo</strong>: el tablero
+      solo mide la desviación. Lo demás del sistema se deriva del ledger; esto
+      no, porque el ledger dice lo que hiciste y no lo que querías.
+    </p>
+  </header>
+
+  <template x-if="error">
+    <div class="mb-4 rounded-xl border border-bad/30 bg-bad/10 px-4 py-3 text-sm text-ink">
+      <span x-text="error"></span>
+    </div>
+  </template>
+
+  <template x-for="aviso in (data?.warnings ?? [])" :key="aviso">
+    <div class="mb-3 rounded-xl border border-warn/30 bg-warn/10 px-4 py-2.5 text-[13px] leading-relaxed text-ink-soft">
+      <span x-text="aviso"></span>
+    </div>
+  </template>
+
+  <!-- Reparto actual frente al objetivo -->
+  <section class="mb-6 rounded-xl border border-line bg-surf p-5">
+    <div class="mb-4 flex items-baseline justify-between gap-4">
+      <h2 class="text-sm font-medium">Reparto</h2>
+      <p class="text-xs text-ink-mute">
+        Total
+        <span class="tabular text-ink-soft" x-text="money(data?.total_value)"></span>
+      </p>
+    </div>
+
+    <template x-if="!rows.length">
+      <p class="py-6 text-center text-sm text-ink-mute">
+        Todavía no hay posiciones ni objetivos. Escribe abajo cuánto quieres en
+        cada clase y guárdalo: no hace falta tener nada comprado para empezar.
+      </p>
+    </template>
+
+    <div class="space-y-4">
+      <template x-for="fila in rows" :key="fila.asset_class">
+        <div>
+          <div class="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
+            <span class="flex items-center gap-2">
+              <span x-text="fila.label"></span>
+              <span class="rounded-lg border px-2 py-0.5 text-[11px]"
+                    :class="statusClass(fila.status)"
+                    x-text="statusLabel(fila.status)"></span>
+            </span>
+            <span class="tabular text-xs text-ink-soft">
+              <span x-text="pct(fila.current_pct)"></span>
+              <template x-if="fila.target_pct !== null">
+                <span>
+                  <span class="text-ink-mute">de</span>
+                  <span x-text="pct(fila.target_pct)"></span>
+                </span>
+              </template>
+            </span>
+          </div>
+
+          <!-- Barra: lo que tienes, con el objetivo marcado encima. -->
+          <div class="relative meter-track">
+            <div class="meter-fill" :style="`width:${clamp(fila.current_pct)}%;background:var(--series-1)`"></div>
+            <template x-if="fila.target_pct !== null">
+              <div class="absolute top-0 h-full w-px bg-ink"
+                   :style="`left:${clamp(fila.target_pct)}%`"
+                   :title="`Objetivo ${pct(fila.target_pct)}`"></div>
+            </template>
+          </div>
+
+          <p class="mt-1 text-[11px] text-ink-mute">
+            <span class="tabular" x-text="money(fila.current_amount)"></span>
+            <template x-if="fila.gap_amount !== null && fila.status !== 'dentro'">
+              <span>
+                ·
+                <span x-text="fila.gap_amount > 0 ? 'faltan' : 'sobran'"></span>
+                <span class="tabular" x-text="money(Math.abs(fila.gap_amount))"></span>
+              </span>
+            </template>
+            <template x-if="fila.band_pct !== null">
+              <span> · banda ±<span class="tabular" x-text="pct(fila.band_pct)"></span></span>
+            </template>
+          </p>
+        </div>
+      </template>
+    </div>
+  </section>
+
+  <!-- A dónde va el próximo aporte -->
+  <section class="mb-6 rounded-xl border border-line bg-surf p-5" x-show="data?.has_plan" x-cloak>
+    <h2 class="mb-1 text-sm font-medium">¿A dónde va el próximo aporte?</h2>
+    <p class="mb-3 text-xs leading-relaxed text-ink-mute">
+      Se dirige a lo que está por debajo, de lo más rezagado a lo menos.
+      <strong class="font-medium text-ink-soft">Nunca propone vender</strong>:
+      rebalancear con aportes evita realizar ganancias y pagar comisiones.
+    </p>
+    <div class="flex flex-wrap items-center gap-3">
+      <label class="text-xs text-ink-soft" for="aporte">Aporte</label>
+      <input id="aporte" type="number" min="0" step="any" x-model.number="contribution"
+             @change="load()"
+             class="w-36 rounded-lg border border-line bg-surf-2 px-2.5 py-1.5 text-sm tabular
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1">
+      <template x-for="(clase, i) in (data?.contribution_order ?? [])" :key="clase">
+        <span class="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1 text-[11px]">
+          <span class="tabular text-ink-mute" x-text="(i + 1) + '.'"></span>
+          <span x-text="labelOf(clase)"></span>
+        </span>
+      </template>
+      <template x-if="contribution > 0 && !(data?.contribution_order ?? []).length">
+        <span class="text-[11px] text-ink-mute">
+          Todo está dentro de banda: el aporte puede ir donde prefieras.
+        </span>
+      </template>
+    </div>
+  </section>
+
+  <!-- Editor del plan -->
+  <section class="rounded-xl border border-line bg-surf p-5">
+    <h2 class="mb-1 text-sm font-medium">Tu plan</h2>
+    <p class="mb-4 text-xs leading-relaxed text-ink-mute">
+      Los objetivos no pueden sumar más de 100. Si suman menos, el resto queda
+      sin decidir y se dice. La <strong class="font-medium text-ink-soft">banda</strong>
+      es la tolerancia en puntos: sin ella, cualquier movimiento del mercado
+      «obligaría» a rebalancear, y eso cuesta comisiones e impuestos.
+    </p>
+
+    <div class="space-y-2">
+      <template x-for="clase in editable" :key="clase.key">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="w-44 shrink-0 text-sm" x-text="clase.label"></span>
+          <label class="sr-only" :for="`obj-${clase.key}`">Objetivo</label>
+          <input type="number" min="0" max="100" step="0.01" :id="`obj-${clase.key}`"
+                 x-model.number="clase.target"
+                 class="w-24 rounded-lg border border-line bg-surf-2 px-2.5 py-1.5 text-sm tabular
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1">
+          <span class="text-xs text-ink-mute">%, banda ±</span>
+          <label class="sr-only" :for="`band-${clase.key}`">Banda</label>
+          <input type="number" min="0" max="100" step="0.01" :id="`band-${clase.key}`"
+                 x-model.number="clase.band"
+                 class="w-20 rounded-lg border border-line bg-surf-2 px-2.5 py-1.5 text-sm tabular
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1">
+        </div>
+      </template>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+      <button type="button" @click="save()" :disabled="saving || plannedTotal > 100"
+              class="rounded-lg bg-s1 px-3.5 py-1.5 text-sm font-medium text-white transition-colors
+                     hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1">
+        <span x-text="saving ? 'Guardando…' : 'Guardar plan'"></span>
+      </button>
+      <p class="text-xs" :class="plannedTotal > 100 ? 'text-bad' : 'text-ink-mute'">
+        Suman <span class="tabular font-medium" x-text="plannedTotal.toFixed(2) + '%'"></span>
+        <template x-if="plannedTotal > 100">
+          <span>: un plan que se pasa de 100 no se puede cumplir.</span>
+        </template>
+        <template x-if="plannedTotal < 100">
+          <span>
+            · queda <span class="tabular" x-text="(100 - plannedTotal).toFixed(2) + '%'"></span> sin decidir.
+          </span>
+        </template>
+      </p>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ static_url('/static/js/plan.js') }}"></script>
+{% endblock %}

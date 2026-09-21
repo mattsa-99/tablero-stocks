@@ -1,0 +1,9 @@
+/* Entrada del compilador. La salida versionada es `tailwind.css`.
+ *
+ * `app.css` se importa PRIMERO para que las custom properties existan antes
+ * que las utilidades que las consumen. Se sigue sirviendo por separado además
+ * de aquí, porque contiene reglas propias que no pasan por Tailwind.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

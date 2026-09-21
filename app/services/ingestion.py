@@ -122,7 +122,30 @@ def run_sync(
         delay = max(0.0, settings.ingestion_batch_delay_seconds)
         chunks = list(_batches(assets, batch_size))
 
+        # PRESUPUESTO DE RELOJ. Se comprueba ENTRE lotes, nunca dentro: cortar
+        # a mitad de un lote dejaría unos símbolos con precio nuevo y otros con
+        # precio viejo dentro de la misma llamada, y eso no se puede declarar.
+        comienzo = time.monotonic()
+        presupuesto = max(1, settings.sync_budget_minutes) * 60
+
         for index, chunk in enumerate(chunks):
+            transcurrido = time.monotonic() - comienzo
+            if transcurrido > presupuesto and index > 0:
+                pendientes = sum(len(c) for c in chunks[index:])
+                report.note(
+                    f"Sincronización cortada por tiempo: {transcurrido / 60:.0f} "
+                    f"minutos superan el presupuesto de "
+                    f"{settings.sync_budget_minutes}. Quedaron {pendientes} "
+                    f"símbolos sin refrescar, que conservan su último dato. "
+                    f"Suele significar que la red está caída o muy lenta."
+                )
+                logger.warning(
+                    "Presupuesto agotado tras %d/%d lotes (%.0f min): %d símbolos "
+                    "sin refrescar",
+                    index, len(chunks), transcurrido / 60, pendientes,
+                )
+                break
+
             logger.info(
                 "Sincronizando lote %d/%d (%d símbolos)",
                 index + 1, len(chunks), len(chunk),
@@ -137,6 +160,11 @@ def run_sync(
         run.fx_updated = report.fx_updated
         run.metadata_updated = report.metadata_updated
         run.symbols_failed = len(set(report.failed_symbols))
+        # El resumen de descartes va al FINAL y como una sola línea: así los
+        # avisos que importan caben dentro de `MAX_WARNINGS_STORED`.
+        resumen = report.summarise_drops()
+        if resumen:
+            report.note(resumen)
         run.warnings = (
             "\n".join(report.warnings[:MAX_WARNINGS_STORED]) if report.warnings else None
         )
@@ -150,6 +178,13 @@ def run_sync(
             run.status = SyncStatus.FAILED
         else:
             run.status = SyncStatus.PARTIAL
+
+        # El devengo de la renta fija directa va ANTES de la foto: es puro
+        # cálculo, no sale a la red, y si no se publica aquí esas posiciones
+        # quedarían sin valorar en el reparto por clase.
+        _refresh_reference_rates(db, report)
+        _publish_fixed_income(db, report)
+        _capture_ranking_snapshot(db, assets, run, report)
 
     except Exception as exc:
         logger.exception("La sincronización falló")
@@ -171,6 +206,125 @@ def run_sync(
         run.duration_seconds or 0,
     )
     return run
+
+
+def _refresh_reference_rates(db: Session, report: RefreshReport) -> None:
+    """Tasas colombianas de Banrep. Otro proveedor, otro fallo posible.
+
+    Va en su propio try porque es una fuente DISTINTA de Yahoo: que Banrep esté
+    caído no puede marcar como fallida una sincronización de mercado que sí
+    funcionó, ni al revés. Solo importan para la renta fija directa, y sin
+    ellas esa ficha lo dice en vez de inventarse una referencia.
+    """
+    from app.services import reference_rates as rates_service
+
+    if not settings.enable_reference_rates:
+        return
+
+    try:
+        escritas, avisos = rates_service.refresh(db)
+        for aviso in avisos:
+            report.note(aviso)
+        if escritas:
+            logger.info("Tasas de referencia de Banrep: %d filas", escritas)
+
+        # Las emisiones de CDT van en el MISMO try pero tras las de Banrep:
+        # son otra fuente más, y que una no responda no puede impedir que la
+        # otra se guarde. Por eso se piden en este orden y no al revés: las de
+        # Banrep las usa la ficha siempre; estas, solo al evaluar un CDT.
+        emisiones, avisos_cdt = rates_service.refresh_cdt_offers(db)
+        for aviso in avisos_cdt:
+            report.note(aviso)
+        if emisiones:
+            logger.info("Emisiones de CDT: %d filas", emisiones)
+    except Exception:  # noqa: BLE001 - no puede tumbar la sincronización
+        db.rollback()
+        logger.exception("No se pudieron actualizar las tasas de referencia")
+
+
+def _publish_fixed_income(db: Session, report: RefreshReport) -> None:
+    """Devenga los TES, CDT y FIC cargados a mano. Nunca tumba el pipeline."""
+    from app.services import fixed_income as fixed_income_service
+
+    try:
+        escritas = fixed_income_service.publish_accruals(db)
+        if escritas:
+            report.quotes_updated += escritas
+            logger.info("Devengo publicado para %d instrumentos de renta fija", escritas)
+    except Exception:  # noqa: BLE001 - no puede tumbar la sincronización
+        db.rollback()
+        logger.exception("No se pudo publicar el devengo de la renta fija")
+
+
+def _capture_ranking_snapshot(
+    db: Session, assets: list[Asset], run: SyncRun, report: RefreshReport
+) -> None:
+    """Congela el ranking tras sincronizar, como mucho una vez por semana.
+
+    SOLO SI LA SINCRONIZACIÓN FUE LO BASTANTE COMPLETA. Una foto tomada un día
+    en que fallaron 420 de 494 símbolos registra los scores de un ranking
+    calculado con datos viejos para el 85% del universo, y meses después el
+    scorecard la compararía creyendo que era el ranking de ese día. El daño no
+    se puede deshacer porque a posteriori una foto mala es indistinguible de
+    una buena: por eso se descarta ANTES, y se dice por qué.
+
+    VA AQUÍ, y no en la petición de la vista, por dos razones. La primera es
+    que los datos acaban de refrescarse: una foto tomada en mitad de la semana
+    mezclaría precios frescos con fundamentales de hace días. La segunda es que
+    capturar desde la petición ataría el contenido de la foto a qué estaba
+    mirando el usuario -el `limit` y los filtros recortan `opportunities`- y
+    eso la invalidaría como registro.
+
+    NUNCA tumba la sincronización. Es un registro para validar más adelante, no
+    un dato del que dependa nada de lo que se ve hoy: si falla, se apunta y se
+    sigue. Ver `app/models/scorecard.py` para por qué no se puede derivar
+    después.
+    """
+    from app.services import opportunities as opportunity_service
+    from app.services import scorecard as scorecard_service
+
+    if len(assets) < settings.opportunity_min_universe:
+        return
+
+    if run.status is SyncStatus.FAILED:
+        report.note(
+            "No se congeló la foto del ranking: la sincronización falló entera."
+        )
+        return
+
+    caidos = run.symbols_failed or 0
+    pedidos = run.symbols_requested or len(assets)
+    share = caidos / pedidos if pedidos else 0.0
+    if share > settings.scorecard_max_failed_share:
+        report.note(
+            f"No se congeló la foto del ranking: fallaron {caidos} de {pedidos} "
+            f"símbolos ({share:.0%}), por encima del "
+            f"{settings.scorecard_max_failed_share:.0%} admisible. Una foto "
+            f"sobre datos a medias es peor que ninguna."
+        )
+        logger.warning(
+            "Foto del ranking descartada: %d/%d símbolos caídos", caidos, pedidos
+        )
+        return
+
+    for portfolio in db.scalars(select(Portfolio)).all():
+        try:
+            if not scorecard_service.is_capture_due(db, portfolio):
+                continue
+            scored = opportunity_service._scored_universe(db, portfolio, assets)
+            guardadas = scorecard_service.capture(
+                db, portfolio, None, rows=list(scored.rows)
+            )
+            db.commit()
+            logger.info(
+                "Foto del ranking: %d filas para la cartera %s",
+                guardadas, portfolio.id,
+            )
+        except Exception:  # noqa: BLE001 - nunca puede tumbar la sincronización
+            db.rollback()
+            logger.exception(
+                "No se pudo capturar la foto del ranking de la cartera %s", portfolio.id
+            )
 
 
 IntradayScope = Literal["positions", "universe"]

@@ -13,81 +13,81 @@ Modelo actual: cada activo cae en un CUBO DE EXPOSICIÓN, que puede ser un
 sector GICS o una clase de activo. Es más correcto además por otra razón: el
 oro diversifica una cartera de acciones mucho más que pasar de tecnología a
 salud, y con sectores puros esa diferencia era invisible.
+
+DE LISTAS DE SÍMBOLOS A DATOS DEL PROVEEDOR
+===========================================
+La primera versión decidía el cubo con tres listas escritas a mano
+(`BROAD_ETFS`, `BOND_ETFS`, `COMMODITY_ETFS`) y suponía «Diversificado» para
+todo lo demás. Medido sobre la base real: **136 de 490 activos (27,8%) caían en
+«Diversificado» por suposición**, incluidos fondos de deuda pública, cestas de
+materias primas y ETFs de bitcoin. Una cartera de bonos contaba como renta
+variable amplia y la diversificación medida era falsa.
+
+Ahora el cubo se deriva de `services/asset_class.py`, que lee la categoría del
+proveedor. Los supuestos bajaron de 136 a **1** (PHYS). Las listas sobreviven
+solo como respaldo para lo que el proveedor no categoriza -los fondos de la
+BVC, por ejemplo-, y ese respaldo se declara como supuesto.
 """
 
 from __future__ import annotations
 
-from app.models import Asset, AssetType
+from app.models import Asset
+from app.services.asset_class import (
+    AssetClass,
+    bucket_is_assumed,
+    classify,
+    sector_of_fund,
+)
 
 BROAD_EQUITY = "Diversificado"
 FIXED_INCOME = "Renta fija"
 COMMODITIES = "Materias primas"
+CRYPTO = "Cripto"
+DERIVATIVES = "Derivados"
 UNKNOWN = "Desconocido"
 
-# ETFs sectoriales: se comportan igual que una acción de ese sector, así que se
-# mapean a él y compiten en el mismo cubo.
-SECTOR_ETFS: dict[str, str] = {
-    "XLE": "Energy",
-    "XLF": "Financial Services",
-    "XLV": "Healthcare",
-    "XLK": "Technology",
-    "XLI": "Industrials",
-    "XLY": "Consumer Cyclical",
-    "XLP": "Consumer Defensive",
-    "XLU": "Utilities",
-    "XLB": "Basic Materials",
-    "XLRE": "Real Estate",
-    "XLC": "Communication Services",
-    "VNQ": "Real Estate",
-    "SMH": "Technology",
-    "IBB": "Healthcare",
+_BY_CLASS: dict[AssetClass, str] = {
+    AssetClass.RENTA_FIJA: FIXED_INCOME,
+    AssetClass.MATERIAS_PRIMAS: COMMODITIES,
+    AssetClass.CRIPTO: CRYPTO,
+    # Un futuro del S&P no es una materia prima, y antes acababa en ese cubo
+    # porque la única regla era el sufijo `=F`. Con seis futuros de índices y
+    # dos de bonos dentro del universo, meterlos en «Materias primas» hacía que
+    # el cubo afirmara algo falso.
+    AssetClass.DERIVADO: DERIVATIVES,
+    AssetClass.DESCONOCIDO: UNKNOWN,
 }
 
-# ETFs de mercado amplio: son diversificación en sí mismos.
-BROAD_ETFS: frozenset[str] = frozenset({
-    "SPY", "VOO", "IVV", "VTI", "QQQ", "IWM", "DIA", "RSP",
-    "EEM", "VWO", "EFA", "VEA", "VXUS", "ACWI", "VT", "SCHB",
-})
-
-# Renta fija: diversifica frente a renta variable, que es distinto de
-# diversificar entre sectores de renta variable.
-BOND_ETFS: frozenset[str] = frozenset({
-    "TLT", "IEF", "SHY", "AGG", "BND", "LQD", "HYG", "TIP", "BNDX", "EMB",
-})
-
-COMMODITY_ETFS: frozenset[str] = frozenset({"GLD", "IAU", "SLV", "USO", "DBC", "PDBC"})
+# RESPALDO, no la vía principal. Solo se consulta cuando el proveedor no trae
+# categoría: los fondos de la BVC (ICOLCAP.CL, GXTESCOL.CL) no la tienen. Un
+# cubo resuelto por aquí se declara SUPUESTO.
+FALLBACK_SECTOR_ETFS: dict[str, str] = {
+    "XLE": "Energy", "XLF": "Financial Services", "XLV": "Healthcare",
+    "XLK": "Technology", "XLI": "Industrials", "XLY": "Consumer Cyclical",
+    "XLP": "Consumer Defensive", "XLU": "Utilities", "XLB": "Basic Materials",
+    "XLRE": "Real Estate", "XLC": "Communication Services",
+    "VNQ": "Real Estate", "SMH": "Technology", "IBB": "Healthcare",
+}
 
 
 def exposure_bucket(asset: Asset) -> str:
-    """Cubo de exposición de un activo, para el cálculo de diversificación.
+    """Cubo de exposición de un activo, para el cálculo de diversificación."""
+    clasificacion = classify(asset)
 
-    El orden de las comprobaciones importa: un símbolo listado explícitamente
-    gana sobre cualquier heurística, porque la heurística acierta en general y
-    falla justo en los casos raros.
-    """
-    symbol = (asset.symbol or "").upper()
+    directo = _BY_CLASS.get(clasificacion.asset_class)
+    if directo is not None:
+        return directo
 
-    if symbol in SECTOR_ETFS:
-        return SECTOR_ETFS[symbol]
-    if symbol in BOND_ETFS:
-        return FIXED_INCOME
-    if symbol in COMMODITY_ETFS or symbol in BROAD_ETFS:
-        return COMMODITIES if symbol in COMMODITY_ETFS else BROAD_EQUITY
+    if clasificacion.asset_class is AssetClass.ACCION:
+        # Por construcción una ACCION tiene sector o industria: `classify` no
+        # la reconocería como empresa sin ninguno de los dos.
+        return asset.sector or asset.industry or UNKNOWN
 
-    # Futuros continuos de Yahoo: GC=F (oro), CL=F (crudo)...
-    if symbol.endswith("=F"):
-        return COMMODITIES
-
-    if asset.sector:
-        return asset.sector
-
-    # ETF o fondo sin sector y fuera de las listas: lo más probable es que sea
-    # amplio, porque un ETF concentrado normalmente SÍ trae sector. Se anota
-    # como supuesto en `is_assumed_bucket` para poder declararlo en la interfaz.
-    if asset.asset_type in (AssetType.ETF, AssetType.FUND):
-        return BROAD_EQUITY
-
-    return UNKNOWN
+    # Fondo de acciones: sectorial si su categoría lo dice, amplio si no.
+    sector = sector_of_fund(asset) or FALLBACK_SECTOR_ETFS.get(
+        (asset.symbol or "").upper()
+    )
+    return sector or BROAD_EQUITY
 
 
 def is_assumed_bucket(asset: Asset) -> bool:
@@ -96,14 +96,9 @@ def is_assumed_bucket(asset: Asset) -> bool:
     La interfaz debe poder decirlo: un supuesto presentado como hecho es peor
     que un dato ausente.
     """
-    symbol = (asset.symbol or "").upper()
-    if symbol in SECTOR_ETFS or symbol in BOND_ETFS or symbol in COMMODITY_ETFS:
-        return False
-    if symbol in BROAD_ETFS or symbol.endswith("=F"):
-        return False
-    if asset.sector:
-        return False
-    return asset.asset_type in (AssetType.ETF, AssetType.FUND)
+    if (asset.symbol or "").upper() in FALLBACK_SECTOR_ETFS and not asset.fund_category:
+        return True
+    return bucket_is_assumed(asset)
 
 
 def bucket_label(bucket: str) -> str:

@@ -32,6 +32,53 @@ class ResourceType:
     FUNDAMENTALS = "fundamentals"
     METADATA = "asset_metadata"
     FX = "fx"
+    # El HISTÓRICO de un par, distinto del tipo del día: su TTL se mide en
+    # días, no en minutos, porque son cierres ya cerrados.
+    FX_HISTORY = "fx_history"
+    # El RELLENO HACIA ATRÁS del histórico, distinto del refresco diario.
+    #
+    # Existe por la misma razón que `FX_HISTORY`: pregunta otra cosa. El
+    # refresco diario pregunta "¿qué barras nuevas hay?" y se contesta mirando
+    # la ÚLTIMA almacenada; el relleno pregunta "¿llega mi serie tan atrás como
+    # quiero?" y se contesta mirando la PRIMERA.
+    #
+    # Necesita su propio TTL, medido en días, porque un símbolo joven -una
+    # salida a bolsa de hace seis meses, un ETF recién creado- nunca va a
+    # alcanzar la profundidad pedida por mucho que se pregunte. Sin este
+    # registro, "¿me falta pasado?" sería siempre que sí y se redescargarían
+    # cinco años en cada sincronización.
+    PRICE_HISTORY_BACKFILL = "price_history_backfill"
+    # El PERFIL de un fondo: composición, coste y calidad crediticia. TTL
+    # largo porque cambia cuando el gestor cambia el mandato, o sea casi
+    # nunca, y cuesta una llamada por fondo.
+    FUND_PROFILE = "fund_profile"
+    # El proveedor COMO UN TODO, no un símbolo. Un 429 no dice nada sobre el
+    # activo que se pidió: dice que hay que parar de pedir.
+    PROVIDER = "provider"
+
+
+PROVIDER_KEY = "yahoo"
+
+# Enfriamiento tras un 429. Arranca más alto que `BASE_BACKOFF_SECONDS` porque
+# un rate limit no es un fallo puntual que convenga reintentar en un minuto:
+# es el proveedor diciendo que el ritmo es insostenible.
+RATE_LIMIT_COOLDOWN_SECONDS = 900
+
+# Enfriamiento cuando no hay conexión. MUCHO más corto y con techo propio, y
+# las dos cosas por la misma razón: aquí el proveedor no ha pedido nada.
+#
+# Un 429 es Yahoo diciendo "para"; obedecer de más solo cuesta frescura. Una
+# caída de red es un problema NUESTRO -el portátil se suspendió, el wifi se
+# fue- y puede resolverse en cualquier segundo, así que castigarse seis horas
+# por una desconexión de treinta segundos desperdiciaría las corridas
+# siguientes del agente.
+#
+# El techo bajo además evita un bloqueo: mientras el enfriamiento está activo
+# no se llama a nadie, y si no se llama a nadie no hay respuesta correcta que
+# pueda cerrarlo. Con 15 minutos como máximo, una máquina que despierta vuelve
+# a intentarlo dentro de la misma franja de mercado.
+UNREACHABLE_COOLDOWN_SECONDS = 120
+UNREACHABLE_COOLDOWN_MAX = 900
 
 
 # Single-flight EN PROCESO. Si dos peticiones concurrentes necesitan el mismo
@@ -123,6 +170,12 @@ class SyncGate:
         state.last_error = None
         state.ttl_seconds = ttl_seconds
 
+        # Cualquier respuesta buena demuestra que el proveedor volvió: se
+        # cierra el enfriamiento aquí y no solo en cotizaciones, porque el
+        # 429 lo puede haber disparado cualquiera de los cinco recursos.
+        if resource_type != ResourceType.PROVIDER:
+            self.clear_rate_limit()
+
         if payload is None:
             return True
         new_hash = payload_hash(payload)
@@ -160,3 +213,90 @@ class SyncGate:
             delay + jitter,
             error,
         )
+
+    # ------------------------------------------------------------------
+    # Enfriamiento global del proveedor
+    # ------------------------------------------------------------------
+
+    def _cool_down(
+        self, error: Exception, base_seconds: int, max_seconds: float, label: str
+    ) -> dt.datetime:
+        """Enfría el proveedor entero durante un rato que crece con la racha."""
+        state = self._get_or_create(ResourceType.PROVIDER, PROVIDER_KEY, base_seconds)
+        now = dt.datetime.now(dt.UTC)
+        state.last_attempt_at = now
+        state.consecutive_failures += 1
+        state.last_error = str(error)[:500]
+
+        delay = min(base_seconds * (2 ** (state.consecutive_failures - 1)), max_seconds)
+        jitter = random.uniform(0, delay * 0.25)
+        state.next_eligible_at = now + dt.timedelta(seconds=delay + jitter)
+        logger.warning(
+            "%s (%d consecutivos): no se pide nada hasta %s",
+            label, state.consecutive_failures, state.next_eligible_at,
+        )
+        return state.next_eligible_at
+
+    def mark_unreachable(self, error: Exception) -> dt.datetime:
+        """Apunta la caída de RED contra el proveedor, no contra los símbolos.
+
+        Misma lógica que `mark_rate_limited` y, por volumen, el caso que de
+        verdad ocurre: en el log del agente hay 1.282 fallos de DNS frente a
+        23 de rate limit. Un `Could not resolve host` no dice absolutamente
+        nada sobre el ticker que tocaba pedir, y cargárselo lo dejaba en
+        backoff exponencial como si estuviera roto -25 símbolos idénticos por
+        lote, 494 en una sincronización entera-.
+
+        Además corta en seco la sincronización que ya no puede funcionar: la
+        del 18 de septiembre estuvo 67 minutos fallando contra una red que no
+        estaba, y terminó con 0 cotizaciones, 0 barras y 0 fundamentales.
+        """
+        return self._cool_down(
+            error,
+            UNREACHABLE_COOLDOWN_SECONDS,
+            UNREACHABLE_COOLDOWN_MAX,
+            "Sin conexión con el proveedor",
+        )
+
+    def mark_rate_limited(self, error: Exception) -> dt.datetime:
+        """Apunta el 429 CONTRA EL PROVEEDOR, no contra los símbolos pedidos.
+
+        Es la diferencia entre degradar y averiarse. Cuando Yahoo corta a
+        mitad de un lote, cargarle el fallo a cada símbolo les sube el
+        contador de fallos consecutivos y los mete en un backoff exponencial
+        propio, como si el ticker estuviera roto. Medido en este sistema: las
+        sincronizaciones del 16, 17 y 18 de septiembre marcaron 469, 420 y 494
+        símbolos como fallidos, y a partir de ahí el universo entero quedaba
+        en penitencia por un límite que no tenía nada que ver con él.
+
+        Aquí el castigo va a una sola fila. Cuando expira, los 494 símbolos
+        vuelven a estar disponibles a la vez porque nunca dejaron de estarlo.
+        """
+        return self._cool_down(
+            error,
+            RATE_LIMIT_COOLDOWN_SECONDS,
+            MAX_BACKOFF.total_seconds(),
+            "Rate limit del proveedor",
+        )
+
+    def provider_cooldown_until(self) -> dt.datetime | None:
+        """Instante hasta el que NO hay que llamar al proveedor, o None."""
+        state = self._state(ResourceType.PROVIDER, PROVIDER_KEY)
+        if state is None or state.next_eligible_at is None:
+            return None
+        if dt.datetime.now(dt.UTC) >= state.next_eligible_at:
+            return None
+        return state.next_eligible_at
+
+    def clear_rate_limit(self) -> None:
+        """Una llamada correcta cierra el enfriamiento.
+
+        Sin esto el contador de 429 solo sube y el enfriamiento acabaría en el
+        techo de 6 horas aunque el proveedor lleve días respondiendo bien.
+        """
+        state = self._state(ResourceType.PROVIDER, PROVIDER_KEY)
+        if state is None or state.consecutive_failures == 0:
+            return
+        state.consecutive_failures = 0
+        state.next_eligible_at = None
+        state.last_success_at = dt.datetime.now(dt.UTC)

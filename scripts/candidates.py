@@ -101,6 +101,32 @@ TERPEL.CL PROMIGAS.CL CNEC.CL MINEROS.CL BVC.CL PFCEMARGOS.CL
 PFGRUPSURA.CL PFGRUPOARG.CL BOGOTA.CL CONCONCRET.CL
 """
 
+# Fondos cotizados de la BVC. En COP y por tanto sin conversión, que es la
+# misma razón por la que entran las acciones colombianas.
+#
+# `GXTESCOL.CL` es el que justifica esta lista: da exposición a TES -deuda
+# pública colombiana- con una serie de precios diaria y sin carga manual. Es
+# la única renta fija local del tablero que no hay que teclear a mano.
+#
+# `TEVAICOL.CL` queda FUERA: se comprobó el 21-09-2026 y solo tenía 5 barras
+# desde el 15 de septiembre. Un activo recién listado no se puede puntuar -ni
+# volatilidad ni caída máxima ni tendencia- y entraría al ranking como ruido.
+BVC_FUNDS = """
+ICOLCAP.CL GXTESCOL.CL HCOLSEL.CL
+"""
+
+# Clase de activo DECLARADA, para lo que el proveedor no sabe clasificar.
+#
+# Yahoo no cubre la composición de los fondos de la BVC: llegan sin categoría
+# y sin `funds_data`, así que el motor los supondría de acciones. Para
+# ICOLCAP y HCOLSEL eso es correcto; para GXTESCOL es justo lo contrario de lo
+# que es, y lo contaría como renta variable amplia en el reparto de la
+# cartera. Se declara a mano porque es un hecho verificable, no una
+# heurística, y por eso NO cuenta como supuesto aguas abajo.
+DECLARED_CLASSES: dict[str, str] = {
+    "GXTESCOL.CL": "renta_fija",
+}
+
 # ADRs y valores extranjeros que cotizan en USD en bolsas estadounidenses.
 # ESTA es la vía a la diversificación global, no la bolsa local: se compran con
 # los mismos dólares y su precio YA incorpora el movimiento de la divisa.
@@ -205,6 +231,7 @@ UNIVERSE_GROUPS: frozenset[str] = frozenset(
         "us_etfs",
         "adr_stocks",
         "bvc_stocks",
+        "bvc_funds",
         "country_etfs",
         "bond_etfs",
         "commodity_etfs",
@@ -264,6 +291,7 @@ GROUPS: list[tuple[str, str, list[str]]] = [
     ("us_etfs", "ETF", _symbols(US_ETFS)),
     ("adr_stocks", "STOCK", _symbols(ADR_STOCKS)),
     ("bvc_stocks", "STOCK", _symbols(BVC_STOCKS)),
+    ("bvc_funds", "ETF", _symbols(BVC_FUNDS)),
     ("europe_stocks", "STOCK", _symbols(EUROPE_STOCKS)),
     ("asia_stocks", "STOCK", _symbols(ASIA_STOCKS)),
     ("foreign_primary", "STOCK", _symbols(FOREIGN_PRIMARY)),
@@ -307,3 +335,8 @@ def normalized_company(name: str | None) -> str:
     ):
         text = text.replace(suffix, "")
     return re.sub(r"[^a-z0-9]", "", text).strip()
+
+
+def declared_class(symbol: str) -> str | None:
+    """Clase declarada a mano para este símbolo, o None."""
+    return DECLARED_CLASSES.get(symbol.upper())

@@ -21,7 +21,7 @@ TEMPLATES = Path(__file__).resolve().parents[1] / "app" / "templates"
 STATIC_JS = Path(__file__).resolve().parents[1] / "app" / "static" / "js"
 
 
-@pytest.mark.parametrize("path", ["/", "/oportunidades"])
+@pytest.mark.parametrize("path", ["/", "/oportunidades", "/diario"])
 def test_pages_render(client, path):
     response = client.get(path)
     assert response.status_code == 200
@@ -78,8 +78,8 @@ def test_alpine_loads_after_the_component_definitions(client):
     para los componentes ya montados y las vistas quedarían vacías.
     """
     html = client.get("/").text
-    assert html.index("/static/js/store.js") < html.index("alpinejs/")
-    assert html.index("/static/js/portfolio.js") < html.index("alpinejs/")
+    assert html.index("/static/js/store.js") < html.index("/static/vendor/alpine.min.js")
+    assert html.index("/static/js/portfolio.js") < html.index("/static/vendor/alpine.min.js")
 
 
 def test_no_nested_alpine_templates():
@@ -100,12 +100,36 @@ def test_no_nested_alpine_templates():
     assert not offenders, f"Templates de Alpine anidados en: {offenders}"
 
 
-def test_cdn_versions_are_pinned():
-    """Sin versión fija, una publicación del CDN puede romper la app sola."""
+def test_the_page_loads_nothing_from_a_cdn():
+    """Sin red, la página tiene que seguir siendo usable.
+
+    Antes Tailwind, Alpine y Chart.js venían de fuera, así que un corte de red
+    la dejaba sin estilos y sin interactividad. Es justo lo contrario de lo que
+    hace el backend, que conserva el último valor y avisa en vez de romperse.
+    """
     html = (TEMPLATES / "base.html").read_text()
-    for library in ("alpinejs/", "Chart.js/"):
-        match = re.search(rf"{re.escape(library)}(\d+\.\d+\.\d+)/", html)
-        assert match, f"{library} debe cargarse con una versión exacta"
+    assert "//cdn" not in html
+    assert "https://" not in html.split("<body")[0]
+
+
+def test_the_vendored_libraries_are_present_and_documented():
+    """Vendorizar congela la versión de verdad; el README dice cuál es.
+
+    La URL fijaba la versión pero no lo que el CDN servía bajo ella. Ahora el
+    archivo es el contrato, y este test impide que se borre uno o que la tabla
+    de versiones se quede sin actualizar.
+    """
+    vendor = TEMPLATES.parent / "static" / "vendor"
+    readme = (vendor / "README.md").read_text()
+    for name in ("alpine.min.js", "alpine-collapse.min.js", "chart.umd.min.js"):
+        assert (vendor / name).stat().st_size > 1000, f"{name} falta o está vacío"
+        assert name in readme, f"{name} no aparece en la tabla de versiones"
+
+
+def test_the_collapse_plugin_loads_before_alpine_core():
+    """Se registra sobre `window.Alpine` al arrancar: después no se registraría."""
+    html = (TEMPLATES / "base.html").read_text()
+    assert html.index("alpine-collapse.min.js") < html.index("vendor/alpine.min.js")
 
 
 def test_decimal_fields_arrive_as_strings(client, portfolio_id):
@@ -166,7 +190,7 @@ def test_combobox_option_ids_are_scoped_per_instance(client):
 
 def test_combobox_script_is_loaded_before_alpine(client):
     html = client.get("/").text
-    assert html.index("/static/js/combobox.js") < html.index("alpinejs/")
+    assert html.index("/static/js/combobox.js") < html.index("/static/vendor/alpine.min.js")
 
 
 def test_only_the_simulator_prefills_the_price(client):
@@ -265,3 +289,34 @@ def test_a_missing_static_file_does_not_break_the_page(tmp_path, monkeypatch):
 
     monkeypatch.setattr(views, "BASE_DIR", tmp_path)
     assert views.static_url("/static/js/no-existe.js") == "/static/js/no-existe.js"
+
+
+# ----------------------------------------------------------------------
+# Curva de valor
+# ----------------------------------------------------------------------
+
+
+def test_the_value_chart_canvas_exists_and_is_labelled():
+    """Un `<canvas>` sin `aria-label` es una caja vacía para un lector de pantalla."""
+    html = (TEMPLATES / "dashboard.html").read_text()
+    assert 'x-ref="valueChart"' in html
+    assert "aria-label=\"Evolución del valor de la cartera\"" in html
+
+
+def test_the_chart_is_repainted_on_theme_change():
+    """Chart.js no lee CSS.
+
+    Al cambiar de tema hay que repintar los DOS gráficos, o el nuevo se queda
+    con los colores del anterior. Con uno solo cableado, el fallo aparece
+    justo en el gráfico recién añadido.
+    """
+    js = (TEMPLATES.parent / "static" / "js" / "portfolio.js").read_text()
+    handler = js.split('"theme-changed"')[1].split("});")[0]
+    assert "drawChart()" in handler
+    assert "drawSeries()" in handler
+
+
+def test_the_dual_price_only_shows_when_the_currency_differs():
+    """Con la divisa base repetiría el renglón sin aportar nada."""
+    html = (TEMPLATES / "dashboard.html").read_text()
+    assert "p.currency !== currency && p.current_price_base" in html

@@ -32,7 +32,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.providers.currencies import normalize_currency  # noqa: E402
-from scripts.candidates import all_candidates, in_universe  # noqa: E402
+from scripts.candidates import (  # noqa: E402
+    all_candidates,
+    declared_class,
+    in_universe,
+)
 
 CATALOG_PATH = ROOT / "app" / "data" / "catalog.json"
 CACHE_PATH = Path("/private/tmp/claude-501/catalog_build_cache.json")
@@ -141,12 +145,44 @@ def enrich(symbols: list[str], cache: dict) -> dict[str, dict]:
     return {s: cache["info"].get(s) or {} for s in symbols}
 
 
+def _load_existing() -> list[dict]:
+    """El catálogo que ya está en disco, o vacío si no lo hay."""
+    if not CATALOG_PATH.exists():
+        return []
+    return json.loads(CATALOG_PATH.read_text(encoding="utf-8")).get("assets", [])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--simbolos",
+        default="",
+        help=(
+            "Verifica SOLO estos y los fusiona con el catálogo existente. "
+            "Sin esto se regenera entero, que son ~735 llamadas y arriesga "
+            "descartar un símbolo real por un mal día de la red"
+        ),
+    )
     args = parser.parse_args()
 
     candidates = all_candidates()
+    pedidos = {s.strip().upper() for s in args.simbolos.split(",") if s.strip()}
+    if pedidos:
+        # FUSIÓN, no regeneración. Regenerar el catálogo entero para añadir
+        # tres símbolos expone a los otros 732 a un descarte por un 429
+        # pasajero: el script ya reintenta, pero la forma barata de no correr
+        # ese riesgo es no correrlo.
+        desconocidos = pedidos - {s for s, _, _ in candidates}
+        if desconocidos:
+            print(
+                f"No están en candidates.py: {', '.join(sorted(desconocidos))}. "
+                f"Añádelos allí primero: el catálogo se genera desde esa lista.",
+                file=sys.stderr,
+            )
+            return 1
+        candidates = [c for c in candidates if c[0] in pedidos]
+
     print(f"{len(candidates)} candidatos en {len({g for _, g, _ in candidates})} grupos")
 
     cache = _load_cache()
@@ -197,8 +233,35 @@ def main() -> int:
                 # un símbolo del universo que no estuviera en el catálogo nacía
                 # sin divisa ni tipo, es decir como USD/STOCK por defecto.
                 "universe": in_universe(group, currency, symbol),
+                # Solo cuando hay algo que declarar: una clave nula en cada
+                # una de las 735 entradas sería ruido en un archivo que se
+                # lee a mano para auditarlo.
+                **(
+                    {"asset_class": declarada}
+                    if (declarada := declared_class(symbol))
+                    else {}
+                ),
             }
         )
+
+    if pedidos:
+        # Se conservan las entradas que no se han vuelto a verificar. Un
+        # símbolo pedido que ahora no responde se DEJA como estaba en vez de
+        # borrarse: el script no puede distinguir «dejó de existir» de «hoy
+        # Yahoo no contestó», y borrar es la única de las dos que no se
+        # deshace sola.
+        previas = {a["symbol"]: a for a in _load_existing()}
+        nuevos = {a["symbol"] for a in assets}
+        no_verificados = [
+            a for s, a in previas.items() if s not in nuevos and s not in pedidos
+        ]
+        conservados = [previas[s] for s in pedidos if s in previas and s not in nuevos]
+        if conservados:
+            print(
+                f"  sin respuesta hoy, se conservan como estaban: "
+                f"{' '.join(a['symbol'] for a in conservados)}"
+            )
+        assets = [*no_verificados, *conservados, *assets]
 
     assets.sort(key=lambda a: (a["group"], a["symbol"]))
 

@@ -17,7 +17,11 @@ class QuoteData:
     symbol: str
     price: float
     previous_close: float | None
-    currency: str
+    # None cuando el proveedor no la informa: `yf.download` agrupa el lote en
+    # una sola llamada pero no devuelve divisa. Quien consuma esto usa la del
+    # activo, fijada por los metadatos; poner un "USD" por defecto aquí
+    # marcaría como dólares a los tickers de la BVC, que cotizan en COP.
+    currency: str | None
     quote_time: dt.datetime | None
 
 
@@ -42,6 +46,41 @@ class AssetMetadata:
     industry: str | None = None
     country: str | None = None
     asset_type: str | None = None
+    # Categoría Morningstar, solo para fondos. Ver `Asset.fund_category`.
+    fund_category: str | None = None
+
+
+@dataclass(frozen=True)
+class FundProfile:
+    """Lo que `funds_data` da de FIABLE sobre un fondo.
+
+    Deliberadamente parcial. Del payload completo se descartan dos cosas que
+    se probaron y no sirven:
+
+    - `bond_holdings.Duration`: medido contra lo que esos fondos son por
+      mandato, SJNK -de corto plazo- salía con 6,48 y TLT -de 20+ años- con
+      3,60. No es un factor de escala ni otra unidad: no hay patrón.
+    - `sector_weightings`: para SJNK devuelve `communication_services: 1.0`
+      en un fondo que es 98,7% bonos.
+
+    Lo que sí se comprobó estable en los 12 fondos probados: la categoría, el
+    tipo legal, el reparto por clase de activo, el ratio de gastos y, en los
+    de bonos, el reparto por calificación crediticia.
+    """
+
+    symbol: str
+    category: str | None = None
+    legal_type: str | None = None
+    # Reparto del patrimonio. Es el dato DURO que dice qué hay dentro, y el
+    # único que no depende de que el proveedor haya categorizado el fondo.
+    stock_position: float | None = None
+    bond_position: float | None = None
+    cash_position: float | None = None
+    other_position: float | None = None
+    # Fracción anual sobre el patrimonio (0.0003 = 0,03%).
+    expense_ratio: float | None = None
+    # {"aaa": 0.008, "bb": 0.5483, ...} para los fondos de renta fija.
+    credit_ratings: dict[str, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -96,8 +135,14 @@ class MarketProvider(Protocol):
         self, symbols: list[str], start: dt.date, end: dt.date
     ) -> dict[str, list[BarData]]: ...
 
+    def fetch_fx_history(
+        self, pairs: list[tuple[str, str]], start: dt.date, end: dt.date
+    ) -> dict[tuple[str, str], list[tuple[dt.date, float]]]: ...
+
     def fetch_metadata(self, symbols: list[str]) -> dict[str, AssetMetadata]: ...
 
     def fetch_fundamentals(self, symbols: list[str]) -> dict[str, FundamentalData]: ...
+
+    def fetch_fund_profiles(self, symbols: list[str]) -> dict[str, FundProfile]: ...
 
     def search_symbols(self, query: str, limit: int) -> list[SearchHit]: ...

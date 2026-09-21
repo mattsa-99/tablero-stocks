@@ -103,7 +103,7 @@ def test_a_bad_universe_produces_a_bad_first_place(db, client):
 
     Un universo entero de activos malos sigue teniendo un primer puesto -el
     ranking es ordinal- pero ese primero debe salir calificado como malo, y la
-    respuesta debe avisar de que nada alcanza «Buena».
+    respuesta debe avisar de que nada alcanza «Favorables».
     """
     import datetime as dt
 
@@ -188,16 +188,65 @@ def test_a_partial_grade_says_so():
 
 
 def test_the_bar_is_the_achievable_maximum():
-    """Un futuro sin fundamentales debe poder sacar la mejor nota.
+    """Con 3 señales la nota se mide sobre 6 puntos, no sobre 8.
 
-    Con umbrales de puntos absolutos necesitaría 5 sobre un máximo de 4:
-    imposible por construcción, y no por ser peor activo.
+    Un ETF sin estados financieros no puede necesitar 5 puntos sobre un máximo
+    de 4: sería imposible por construcción y no por ser peor activo. La
+    proporción sigue siendo la regla.
     """
-    commodity = assess(
+    fondo = assess(
+        trailing_pe=12.0, market_pe=MARKET_PE,
+        sma_trend=0.15, momentum_12_1=0.40, volatility=0.15, max_drawdown=0.10,
+    )
+    assert fondo.available_signals == 3
+    assert fondo.max_points == 6
+    assert fondo.grade == Grade.EXCELLENT
+    assert fondo.capped_by_coverage is False
+
+
+def test_two_perfect_signals_do_not_earn_a_top_grade():
+    """La proporción premiaba la AUSENCIA de datos, y está medido.
+
+    Sobre los 490 activos del ranking real, un ETF sacaba A el 40,9% de las
+    veces y una acción el 6,3%: 6,5 veces más. No por ser mejor, sino por
+    tener 2,71 señales de media frente a 3,96. Con 2 señales, dos aciertos dan
+    4/4 y por tanto la nota máxima.
+
+    No se baja a «Mala»: se topa en «Normal», que es exactamente lo que
+    significa no tener base para afirmar más.
+    """
+    dos_senales = assess(
         sma_trend=0.15, momentum_12_1=0.40, volatility=0.15, max_drawdown=0.10
     )
-    assert commodity.max_points == 4
-    assert commodity.grade == Grade.EXCELLENT
+    assert dos_senales.available_signals == 2
+    assert dos_senales.points == dos_senales.max_points, "Perfecto en lo medido"
+    assert dos_senales.grade == Grade.NEUTRAL
+    assert dos_senales.capped_by_coverage is True
+    assert any("no hay base para una nota alta" in n for n in dos_senales.notes)
+
+
+def test_the_cap_never_improves_a_bad_grade():
+    """Topar es un techo, no una corrección hacia el centro.
+
+    Un activo malo con pocas señales sigue siendo malo: si el tope lo subiera
+    a «Normal» estaría escondiendo justo lo que hay que ver.
+    """
+    malo = assess(
+        sma_trend=-0.15, momentum_12_1=-0.40, volatility=0.70, max_drawdown=0.60
+    )
+    assert malo.available_signals == 2
+    assert malo.grade in (Grade.POOR, Grade.BAD)
+    assert malo.capped_by_coverage is False
+
+
+def test_coverage_is_reported_so_the_interface_can_say_it():
+    completo = assess(
+        trailing_pe=12.0, market_pe=MARKET_PE,
+        sma_trend=0.1, momentum_12_1=0.2, volatility=0.2, max_drawdown=0.2,
+        roe=0.22, profit_margin=0.18, debt_to_equity=40.0, revenue_growth=0.12,
+    )
+    assert completo.coverage == 1.0
+    assert completo.available_signals == 4
 
 
 def test_losses_are_a_negative_signal_not_a_bargain():
@@ -255,51 +304,84 @@ def test_debt_is_read_as_a_percentage():
 # --------------------------------------------------------------------------
 
 
-def make(symbol, sector=None, asset_type=AssetType.STOCK):
-    return Asset(symbol=symbol, sector=sector, asset_type=asset_type, currency="USD")
+def make(symbol, sector=None, asset_type=AssetType.STOCK, fund_category=None):
+    return Asset(
+        symbol=symbol, sector=sector, asset_type=asset_type,
+        currency="USD", fund_category=fund_category,
+    )
 
 
 @pytest.mark.parametrize(
-    ("symbol", "expected"),
+    ("symbol", "category", "expected"),
     [
-        ("SPY", exposure.BROAD_EQUITY),
-        ("QQQ", exposure.BROAD_EQUITY),
-        ("VTI", exposure.BROAD_EQUITY),
-        ("IWM", exposure.BROAD_EQUITY),
-        ("TLT", exposure.FIXED_INCOME),
-        ("AGG", exposure.FIXED_INCOME),
-        ("GC=F", exposure.COMMODITIES),
-        ("CL=F", exposure.COMMODITIES),
-        ("GLD", exposure.COMMODITIES),
-        ("XLE", "Energy"),
-        ("XLF", "Financial Services"),
-        ("XLV", "Healthcare"),
+        # Fondos de acciones amplios: son diversificación en sí mismos.
+        ("SPY", "Large Blend", exposure.BROAD_EQUITY),
+        ("QQQ", "Large Growth", exposure.BROAD_EQUITY),
+        ("VT", "Global Large-Stock Blend", exposure.BROAD_EQUITY),
+        ("IWM", "Small Blend", exposure.BROAD_EQUITY),
+        # Renta fija: diversifica frente a la renta variable, no dentro de ella.
+        ("TLT", "Long Government", exposure.FIXED_INCOME),
+        ("AGG", "Intermediate Core Bond", exposure.FIXED_INCOME),
+        ("SJNK", "High Yield Bond", exposure.FIXED_INCOME),
+        # Materia prima física o por futuros: no hay empresas dentro.
+        ("GLD", "Commodities Focused", exposure.COMMODITIES),
+        ("GSG", "Commodities Broad Basket", exposure.COMMODITIES),
+        # Un ETF de bitcoin al contado no es renta variable amplia.
+        ("IBIT", "Digital Assets", exposure.CRYPTO),
+        # Sectoriales: se comportan como una acción de su sector.
+        ("XLE", "Equity Energy", "Energy"),
+        ("XLF", "Financial", "Financial Services"),
+        ("XLV", "Health", "Healthcare"),
+        # Mineras de oro son ACCIONES, no oro: su P/E es real.
+        ("GDX", "Equity Precious Metals", "Basic Materials"),
     ],
 )
-def test_etfs_and_commodities_get_a_real_bucket(symbol, expected):
-    """El fallo corregido: antes todos estos caían en «Desconocido».
+def test_the_bucket_comes_from_the_provider_category(symbol, category, expected):
+    """El cubo sale de un DATO, no de una lista de símbolos escrita a mano.
 
-    Yahoo no da sector para un ETF, y el motor lo interpretaba como una
-    carencia de datos. No lo es: un ETF amplio no tiene sector PORQUE abarca
-    muchos, y era precisamente lo más diversificador.
+    Dos fallos corregidos aquí. El original: Yahoo no da sector a un ETF y el
+    motor lo leía como carencia de datos, cuando un ETF amplio no tiene sector
+    PORQUE abarca muchos.
+
+    El segundo, medido sobre la base real: con listas de símbolos, **136 de
+    490 activos (27,8%) caían en «Diversificado» por suposición**, incluidos
+    fondos de deuda pública y ETFs de bitcoin. Con la categoría del proveedor
+    los supuestos bajan a 1.
     """
-    assert exposure.exposure_bucket(make(symbol, asset_type=AssetType.ETF)) == expected
+    asset = make(symbol, asset_type=AssetType.ETF, fund_category=category)
+    assert exposure.exposure_bucket(asset) == expected
+    assert exposure.is_assumed_bucket(asset) is False
+
+
+def test_a_future_is_not_a_commodity():
+    """`ES=F` sigue al S&P 500. Llamarlo materia prima era afirmar algo falso.
+
+    La única regla anterior era el sufijo `=F`, así que los seis futuros de
+    índices y los dos de bonos del universo acababan en «Materias primas».
+    """
+    assert exposure.exposure_bucket(make("ES=F")) == exposure.DERIVATIVES
+    assert exposure.exposure_bucket(make("GC=F")) == exposure.DERIVATIVES
 
 
 def test_a_stock_keeps_its_gics_sector():
     assert exposure.exposure_bucket(make("AAPL", sector="Technology")) == "Technology"
 
 
-def test_an_unlisted_etf_is_assumed_broad_and_says_so():
+def test_an_uncategorised_fund_is_assumed_broad_and_says_so():
     asset = make("XXYY", asset_type=AssetType.ETF)
     assert exposure.exposure_bucket(asset) == exposure.BROAD_EQUITY
     assert exposure.is_assumed_bucket(asset) is True
 
 
-def test_an_explicit_bucket_is_not_an_assumption():
-    for symbol in ("SPY", "XLE", "TLT", "GC=F"):
-        asset = make(symbol, asset_type=AssetType.ETF)
-        assert exposure.is_assumed_bucket(asset) is False
+def test_a_concentrated_fund_with_no_placeable_sector_is_declared():
+    """ICLN reparte entre utilities, tecnología e industriales.
+
+    Ni es amplio ni tiene un sector dominante que la categoría revele. Se
+    trata como amplio, pero DECLARÁNDOLO: inventarle un sector sería peor.
+    """
+    asset = make("ICLN", asset_type=AssetType.ETF, fund_category="Miscellaneous Sector")
+    assert exposure.exposure_bucket(asset) == exposure.BROAD_EQUITY
+    assert exposure.is_assumed_bucket(asset) is True
 
 
 def test_a_stock_without_sector_stays_unknown():
@@ -310,24 +392,44 @@ def test_a_stock_without_sector_stays_unknown():
 def test_a_broad_etf_is_no_longer_penalised(db, client):
     """La comprobación de extremo a extremo del fallo.
 
-    SPY y una acción cualquiera, ambos ausentes de una cartera vacía, deben
-    recibir el MISMO crédito de diversificación. Antes SPY sacaba 50 y la
-    acción 100.
+    SPY y una acción cualquiera, ambos AUSENTES de la cartera, deben recibir
+    el MISMO crédito de diversificación. Antes SPY sacaba 50 y la acción 100,
+    porque un ETF sin sector GICS caía en «desconocido» y se le imputaba el
+    neutro: el sistema desaconsejaba justo el instrumento más diversificador.
+
+    La cartera tiene UNA posición a propósito. Con la cartera vacía el factor
+    queda sin medir para todos, y entonces este test pasaría aunque el fallo
+    volviera: la igualdad se cumpliría por no haber medido nada.
     """
     import datetime as dt
+    from decimal import Decimal
 
-    from app.models import FundamentalSnapshot, Portfolio, PriceHistory
+    from app.models import (
+        AssetQuote,
+        FundamentalSnapshot,
+        Portfolio,
+        PriceHistory,
+        Transaction,
+        TransactionType,
+    )
     from app.repositories import portfolio as portfolio_repo
     from app.services import opportunities as opp
 
     today = dt.date.today()
+    # Cinco de cada clase: por debajo del mínimo, una clase no se puede
+    # ordenar por dentro y queda fuera del ranking. Ver
+    # `test_a_class_too_small_to_rank_is_excluded_with_a_reason`.
     symbols = [
         ("SPY", None, AssetType.ETF),
         ("QQQ", None, AssetType.ETF),
+        ("VTI", None, AssetType.ETF),
+        ("IWM", None, AssetType.ETF),
+        ("EFA", None, AssetType.ETF),
         ("AAPL", "Technology", AssetType.STOCK),
         ("KO", "Consumer Defensive", AssetType.STOCK),
         ("JNJ", "Healthcare", AssetType.STOCK),
         ("XOM", "Energy", AssetType.STOCK),
+        ("PG", "Consumer Defensive", AssetType.STOCK),
     ]
     for symbol, sector, kind in symbols:
         asset = Asset(symbol=symbol, sector=sector, asset_type=kind, currency="USD")
@@ -342,8 +444,21 @@ def test_a_broad_etf_is_no_longer_penalised(db, client):
         db.add(FundamentalSnapshot(asset_id=asset.id, as_of=today, trailing_pe=25.0,
                                    fetched_at=dt.datetime.now(dt.UTC)))
 
-    portfolio = Portfolio(name="Vacío", base_currency="USD")
+    portfolio = Portfolio(name="Con una posición", base_currency="USD")
     db.add(portfolio)
+    db.flush()
+
+    # Una posición en Healthcare: ni el cubo de SPY («Diversificado») ni el de
+    # AAPL («Technology»), así que ambos siguen ausentes y comparables entre sí.
+    jnj = db.query(Asset).filter(Asset.symbol == "JNJ").one()
+    db.add(AssetQuote(asset_id=jnj.id, price=100.0, currency="USD",
+                      fetched_at=dt.datetime.now(dt.UTC), is_stale=False, source="test"))
+    db.add(Transaction(
+        portfolio_id=portfolio.id, asset_id=jnj.id, type=TransactionType.BUY,
+        executed_at=dt.datetime.now(dt.UTC) - dt.timedelta(days=1),
+        quantity=Decimal("1"), price=Decimal("100"), fees=Decimal("0"),
+        currency="USD", fx_rate_to_base=Decimal("1"),
+    ))
     db.commit()
 
     result = opp.compute_opportunities(

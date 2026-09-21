@@ -11,11 +11,14 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.models import Asset, AssetQuote, DataSyncState, FxRateDaily, PriceHistory
-from app.providers.cache import ResourceType, SyncGate
+from app.providers.cache import UNREACHABLE_COOLDOWN_MAX, ResourceType, SyncGate
 from app.services.market_data import MarketDataService, fx_sanity_check
 from tests.fakes import (
+    DNS_DOWN,
     RATE_LIMIT,
+    UNAVAILABLE,
     FakeProvider,
     fundamentals,
     metadata,
@@ -69,6 +72,235 @@ def test_force_does_not_bypass_backoff(db):
 
     service.refresh_quotes([asset], force=True)
     assert provider.call_count("fetch_quotes") == 1, "El backoff debe seguir en pie"
+
+
+def test_a_rate_limit_is_not_blamed_on_the_symbols(db):
+    """Un 429 no dice nada sobre el ticker: dice que hay que parar de pedir.
+
+    Es la diferencia entre degradar y averiarse. Cargarle el límite a cada
+    símbolo les sube su contador de fallos consecutivos y los mete en un
+    backoff exponencial individual, como si estuvieran rotos. Pasó de verdad:
+    las sincronizaciones del 16, 17 y 18 de septiembre de 2026 marcaron 469,
+    420 y 494 símbolos como fallidos por un límite ajeno a ellos, y el
+    universo entero quedaba en penitencia.
+    """
+    assets = [make_asset(db, symbol=s) for s in ("AAPL", "MSFT", "KO")]
+    service = MarketDataService(db, FakeProvider(fail_with=RATE_LIMIT))
+
+    service.refresh_quotes(assets)
+
+    for asset in assets:
+        state = db.scalar(
+            select(DataSyncState).where(
+                DataSyncState.resource_type == ResourceType.QUOTE,
+                DataSyncState.resource_key == asset.symbol,
+            )
+        )
+        assert state.consecutive_failures == 0, (
+            f"{asset.symbol} no tiene la culpa de que Yahoo limite el ritmo"
+        )
+
+    provider_state = db.scalar(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.PROVIDER
+        )
+    )
+    assert provider_state is not None, "El 429 se apunta contra el proveedor"
+    assert provider_state.consecutive_failures == 1
+    assert provider_state.next_eligible_at is not None
+
+
+def test_a_network_outage_is_not_blamed_on_the_symbols(db):
+    """El caso que de verdad ocurre: 1.282 fallos de DNS contra 23 de 429.
+
+    Con el portátil suspendido a mitad de sincronización, cada lote de 25
+    símbolos cargaba con el mismo `Could not resolve host` y los 494 del
+    universo acababan en backoff exponencial individual, como si cada ticker
+    estuviera roto. Un `Could not resolve host` no dice NADA del símbolo: no
+    se llegó a preguntar por él.
+    """
+    assets = [make_asset(db, symbol=s) for s in ("AAPL", "MSFT", "KO")]
+    service = MarketDataService(db, FakeProvider(fail_with=DNS_DOWN))
+
+    service.refresh_quotes(assets)
+
+    for asset in assets:
+        state = db.scalar(
+            select(DataSyncState).where(
+                DataSyncState.resource_type == ResourceType.QUOTE,
+                DataSyncState.resource_key == asset.symbol,
+            )
+        )
+        assert state.consecutive_failures == 0, (
+            f"{asset.symbol} no tiene la culpa de que se caiga la red"
+        )
+
+    provider_state = db.scalar(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.PROVIDER
+        )
+    )
+    assert provider_state is not None and provider_state.consecutive_failures == 1
+
+
+def test_a_network_outage_cools_down_less_than_a_rate_limit(db):
+    """No son el mismo castigo, y confundirlos sale caro en los dos sentidos.
+
+    Un 429 es Yahoo pidiendo que pares: obedecer de más solo cuesta frescura.
+    Una red caída es un problema NUESTRO y puede resolverse en cualquier
+    segundo, así que un enfriamiento largo desperdiciaría las corridas
+    siguientes del agente de launchd.
+    """
+    gate = SyncGate(db)
+    now = dt.datetime.now(dt.UTC)
+
+    net_until = gate.mark_unreachable(DNS_DOWN)
+    gate.clear_rate_limit()
+    limit_until = gate.mark_rate_limited(RATE_LIMIT)
+    db.commit()
+
+    assert (net_until - now).total_seconds() < (limit_until - now).total_seconds()
+
+
+def test_the_network_cooldown_can_always_recover(db):
+    """El techo bajo evita un bloqueo, no es una preferencia estética.
+
+    Mientras el enfriamiento corre no se llama a nadie, y si no se llama a
+    nadie no hay respuesta correcta que pueda cerrarlo. Con un techo de seis
+    horas, un portátil que estuvo suspendido toda la noche despertaría dentro
+    de un castigo del que no puede salir solo.
+    """
+    gate = SyncGate(db)
+    for _ in range(20):
+        gate.mark_unreachable(DNS_DOWN)
+    db.commit()
+
+    until = gate.provider_cooldown_until()
+    espera = (until - dt.datetime.now(dt.UTC)).total_seconds()
+
+    assert espera <= UNREACHABLE_COOLDOWN_MAX * 1.25 + 1, (
+        "Una racha larga no puede encerrar al proveedor fuera del alcance"
+    )
+
+
+def test_a_network_outage_stops_the_sync_instead_of_grinding(db):
+    """Cortar en seco lo que ya no puede funcionar.
+
+    La sincronización del 18 de septiembre estuvo 67 minutos fallando contra
+    una red que no estaba y terminó con 0 cotizaciones, 0 barras y 0
+    fundamentales. Con el enfriamiento, el primer fallo silencia el resto del
+    pipeline y la corrida acaba en segundos.
+    """
+    asset = make_asset(db)
+    provider = FakeProvider(fail_with=DNS_DOWN)
+    service = MarketDataService(db, provider)
+
+    service.full_refresh([asset], ["USD"])
+
+    llamadas = len(provider.calls)
+    assert llamadas == 1, f"Tras la primera caída no se insiste (hubo {llamadas})"
+
+
+def test_an_ordinary_failure_is_still_blamed_on_the_symbols(db):
+    """Lo contrario del anterior: un fallo normal SÍ es atribuible a lo pedido."""
+    asset = make_asset(db)
+    service = MarketDataService(db, FakeProvider(fail_with=UNAVAILABLE))
+
+    service.refresh_quotes([asset])
+
+    state = db.scalar(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.QUOTE,
+            DataSyncState.resource_key == "AAPL",
+        )
+    )
+    assert state.consecutive_failures == 1
+    assert db.scalar(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.PROVIDER
+        )
+    ) is None
+
+
+def test_the_cooldown_silences_every_resource_not_just_quotes(db):
+    """El enfriamiento es del proveedor, así que alcanza a todo el pipeline.
+
+    Sin esto, un 429 en cotizaciones no impediría que el mismo ciclo siguiera
+    pidiendo histórico, fundamentales y metadatos al proveedor que acaba de
+    decir que pares, alargando el castigo.
+    """
+    asset = make_asset(db)
+    provider = FakeProvider(fail_with=RATE_LIMIT)
+    service = MarketDataService(db, provider)
+
+    service.refresh_quotes([asset])
+    assert provider.call_count("fetch_quotes") == 1
+
+    report = service.full_refresh([asset], ["USD"], force=True)
+
+    assert provider.call_count("fetch_quotes") == 1
+    assert provider.call_count("fetch_history") == 0
+    assert provider.call_count("fetch_fundamentals") == 0
+    assert provider.call_count("fetch_metadata") == 0
+    assert any("no está respondiendo bien" in w for w in report.warnings)
+
+
+def test_the_cooldown_warning_is_said_once_not_five_times(db):
+    """`full_refresh` encadena cinco refrescos y todos ven el mismo enfriamiento.
+
+    Sin deduplicar, la interfaz muestra cinco notificaciones idénticas.
+    """
+    asset = make_asset(db)
+    service = MarketDataService(db, FakeProvider(fail_with=RATE_LIMIT))
+    service.refresh_quotes([asset])
+
+    report = service.full_refresh([asset], ["USD"], force=True)
+
+    cooldown = [w for w in report.warnings if "no está respondiendo bien" in w]
+    assert len(cooldown) == 1, report.warnings
+
+
+def test_a_good_call_clears_the_rate_limit_counter(db):
+    """Sin esto el enfriamiento solo sube y acaba clavado en el techo de 6 h."""
+    gate = SyncGate(db)
+    gate.mark_rate_limited(RATE_LIMIT)
+    gate.mark_rate_limited(RATE_LIMIT)
+    db.commit()
+    assert gate.provider_cooldown_until() is not None
+
+    gate.clear_rate_limit()
+    db.commit()
+
+    assert gate.provider_cooldown_until() is None
+
+
+def test_recovering_reopens_the_provider(db):
+    """Que el enfriamiento se cierre solo al volver Yahoo, sin intervención.
+
+    Comprueba el CABLEADO, no el método: `clear_rate_limit` existía y no lo
+    llamaba nadie, así que el contador de 429 solo podía subir y el
+    enfriamiento habría acabado clavado en el techo de 6 horas.
+    """
+    asset = make_asset(db)
+    gate = SyncGate(db)
+    gate.mark_rate_limited(RATE_LIMIT)
+    db.commit()
+
+    # Se vence el enfriamiento a mano: lo que se prueba es qué pasa DESPUÉS.
+    state = db.scalar(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.PROVIDER
+        )
+    )
+    state.next_eligible_at = dt.datetime.now(dt.UTC) - dt.timedelta(seconds=1)
+    db.commit()
+
+    provider = FakeProvider(quotes={"AAPL": quote("AAPL", 230.0)})
+    MarketDataService(db, provider).refresh_quotes([asset])
+
+    db.refresh(state)
+    assert state.consecutive_failures == 0, "Una respuesta buena reabre el proveedor"
+    assert state.next_eligible_at is None
 
 
 def test_backoff_grows_with_consecutive_failures(db):
@@ -156,6 +388,74 @@ def test_history_requests_only_the_gap(db):
     assert second_start == bars[-1].date + dt.timedelta(days=1), (
         "El segundo debe arrancar justo tras la última barra almacenada"
     )
+
+
+def test_history_fills_the_past_when_the_window_widens(db, monkeypatch):
+    """Ampliar la ventana trae pasado. Antes no traía nada.
+
+    EL FALLO QUE ESTO FIJA. `start` era siempre `última + 1 día`, así que el
+    relleno solo sabía avanzar: con barras ya guardadas, subir
+    `price_history_days` de 400 a 1.825 no traía ni un día más. Sobre la base
+    real eso afectaba a los 711 activos con histórico, y dejaba la «caída
+    máxima» de `sizing.py` midiendo catorce meses de mercado alcista.
+
+    Es el mismo fallo que ya se corrigió en `refresh_fx_history`, que con solo
+    el máximo traía 2 filas y dejaba tres años de hueco anterior.
+    """
+    asset = make_asset(db)
+    hoy = dt.date.today()
+    completo = synthetic_series(50.0, 600, end=hoy - dt.timedelta(days=1))
+    provider = FakeProvider(history={"AAPL": completo})
+
+    # Ventana corta: entran solo los últimos 100 días.
+    monkeypatch.setattr(settings, "price_history_days", 100)
+    MarketDataService(db, provider).refresh_price_history([asset])
+    guardadas = len(db.scalars(select(PriceHistory)).all())
+    assert 0 < guardadas < 600
+
+    # La ventana se amplía. No hace falta forzar nada: la profundidad forma
+    # parte de la clave del sello, así que el sello anterior deja de valer.
+    monkeypatch.setattr(settings, "price_history_days", 1_000)
+    MarketDataService(db, provider).refresh_price_history([asset])
+
+    assert len(db.scalars(select(PriceHistory)).all()) == 600, (
+        "Con la ventana ampliada tiene que entrar la serie entera"
+    )
+    llamadas = [c for c in provider.calls if c[0] == "fetch_history"]
+    assert llamadas[-1][1][1] < completo[0].date, (
+        "La segunda llamada pide DESDE ANTES de la primera barra guardada"
+    )
+
+
+def test_the_backfill_is_not_repeated_for_a_young_symbol(db):
+    """Un símbolo joven no puede alcanzar la profundidad pedida: no se insiste.
+
+    Sin este sello, «¿me falta pasado?» sería siempre que sí para cualquier
+    activo salido a bolsa hace poco, y cada sincronización redescargaría cinco
+    años de nada.
+    """
+    asset = make_asset(db)
+    # El proveedor solo tiene 60 días: la serie NUNCA llegará a la ventana.
+    bars = synthetic_series(100.0, 60, end=dt.date.today() - dt.timedelta(days=1))
+    provider = FakeProvider(history={"AAPL": bars})
+    service = MarketDataService(db, provider)
+
+    service.refresh_price_history([asset])
+    service.refresh_price_history([asset], force=True)
+
+    llamadas = [c for c in provider.calls if c[0] == "fetch_history"]
+    assert len(llamadas) == 2, "La segunda pasada sí ocurre: busca barras nuevas"
+    assert llamadas[1][1][1] == bars[-1].date + dt.timedelta(days=1), (
+        "pero arranca tras la última barra: el pasado ya se preguntó y se selló"
+    )
+
+    sellos = db.scalars(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.PRICE_HISTORY_BACKFILL
+        )
+    ).all()
+    assert len(sellos) == 1
+    assert sellos[0].last_success_at is not None
 
 
 def test_history_skips_entirely_when_up_to_date(db):
@@ -261,3 +561,67 @@ def test_full_refresh_touches_every_resource(db):
     assert report.fundamentals_updated == 1
     assert report.fx_updated == 1
     assert report.metadata_updated == 1
+
+
+# --------------------------------------------------------------------------
+# El informe tiene que servir para diagnosticar
+# --------------------------------------------------------------------------
+
+
+def test_routine_ratio_drops_do_not_bury_the_real_failures(db):
+    """Descartar el P/B de un ADR es rutina, no una incidencia.
+
+    Pasa con ~80 activos en CADA sincronización. Escribir una línea por activo
+    llenaba el informe de ~200 mensajes, y como se guardan solo los 40
+    primeros, «Sin cotización para AVB» se perdía antes de llegar a la
+    pantalla. Un informe en el que no se puede encontrar lo que falló no sirve
+    para lo que existe.
+    """
+    from app.services.market_data import RefreshReport
+
+    report = RefreshReport()
+    for i in range(80):
+        report.drop(f"ADR{i}", {
+            "price_to_book": "cotiza en USD y reporta en EUR: el proveedor no convierte",
+            "ev_to_ebitda": "cotiza en USD y reporta en EUR: el proveedor no convierte",
+        })
+    report.note("Sin cotización para AVB")
+
+    assert len(report.warnings) == 1, "Los descartes NO son avisos"
+    assert report.warnings[0] == "Sin cotización para AVB"
+
+    resumen = report.summarise_drops()
+    assert "80 activos" in resumen
+    assert "rutina, no un fallo" in resumen
+
+
+def test_the_drop_summary_groups_by_cause_not_by_value(db):
+    """«-78,58 fuera del rango plausible» no agruparía con «-16,78»."""
+    from app.services.market_data import RefreshReport
+
+    report = RefreshReport()
+    report.drop("ABBV", {"price_to_book": "-78.5829 fuera del rango plausible [0.01, 1000]"})
+    report.drop("AZO", {"price_to_book": "-16.785 fuera del rango plausible [0.01, 1000]"})
+    report.drop(
+        "ASML",
+        {"price_to_book": "cotiza en USD y reporta en EUR: el proveedor no convierte"},
+    )
+
+    assert report.ratio_drops == {
+        "magnitud implausible": 2,
+        "cotiza en USD y reporta en EUR": 1,
+    }
+
+
+def test_the_drop_counters_survive_the_merge_between_batches(db):
+    """`full_refresh` corre veinte veces por sincronización."""
+    from app.services.market_data import RefreshReport
+
+    total = RefreshReport()
+    for lote in range(3):
+        parcial = RefreshReport()
+        parcial.drop(f"X{lote}", {"price_to_book": "cotiza en USD y reporta en EUR: x"})
+        total.merge(parcial)
+
+    assert len(total.assets_with_drops) == 3
+    assert sum(total.ratio_drops.values()) == 3

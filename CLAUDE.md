@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Dashboard de inversiones: FastAPI + SQLite + yfinance, con frontend Jinja2 +
 Tailwind + Alpine.js + Chart.js servido por la misma app. Contexto de uso:
-cartera en **COP** con activos cotizados en **USD**.
+inversor en Colombia que opera con brokers en **USD** (eToro, XTB, IBKR) y un
+comisionista local en **COP** para la BVC.
+
+La divisa base por defecto es **USD**, y no es una simplificación: es la
+divisa de tres de los cuatro brokers, reduce la superficie de conversión de
+476 activos a 18 y desbloquea la curva de valor y la comparación con el índice
+sin necesidad de tipos de cambio. El peso NO se esconde: la atribución de
+divisa lo separa explícitamente (ver más abajo).
 
 El código, los comentarios y los mensajes de la interfaz están **en español**.
 Mantén ese idioma al añadir código.
@@ -14,7 +21,7 @@ Mantén ese idioma al añadir código.
 ```bash
 source .venv/bin/activate          # el venv ya existe con todo instalado
 
-pytest -q                          # 395 tests, ~3,9 s, sin red
+pytest -q                          # 650 tests, ~10 s, sin red
 pytest tests/test_pnl.py -q        # un archivo
 pytest tests/test_pnl.py::test_single_buy -q
 pytest -k "simulation and not api" # por expresión
@@ -22,12 +29,29 @@ pytest -k "simulation and not api" # por expresión
 ruff check .                       # lint
 ruff check --fix .
 
-alembic upgrade head
+python scripts/ficha.py AAPL          # ficha de compra en Markdown (solo lectura;
+                                   #   --portfolio N, --db ruta)
+python scripts/snapshot_ranking.py --salida foto.csv   # foto del ranking (solo lectura)
+python scripts/backfill_history.py                     # trae el PASADO que falta
+python scripts/resanitise_fundamentals.py --ensayo     # reaplica los filtros, sin red
+python scripts/scorecard.py --listar                   # fotos guardadas y su evaluación
+
+alembic upgrade head               # tras actualizar: crea journal_entries
 alembic downgrade -1
 alembic revision --autogenerate -m "descripción"
 
 uvicorn app.main:app --reload      # http://127.0.0.1:8000
+
+npm install                        # solo para compilar el CSS
+npm run build:css                  # OBLIGATORIO tras tocar clases de Tailwind
+npm run watch:css                  # lo mismo, en continuo
 ```
+
+`app/static/css/tailwind.css` **se genera y se versiona**: ejecutar la app no
+necesita node, pero añadir una clase a una plantilla o a un .js sí exige
+recompilar. Una clase que no esté en el CSS no lanza nada -el elemento sale
+sin estilo-, así que `test_frontend_assets.py` compara las clases usadas
+contra las generadas y convierte ese silencio en un fallo.
 
 Los tests **no tocan la red**: `tests/fakes.py::FakeProvider` implementa el
 Protocol `MarketProvider` con datos sintéticos y se inyecta con
@@ -127,16 +151,172 @@ barras diarias, fundamentales y FX en el job completo (APScheduler, 18:00
 "última sincronización". El planificador tiene recuperación al arrancar porque
 un portátil apagado a las 18:00 ET nunca vería el cron.
 
+**Ninguna petición HTTP espera a la red.** `app/services/refresh_jobs.py`
+encola el refresco para DESPUÉS de enviar la respuesta, con su propia sesión
+y un candado no bloqueante. La regla nació de una medición: la vista de
+oportunidades llamaba a `full_refresh` -el job de dos veces por semana- sobre
+los 494 símbolos dentro de la petición, y tardaba **269 s** frente a los
+**0,23 s** de puntuar lo ya guardado.
+
+Del job completo, lo único que cambia intradía y le importa al ranking es el
+PRECIO (de ahí sale `fresh_trailing_pe`): las barras diarias son cierres
+inmutables, los fundamentales trimestrales y los metadatos tienen TTL de 30
+días. Por eso el refresco de fondo es `refresh_quotes_and_fx` y no
+`full_refresh`. La respuesta trae `refreshing` y el frontend sondea con
+`refresh=false` hasta que baja; filtrar NO refresca, porque es una operación
+de vista.
+
+**El universo puntuado se memoiza, y la huella no es la fecha de la barra.**
+Filtrar por región o calificación es una operación de VISTA -el motor puntúa
+siempre el universo completo-, pero cada clic repetía el trabajo entero: 186 ms,
+de los cuales 85 eran releer 135.851 barras para recalcular indicadores
+idénticos. Con la caché, un clic cuesta **0,5 ms** (294x).
+
+La tentación es cachear por «fecha de la última barra». Sería un error: las
+cotizaciones cambian intradía y SÍ mueven el score, porque `fresh_trailing_pe`
+rehace el P/E con el precio de ahora. Esa caché congelaría el ranking justo
+durante el refresco de fondo, que es cuando el usuario está mirando. La huella
+pregunta por agregados baratos (~1,2 ms), con `data_sync_state` como red
+principal porque toda escritura del proveedor pasa por `mark_success`.
+`count(*)` sobre `price_history` o `fundamental_snapshots` queda fuera: son 83
+y 41 ms de barrido completo, más de lo que ahorran.
+
+`_ScoredUniverse` es inmutable porque se comparte entre peticiones: si una
+petición filtrada renumerara `rank`, la siguiente vería el destrozo. Y la caché
+se resetea en `conftest.py` porque cada test estrena una base con los mismos
+ids, así que dos tests distintos producen huellas idénticas con facilidad.
+
+La excepción son los símbolos que el usuario **escribe** en `?symbols=`: esos
+se cargan en línea, porque sin histórico no se pueden puntuar y desaparecerían
+del ranking que se pidió a propósito. Son un puñado, no 494.
+
+**Un fallo de 429 o de RED se apunta contra el proveedor, nunca contra los
+símbolos.** Es la diferencia entre degradar y averiarse, y es el arreglo de
+mayor impacto del pipeline. Ninguno de los dos dice nada sobre el ticker que
+tocaba pedir -en el caso de la red ni siquiera se llegó a preguntar-, pero
+cargárselo a cada símbolo lo mete en un backoff exponencial individual como si
+estuviera roto.
+
+Medido sobre el log real del agente de launchd: **1.282 fallos de DNS frente a
+23 de rate limit**, o sea que el caso dominante es el portátil suspendido, no
+Yahoo cortando. Reproducida la sincronización de 494 símbolos con la red caída:
+
+    antes:  81 llamadas, 494 símbolos en backoff
+    ahora:   1 llamada,    0 símbolos en backoff
+
+En producción esas 81 llamadas eran intentos que expiraban -el log tiene
+timeouts de 946 s- y por eso la sincronización del 18-09-2026 estuvo 67
+minutos para terminar con 0 cotizaciones, 0 barras y 0 fundamentales.
+
+`_translate_error` clasifica en tres, y el orden importa: el rate limit se
+comprueba PRIMERO porque un 429 llega por una conexión que funcionó.
+`ProviderUnreachable` es subclase de `ProviderUnavailable` para no romper a
+quien ya la captura.
+
+Los dos enfriamientos NO duran lo mismo, y confundirlos sale caro en ambos
+sentidos. Un 429 es el proveedor pidiendo que pares: 15 min de base, techo de
+6 h. Una caída de red es un problema NUESTRO y puede resolverse en cualquier
+segundo: 2 min de base y **techo propio de 15 min**. Ese techo bajo evita
+además un bloqueo real: mientras el enfriamiento corre no se llama a nadie, y
+si no se llama a nadie no hay respuesta correcta que pueda cerrarlo.
+
+Cualquier respuesta correcta cierra el enfriamiento (`clear_rate_limit`, desde
+`mark_success`); sin eso el contador solo sube y se clava en el techo.
+
+**`fetch_quotes` va en lote de verdad, y no lo parecía.** `yf.Tickers(...)` es
+perezoso: se construye en 3 ms y cada `fast_info` posterior es una petición
+HTTP propia de 0,42 s. Eran 494 viajes -208 s- y la ráfaga es lo que
+disparaba el 429. Con `yf.download` el universo entero tarda **40 s** y trae
+488 de 494. Dos detalles que no se pueden relajar:
+
+- **Ventana de 5 días, no de un mes.** Con ventana larga, un símbolo cuya
+  serie lleva semanas parada devuelve igualmente un número y lo presentaría
+  como precio de hoy: AVB da 68,14 con `period="1mo"` -última barra del 24 de
+  agosto- cuando cotiza a 184. Con cinco días no devuelve nada, que es el
+  fallo correcto.
+- **Reintento acotado de rezagados.** Una descarga grande deja caer símbolos
+  bajo carga: faltaron 18 y al volver a pedir solo esos aparecieron 12 en
+  3,5 s. Se reintenta UNA vez y solo si la primera pasada trajo algo: que no
+  venga nada no son rezagados, es una caída o un rate limit.
+
+`yf.download` no devuelve divisa, así que `QuoteData.currency` llega en `None`
+y el consumidor usa la del activo, fijada por los metadatos, que es donde
+`normalize_currency` ya corrió. Un `"USD"` por defecto marcaría como dólares
+los 22 tickers de la BVC. El divisor de subunidad (`GBp`) sí se aplica en la
+frontera, con el mismo sondeo acotado que usa el histórico.
+
+### Clase de activo: la dimensión de primer nivel
+
+`app/services/asset_class.py`. Antes el motor trataba igual a una acción, a un
+fondo de bonos, a una cesta de oro y a un futuro del S&P, y eso producía
+números plausibles y falsos: SJNK salía con la MEJOR valoración de los 490
+porque Yahoo le asigna `trailingPE = 0,89` a un fondo de bonos basura.
+
+**La clase se deriva de `Asset.fund_category`**, la categoría Morningstar que
+viene en la misma respuesta que el resto de los metadatos. Cobertura medida:
+182 de 182 fondos. Los cubos «por suposición» bajaron de **136 a 1** (PHYS).
+
+Reglas que no se pueden relajar:
+
+- **El nombre de la categoría se compara ENTERO, nunca por subcadena.** Al
+  desarrollarlo, una comparación por subcadena dejó a XLC («Communications»)
+  como renta fija porque *com·muni·cations* contiene «muni».
+- **El sufijo `=F` manda sobre todo lo demás** para identificar un futuro: de
+  los 21 del universo, `GC=F` y `CL=F` están guardados como `STOCK` y `CT=F`
+  llega como `ALTSYMBOL`. Ni `asset_type` ni `quoteType` los cazan.
+- **Una acción sin sector NI industria no es una empresa.** Los únicos tres
+  casos del universo son los dos futuros y PHYS, un fideicomiso que solo tiene
+  oro y al que Yahoo imputa un «beneficio por acción» que es la subida del
+  metal: cuanto más sube el oro, más barato parecía.
+- «Equity Precious Metals» y «Natural Resources» son ACCIONES (mineras,
+  petroleras), no materias primas. Su P/E es real.
+- **Una clase SUPUESTA no da derecho a un múltiplo.** Cuando el proveedor no
+  categoriza un fondo se le supone de acciones para poder rankearlo, pero «lo
+  más probable» no basta para conservar una valoración. Yahoo no categoriza los
+  fondos de la BVC: sin esta regla, `GXTESCOL.CL` -un ETF de TES- conservaría
+  un «P/E» que no significa nada. Es el fallo de SJNK por otra puerta, y la
+  categoría lo tapa para los 182 fondos de hoy, no para los de mañana. Por eso
+  `sanitise_multiples` recibe `is_assumed` además de la clase.
+
 ### Motor de oportunidades
 
-`Score = 0.35·V + 0.30·M + 0.15·D − 0.20·R + 20`, todo en [0,100]. El `+20` es
-`0.20×100`: la transformación afín que lleva el rango natural `[−20, 80]` a
-`[0, 100]` sin clipping.
+`Score = (0.35·V + 0.30·M − 0.20·R + 20) / 0.85`, todo en [0,100]. El `+20` es
+`0.20×100`, que cancela el término de riesgo y deja el mínimo en 0; la división
+por la suma de pesos lleva el máximo a 100 sin clipping. Al ser una constante
+positiva **no cambia ni un puesto**: solo la escala.
+
+**La diversificación ya no está en el score.** Medido puntuando el mismo
+universo desde dos carteras: **483 de 490 símbolos cambiaban de puesto** y IVV
+pasaba del #220 al #113. El número que se lee como «qué tan buena es esta
+oportunidad» dependía de lo que uno tuviera comprado. Sigue viajando en la
+respuesta como ENCAJE, con peso y contribución cero, y sigue multiplicando en
+`suggestion.py`, que es donde la pregunta «¿esto me conviene A MÍ?» sí es la
+pregunta. El umbral de concentración es **uno solo** (`opportunity_sector_
+threshold`); antes había 30% aquí y 25% en el motor de sugerencia.
 
 Normalización por **rango percentil cross-seccional** (Hazen,
-`100·(r−0.5)/n`), no z-score ni min-max: robusto a outliers y acotado. El score
-es por tanto **relativo al universo evaluado**, no una nota absoluta — la
-respuesta lo declara en `disclaimer` y el frontend debe mostrarlo.
+`100·(r−0.5)/n`), no z-score ni min-max: robusto a outliers y acotado.
+
+**Los percentiles se calculan DENTRO DE LA CLASE.** Se compara dentro de una
+clase y se asigna entre clases: un score nunca debe ordenar una acción frente
+a un bono, porque entre clases lo que se decide es el PESO y eso lo decide el
+usuario. Dentro de las acciones sigue mandando el sector cuando tiene pares
+suficientes; la clase es el respaldo. Ya **no existe** el respaldo «universo
+entero».
+
+`rank` es el puesto **dentro de su clase** en el ranking completo, con huecos
+al filtrar; `class_size` dice sobre cuántos. Una clase con menos de
+`opportunity_min_universe` miembros se excluye con el motivo a la vista: Hazen
+sobre n=2 da 25 y 75 pase lo que pase.
+
+**Los futuros salen del ranking antes de puntuar.** No contradice «filtrar
+después de puntuar», que es para los filtros de VISTA: un contrato del E-mini
+S&P equivale a 50 veces el índice, vence y duplica a un ETF que sí se puede
+comprar. Dejarlo dentro contamina los percentiles de los demás con un
+candidato que nunca va a ser una respuesta.
+
+**El orden de presentación lo manda la CALIFICACIÓN, no el score.** Ordenar
+solo por score ponía a ETB.CL -señales «Desfavorables»- en el puesto 2 de 490.
 
 Reglas que no son obvias: un P/E ≤ 0 no es "barato" (se descarta, no se trata
 como valor bajo); un factor ausente se imputa 50 (el valor neutro por
@@ -145,6 +325,287 @@ factores informativos se **excluye**; el universo mínimo es 5.
 
 Las series se leen con `adj_close`; sin ajustar por splits, un 2:1 aparece como
 −50% e invierte el momentum.
+
+### Valoración relativa al sector
+
+El factor de valor NO compara el P/E de un banco con el de una tecnológica.
+`opportunities.py` ancla la valoración a la **mediana de su sector**
+(`sector_group()`, público) cuando hay al menos 8 pares y el activo es
+STOCK/ADR/REIT; sin pares suficientes queda la señal absoluta contra el índice
+de referencia, y sin ella, «sin dato» y nunca un neutro inventado. Los avisos
+del ranking cuentan cuántos activos se quedaron sin señal de valoración.
+
+### Ficha de compra (informativa, no recomienda)
+
+`GET /api/opportunities/{symbol}/ficha` (`app/services/ficha.py`,
+`schemas/ficha.py`) y `scripts/ficha.py` (mismo servicio, salida Markdown de
+`ficha_markdown.py`). **Solo lee lo guardado: no llama al proveedor.** Reúne el
+score y puesto, salud financiera, banderas, calendario, analistas, pares del
+sector, contexto de cartera, tamaño de posición y frescura de los datos.
+
+- **`health.py`**: solo ratios del MISMO reporte (deuda neta/EBITDA, margen
+  operativo, caja libre/ventas, current ratio…), porque el reporte y la
+  cotización pueden venir en divisas distintas y mezclarlos daría el mismo
+  error que el P/B de CIB. Bancos: «no aplica» (el EBITDA no significa nada en
+  un banco); financieras cautivas y sectores apalancados por estructura
+  suavizan el umbral en vez de llenar de rojo.
+- **`flags.py`**: banderas `red/yellow/green/info` con veredicto ASIMÉTRICO:
+  una roja basta para advertir, pero la ausencia de rojas nunca dice «compra».
+  Un activo excluido del ranking devuelve una bandera roja `not_ranked` con el
+  motivo, no un 404.
+- **`sizing.py`**: peso = presupuesto de riesgo ÷ pérdida en estrés, con tope.
+  Estrés = máx(caída máxima observada, **suelo por CLASE**). Los suelos están
+  MEDIDOS: son la mediana de la caída máxima a cinco años de cada clase sobre
+  los 488 activos con histórico suficiente (20-09-2026):
+
+        acciones        n=266   mediana 42,6%   p90 73,1%   peor RIVN  95%
+        fondos acciones n=124   mediana 30,4%   p90 47,9%   peor TAN   74%
+        renta fija      n= 31   mediana 15,2%   p90 29,4%   peor TLT   44%
+        materias primas n= 20   mediana 30,1%   p90 73,6%   peor UNG   93%
+        cripto          n= 25   mediana 85,3%   p90 98,6%   peor ARB  100%
+
+  El caso que más cambia es el cripto: antes `stress_floor` solo distinguía
+  «fondo» de «acción», así que se dimensionaba con el 35% de una empresa y un
+  2% de presupuesto daba un 5,7% de la cartera en vez del 2,4% que toca. Lo que
+  no se ha podido clasificar usa el suelo MÁS severo: no saber qué es algo no
+  puede salir más barato que saberlo. Ajustes `position_risk_budget_pct` (2,0)
+  y `position_max_weight_pct` (10,0) en `config.py`. Es un techo por posición,
+  no una orden.
+- `OpportunityResponse.freshness` y `OpportunityRead.price_as_of /
+  fundamentals_as_of` declaran la edad del dato; la interfaz avisa si es vieja.
+
+Los tests de ficha marcan los activos como `is_universe=True` porque la ficha
+puntúa contra el universo de ingesta, igual que el catálogo real.
+
+### Diario de decisiones y vigilancia
+
+`app/models/journal.py` (tabla `journal_entries`, migración `ae5068edce82`),
+`services/journal.py`, `routers/journal.py`, vista `/diario`. Cada entrada
+guarda tesis, qué la invalidaría, precio de invalidación y fecha de revisión
+(por defecto +90 días, debe ser futura), más una **foto** de score, puesto,
+calificación, veredicto, banderas y precio del día de la anotación.
+
+Alertas: `invalidation_breached` (roja), `review_overdue`, `grade_dropped`
+(≥2 escalones) y `not_ranked_now` (amarillas), `review_soon` (info). Una alerta
+pide revisar, nunca vender. **Una entrada NO toca el ledger**: no crea
+transacciones. Las entradas activas se unen al universo de ingesta
+(`universe.watched_asset_ids`), así que un símbolo vigilado sigue recibiendo
+precios aunque no esté en el catálogo del universo. Crear una entrada llama a
+`ensure_data_for`.
+
+### Plan de asignación entre clases
+
+`app/models/allocation.py`, `services/allocation.py`, `routers/allocation.py`,
+vista `/plan`. **Es la excepción declarada a «todo se calcula»**: el ledger
+dice lo que HICISTE, no lo que QUERÍAS. Un 40% en renta variable puede ser el
+plan o el resultado de no rebalancear en dos años, y esos dos casos piden
+acciones opuestas.
+
+- Los objetivos **no pueden sumar más de 100** y el plan se reemplaza ENTERO:
+  enviar una clase y dejar las demás produciría sumas que nadie eligió.
+- La **banda** (±5 puntos por defecto) es lo que separa el ruido de una
+  decisión: sin tolerancia, cualquier movimiento del mercado obliga a
+  rebalancear, y eso cuesta comisiones e impuestos.
+- **Nunca propone vender.** `suggest_contribution` dirige el dinero NUEVO a lo
+  más rezagado: rebalancear con aportes evita realizar ganancias.
+- El denominador es posiciones MÁS caja. Pero la caja puede ser negativa a
+  propósito (se carga un histórico sin depósitos), y dividir por un
+  `total_value` de cero daría porcentajes infinitos: en ese caso se reparte
+  sobre lo invertido **y se declara**.
+
+### Renta fija directa: TES, CDT y FIC
+
+`AssetType.FIXED_INCOME`, `models/fixed_income.py`, `services/fixed_income.py`,
+`POST /api/fixed-income`. Es el único tipo que **no viene de un proveedor**:
+ningún mercado cotiza un CDT porque es un contrato entre dos partes.
+
+- **Valoración a costo más devengo**, `(1+tasa)^(días/365)`, y se declara
+  SIEMPRE: es lo que vale si se lleva a vencimiento, no lo que alguien pagaría
+  hoy. El propio Banrep avisa de que su curva cero cupón «es de tipo
+  informativo y su fin no es la valoración de portafolios».
+- **El devengo se publica como una cotización más** (`source="devengo"`), y eso
+  es lo que evita un caso especial en todo el sistema: posiciones, curva,
+  reparto por clase y atribución funcionan sin saber que esto no cotiza. La
+  compra se registra como cualquier otra: `quantity` = el capital, `price` = 1.
+- **No se puntúa ni se califica.** Un score es un rango percentil contra pares
+  y aquí no hay pares: cada CDT tiene su emisor, su plazo y su tasa. En su
+  lugar, cinco preguntas con datos oficiales y fechados.
+- **La inflación se compara con la tasa NETA y el mercado con la BRUTA.** La
+  referencia de Banrep es la tasa pactada antes de retención: compararla con la
+  neta diría que pierde contra el mercado por una retención que los demás
+  también pagan.
+- La tasa real usa **Fisher exacto**, no la resta: con 12,3% y 6,24% de
+  inflación da 5,70% y no 6,06%, y esos 36 puntos básicos son el 6% del
+  rendimiento real.
+- Una tasa indexada **no se inventa**: sin el índice publicado se devuelve
+  None, porque presentar un spread de 2,50 como si fuera la tasa erraría por
+  cinco veces. La UVR ya es REAL por construcción (el capital se indexa), así
+  que restarle la inflación la contaría dos veces.
+
+### Perfil de fondo: qué hay dentro y cuánto cuesta
+
+`app/models/fund.py` + `MarketDataService.refresh_fund_profiles`. Una llamada
+por fondo cada 30 días, y **solo a lo que puede serlo**: pedirle el perfil a
+una acción es una llamada garantizada a fallar, y hay 500 en el universo.
+
+Del payload de `funds_data` se guarda lo que resultó estable en los 12 fondos
+probados y se descartan dos cosas que NO:
+
+- **La duración.** SJNK -de corto plazo- venía con 6,48 y TLT -el de 20+
+  años- con 3,60. No es un factor de escala ni otra unidad: no hay patrón.
+- **Los pesos por sector.** Para SJNK dicen «comunicaciones 100%» en un fondo
+  que es 98,7% bonos.
+
+Tres usos, por orden de importancia:
+
+1. **El ratio de gastos.** Es de lo poco en toda esta base que predice
+   rendimiento futuro de forma fiable, y en la dirección obvia: se resta todos
+   los años, haya subido o bajado el mercado. La ficha lo da también EN DINERO
+   sobre la posición que ella misma sugiere, porque un 0,75% no se siente y
+   «US$ 7,50 sobre los US$ 1.000 que te propongo» sí.
+2. **La composición decide la clase** cuando la categoría falta. Un fondo con
+   el 98,7% en bonos es de renta fija diga lo que diga su nombre. `cashPosition`
+   NO decide: GSG aparece con el 100% en caja porque la garantía de sus
+   futuros está en letras, y llamarlo renta fija sería al revés de lo que es.
+   Un 50/50 tampoco decide: no es ninguna de las dos cosas y forzarlo sería
+   inventar.
+3. **La calidad crediticia** de un fondo de bonos. `us_government` NO cuenta
+   para el grado de inversión porque **se solapa** con `aa`: TLT trae las dos
+   al 100% y al 99,6%, y sumarlas daría casi 200%. Sin ella, los repartos de
+   los cuatro fondos de bonos del universo suman exactamente 1,00.
+
+**Que algo no sea un fondo NO es un fallo.** Yahoo tampoco cubre los de la
+BVC. Apuntarlo contra el símbolo lo metería en backoff exponencial por no ser
+algo que nadie afirmó que fuera: se sella igual que un acierto.
+
+### Clase declarada en el catálogo
+
+`Asset.declared_asset_class`, sembrada desde `app/data/catalog.json`. Para lo
+que el proveedor no sabe clasificar: Yahoo no cubre la composición de los
+fondos de la BVC, así que `GXTESCOL.CL` -un ETF de deuda pública colombiana-
+llega sin categoría y sin perfil y se le supondría de acciones, contándolo
+como renta variable amplia en el reparto de la cartera. Lo contrario de para
+qué se compra.
+
+Es el mismo mecanismo con el que ya se declara la pertenencia al universo: un
+dato verificado por una persona, no una heurística, y por eso **no cuenta como
+supuesto** aguas abajo. Se declara en `scripts/candidates.py::DECLARED_CLASSES`
+y `build_catalog.py` la escribe.
+
+`build_catalog.py --simbolos A,B,C` verifica solo esos y los FUSIONA con el
+catálogo. Regenerarlo entero para añadir tres expone a los otros 713 a un
+descarte por un 429 pasajero. Un símbolo pedido que hoy no responde se
+conserva como estaba: el script no distingue «dejó de existir» de «hoy Yahoo
+no contestó», y borrar es la única de las dos que no se deshace sola.
+
+### Tasas de CDT por banco (datos.gov.co)
+
+`app/providers/datos_gov.py`. Conjunto `axk9-g2nh` de la Superintendencia
+Financiera: emisiones de CDT por entidad y plazo, ~400 al día desde 2018.
+
+**Se pide una VENTANA de diez días, no el último corte.** Medido: el corte más
+reciente siempre está a medias porque se publica por partes -el 18-09-2026
+tenía 15 filas cuando el 17 tenía 403 y el 16, 420- y quedándose con él
+Bancolombia no aparecía en absoluto. Dentro de la ventana se conserva la
+emisión más reciente de cada (entidad, plazo).
+
+**La fuente publica TRAMOS con nombre, no días**, y no son igual de finos: «A
+360 DIAS» es exactamente 360 y «SUPERIORES A 360 DIAS» va de 361 en adelante,
+así que su mediana mezcla un CDT a un año con uno a cinco. Por eso la
+comparación declara qué tramo usó. Y los CANALES -«por red de oficinas», «por
+tesorería»- no son plazos: mezclarlos daría una media de cosas incomparables.
+
+Son tasas efectivamente PACTADAS, no las de la vitrina. Mejor dato que el
+anuncio -nadie publica el descuento que hizo por un depósito grande- pero no
+es lo que le van a ofrecer al usuario, y la ficha lo declara cada vez.
+
+### Tasas de referencia colombianas (Banrep)
+
+`app/providers/banrep.py` + `services/reference_rates.py`. API pública de
+SUAMECA, sin autenticación, JSON. Cubre la curva cero cupón TES (COP y UVR,
+1/5/10 años, diaria desde 2003), IBR, DTF, CDT de mercado, tasa de política e
+inflación. Sin esto, un «12,3% anual» no se puede leer: puede ser excelente o
+estar por debajo de la inflación.
+
+**La trampa del certificado.** El servidor NO envía el intermedio que une su
+hoja con la raíz: `curl` en macOS lo resuelve por AIA y Python con `certifi`
+NO, y falla con `CERTIFICATE_VERIFY_FAILED`. La solución no es `verify=False`
+sino añadir el intermedio -público, versionado en `app/providers/certs/`-
+manteniendo la verificación activa.
+
+Tiene **su propio interruptor** (`enable_reference_rates`) y su propio `try`:
+es una fuente de red DISTINTA de Yahoo, así que `FakeProvider` no la cubre y
+la suite lo apaga igual que apaga el planificador.
+
+### El pipeline tiene que poder rendirse, y el informe tiene que leerse
+
+**Presupuesto de reloj** (`sync_budget_minutes`, 30). Medido en esta
+instalación: con la red sana `.info` tarda 0,71 s por símbolo y los 494
+proyectan 5,8 minutos; las corridas reales tardaron 15 minutos el buen día y
+**79 y 93 los malos**. No falta un timeout por petición -`YfData.get` ya impone
+30 s-: es que 494 símbolos por varias peticiones cada uno, todas lentas, suman
+horas sin que ninguna incumpla su límite. El presupuesto se comprueba ENTRE
+lotes, nunca dentro: cortar a mitad de lote dejaría unos símbolos con precio
+nuevo y otros con precio viejo en la misma llamada, y eso no se puede declarar.
+
+**Los descartes de ratios NO son avisos.** Anular el P/B de un ADR que cotiza
+en dólares y reporta en euros es comportamiento correcto y pasa con ~80 activos
+en CADA sincronización. Escribir una línea por activo llenaba el informe de
+~200 mensajes rutinarios y, como `MAX_WARNINGS_STORED` corta en 40, los fallos
+de verdad -«Sin cotización para AVB»- se perdían antes de llegar a la pantalla.
+Ahora se cuentan (`RefreshReport.drop`) y salen en una sola línea al final. Un
+informe en el que no se puede encontrar lo que falló no sirve para lo que
+existe.
+
+### Validación hacia adelante (no es un backtest)
+
+`models/scorecard.py`, `services/scorecard.py`, `scripts/scorecard.py`. El
+score de un martes depende del precio de ese día, de los fundamentales
+vigentes y del universo completo: nada de eso se conserva, así que «¿acertó la
+calificación A?» **solo se puede responder si se empieza a guardar hoy**.
+
+La foto se toma tras cada sincronización completa, como mucho una por semana,
+y guarda el ranking ENTERO: `opportunities` viene recortado por `limit` y
+filtrado por la vista, y guardar eso ataría el registro a qué estaba mirando el
+usuario. `is_conclusive` devuelve SIEMPRE False, y está en la API para que
+nadie tenga que preguntarlo: sirve para detectar lo CONTRARIO de lo esperado
+-que las notas bajas rindan más-, no para confirmar nada.
+
+La comparación es **dentro de la clase y contra un índice de su clase**: que
+los A subieran un 12% no dice nada si su clase subió un 15%.
+
+**No se congela nada si la sincronización dejó fuera a demasiados**
+(`scorecard_max_failed_share`, 10%). En las ocho últimas corridas reales hubo
+una con 420 símbolos caídos de 494 y otra con 469: una foto de ese día
+registraría scores calculados con datos viejos para el 85% del universo, y
+meses después el scorecard la compararía creyendo que era el ranking de ese
+día. El daño no se deshace porque **a posteriori una foto mala es
+indistinguible de una buena**; por eso se descarta antes, y se dice por qué.
+
+### Importación de operaciones por CSV
+
+`app/services/importer.py`, `POST /api/transactions/import?portfolio_id=&dry_run=`
+y `GET /api/transactions/import/template`. Una plantilla fija
+(`date,type,symbol,quantity,price,amount,fees,currency,fx_rate_to_base,notes,
+external_id`), coma, punto decimal, sin adivinar formatos de broker: adivinar
+mal corrompería el coste medio.
+
+- **`dry_run=true` por defecto** y **todo o nada**: una fila mala aborta todo.
+- Solo fecha = mediodía de Bogotá (-05:00). Con hora y desfase se respeta.
+- Se reproduce el ledger con `strict=True`; si falla, una búsqueda binaria sobre
+  el prefijo localiza la PRIMERA fila culpable, y el mensaje nombra el símbolo.
+- `external_id` determinista (sha1 del contenido + ocurrencia) si no viene:
+  subir el mismo archivo dos veces no duplica.
+- La columna `currency` es obligatoria para símbolos desconocidos: sin ella no
+  se puede asumir la divisa, y asumir USD marcaría en dólares una acción de la BVC.
+- El frontend es `import.js` + el modal de `dashboard.html`.
+
+### Vista de oportunidades: qué se ve por defecto
+
+`opportunities.js` arranca con `DEFAULT_TIERS=["A","B"]` para que quien empieza
+no vea primero lo malo; un aviso cuenta cuántas quedan fuera y **Ver todos**
+guarda `tablero:tiers="[]"`. `hiddenByDefault` distingue esa situación de un
+filtro elegido a propósito. Cada tarjeta abre la ficha (`ficha.js`).
 
 ### Autocompletado de símbolos
 
@@ -283,8 +744,20 @@ mira a los otros candidatos, sino a anclas independientes:
 Reglas que no se pueden relajar sin devolver el problema:
 
 - Se califica por la **proporción** `points/max_points`, no por puntos
-  absolutos: el máximo alcanzable varía (8 para una acción, 4 para un futuro
-  sin fundamentales) y con umbrales fijos un futuro nunca podría sacar A.
+  absolutos: el máximo alcanzable varía (8 para una acción, 6 para un ETF sin
+  estados financieros) y con umbrales fijos un ETF nunca podría sacar A.
+- **Pero hacen falta 3 de 4 señales para una nota alta** (`MIN_SIGNALS_FOR_
+  TOP_GRADES`). Sin ese tope, la proporción PREMIA la ausencia de datos:
+  medido sobre los 490 del ranking real, un ETF sacaba A el **40,9%** de las
+  veces y una acción el **6,3%** —6,5 veces más— por tener 2,71 señales de
+  media frente a 3,96. Con 2 señales bastaban dos aciertos para un 4/4. El
+  tope deja la nota en «Mixtas», no en «Desfavorables»: no tener base para
+  afirmar más no es lo mismo que estar mal.
+- **Las etiquetas hablan de las SEÑALES, no de la empresa**: «Muy favorables /
+  Favorables / Mixtas / Desfavorables / Muy desfavorables». Llamar «Mala» a una
+  empresa por su momentum y su volatilidad afirma mucho más de lo comprobado.
+  Los SLUGS no cambiaron (`muy_buena`, `buena`…): viven en URLs compartidas y
+  en el `localStorage`.
 - Con menos de 2 de 4 señales → **SIN_CALIFICAR**, jamás "Normal": un neutro
   por defecto afirma algo sin base.
 - `universe_quality_warning` avisa cuando NINGÚN candidato llega a "Buena".
@@ -323,10 +796,72 @@ Se **descarta, no se corrige**: reescalar por el tipo de cambio da 6,97 para
 CIB, todavía implausible, porque un ADR representa varias acciones locales y
 esa proporción no viene en los datos.
 
+**TERCERA RED: ESTO NO ES UNA EMPRESA.** Las dos anteriores buscan cifras
+implausibles, y 0,89 o 0,54 pasan sin despeinarse. Lo que falla no es la
+magnitud: es que detrás no hay ni beneficios ni patrimonio contable.
+
+    SJNK (fondo de bonos basura)  trailingPE = 0,89  -> valoración 99,9/100
+    TLT  (deuda pública 20+ años) priceToBook = 0,54 -> valoración 97,5/100
+    PHYS (solo tiene oro)         trailingPE = 5,89  -> valoración 98,8/100
+
+Que son falsos lo dice el propio Yahoo: `funds_data.equity_holdings` devuelve
+`Price/Earnings = 0.0` para SJNK, y el `bookValue` de 148,87 con el que
+calcula el 0,54 de TLT convive en la MISMA respuesta con un `navPrice` de
+80,92. Reglas: un activo **sin empresas dentro** pierde todos los múltiplos; un
+**fondo de acciones** conserva el P/E -es la media ponderada del de su cartera,
+verificado: 24,40 para IVV, que es donde cotiza el S&P- pero pierde los que van
+contra el valor en libros, porque el de un fondo ES su NAV y el precio lo sigue
+por arbitraje.
+
+**`eps_trailing` cae con los múltiplos.** Anular `trailing_pe` sin anular el
+BPA no sirve de nada: `fresh_trailing_pe` lo reconstruye con el precio de hoy y
+pisa el None. Lo descubrió PHYS, que seguía apareciendo con 99,1 de valoración
+con sus múltiplos ya descartados.
+
 **`trailing_pe` se recalcula con el precio de ahora** (`fresh_trailing_pe`).
 Es precio entre beneficio, así que se mueve a diario aunque el beneficio sea
 trimestral. Medido: 1,6% de desviación media y 7,6% máxima, que mueve a un
 candidato 1,7 puestos de media. Poco, pero no cuesta ni una llamada de red.
+
+### Profundidad del histórico, y por qué subir una constante no bastaba
+
+`price_history_days` = **1.825** (cinco años) y `price_history_retention_days`
+= 2.000. Antes eran 400 y 1.100, y con eso **ningún activo de la base llegaba a
+dos años** (máximo medido: 419 días).
+
+El fallo que lo impedía no era la constante: `market_data` calculaba
+`start = última_barra + 1 día`, así que el relleno **solo sabía avanzar** y
+subir la ventana no traía ni un día más de pasado para los 711 activos que ya
+tenían barras. Es el mismo fallo que ya se había corregido en
+`refresh_fx_history`. Ahora `get_bar_date_ranges` devuelve `(primera, última)`
+y el relleno pregunta las dos cosas:
+
+    "¿hay barras nuevas?"  -> la ÚLTIMA,  TTL de horas    (PRICE_HISTORY)
+    "¿llega tan atrás?"    -> la PRIMERA, TTL de 30 días  (PRICE_HISTORY_BACKFILL)
+
+La **profundidad va en la clave del sello** (`SÍMBOLO@1825`), así que ampliar
+la ventana invalida los sellos por construcción y el relleno corre solo una
+vez. `force` NO llega al relleno -significa «el TTL diario se me queda corto»,
+no «redescarga cinco años»-; para eso está `deep`.
+
+Coste medido: **474.203 barras nuevas en 84 segundos** para los 494 símbolos,
+de 0 activos con dos años a 482 con cinco. `fetch_history` es un único
+`yf.download` por lote, así que la profundidad no cuesta ni una llamada más.
+
+`max_drawdown` ya no tiene ventana por defecto: mira la serie ENTERA. «¿Cuánto
+ha llegado a caer esto?» acotado a un año es «¿cuánto cayó el año pasado?».
+
+### Bases de tiempo por clase: el cripto no cierra
+
+`metrics.py` expresa las ventanas como FRACCIÓN DE AÑO y recibe
+`periods_per_year` (252 en bolsa, 365 en cripto). Con 252 sobre una serie de
+365 barras, medido sobre la base real:
+
+    BTC-USD  volatilidad 39,1% publicada  ->  47,1% real   (-20,5%)
+    momentum «12-1» cubría 231 días (7,6 meses) en vez de 336 (11 meses)
+
+Nada de esto lanzaba un error: el cripto competía en el mismo rango percentil
+que las acciones con un riesgo rebajado y un horizonte distinto.
 
 ### Series de precios detenidas
 
@@ -371,6 +906,14 @@ sobre el resultado filtrado: si siguieran al filtro, al pulsar «Muy buena» los
 demás chips marcarían cero y no habría forma de saber qué queda por explorar.
 `matched_size` es lo que el filtro deja ver.
 
+El estado de la vista (filtros, «Mostrar» y candidatos extra) va en la URL con
+**los mismos nombres que la API**, no traducidos al español como las rutas: la
+cadena de consulta de la página se pega tal cual detrás de `/api/opportunities`
+y no hay tabla de equivalencias que mantener. La URL MANDA sobre el
+`localStorage` al restaurar -un enlace compartido es una petición explícita-, y
+se escribe con `replaceState` porque cada clic ajusta la misma vista y no es un
+destino nuevo.
+
 Un valor desconocido en cualquiera de los dos parámetros se **ignora**, no
 devuelve 422: son parámetros de interfaz y fallar dejaría la vista en blanco.
 
@@ -414,6 +957,15 @@ el glosario enseñaría a leer ese dato roto como una ganga histórica.
 sub-factor nuevo sin documentar saldría en la interfaz como un nombre técnico
 crudo.
 
+**El glosario se rompe en silencio al renombrar algo, y ya pasó.** Al cambiar
+las calificaciones de «Muy buena / Buena / Normal / Mala / Muy mala» a «Muy
+favorables / … / Muy desfavorables», el centro de ayuda se quedó enseñando las
+viejas y ningún test lo vio: pasó a contradecir a la pantalla, que es peor que
+estar desactualizado. Lo vigilan ahora
+`test_the_glossary_never_uses_a_grade_label_that_no_longer_exists` -compara
+contra `GRADE_LABEL`- y `test_the_examples_are_consistent_with_the_scoring_
+formula`, que recalcula la aritmética del ejemplo con los pesos EFECTIVOS.
+
 ### Cubos de exposición
 
 `app/services/exposure.py`. La diversificación NO se mide por sector GICS a
@@ -449,8 +1001,116 @@ columnas aportó más que el `WITHOUT ROWID`.
 objetos ORM (107 ms → 23 ms con 120 activos). Para escribir, `app/db/bulk.py::
 insert_ignore_duplicates` (ON CONFLICT DO NOTHING, consciente del dialecto).
 
+### Rendimiento en el tiempo
+
+`app/services/performance.py` reproduce el ledger a lo largo del calendario de
+cotización en vez de una sola vez. Todo se deriva, igual que el resto: no hay
+tabla de valores históricos que pudiera desincronizarse.
+
+**`close` y NO `adj_close`.** `adj_close` reescribe el pasado también por
+dividendos, y esos ya están en el ledger como entradas de caja: contarlos dos
+veces inflaría la curva. Y el último punto tiene que coincidir con el KPI que
+se dibuja justo encima, que usa el precio real.
+`test_the_last_point_agrees_with_the_dashboard` lo fija. Para medir
+RENDIMIENTO (momentum, volatilidad, correlación) sigue mandando `adj_close`:
+sin ajustar por splits, un 2:1 invierte el momentum. De ahí el parámetro
+`adjusted` de `get_price_series_dated`.
+
+**Relleno hacia adelante.** La BVC y la NYSE no cierran los mismos días. Sin
+arrastrar el último valor conocido, cada festivo de un mercado abriría un
+hueco en la curva del otro. Un día SIN precio no se dibuja: misma regla que en
+todo el sistema, ausente es None y nunca 0.
+
+**El índice recibe la misma aportación el mismo día.** La pregunta no es
+«cuánto subió SPY» sino «cuánto tendría yo si ese dinero, puesto ese día,
+hubiera ido a SPY». Cuando la cartera no registra depósitos -deliberado, es lo
+que permite cargar un histórico ya existente- se toman las compras como
+aportación; sin eso la caja queda negativa por el importe entero y
+`total_value` muestra solo la plusvalía (88.870 COP en vez de 2,2 millones en
+la cartera de prueba).
+
+**XIRR por bisección**, no por Newton, que diverge con flujos irregulares -lo
+que produce una cartera real- y devolvería un número plausible y falso. No se
+anualiza por debajo de 90 días: sobre 18 días multiplica por 20 y da un «129%
+anual» que solo significa «subió un 4% en tres semanas».
+
+### Atribución de divisa
+
+`unrealized_pnl` mezclaba lo que hizo la empresa con lo que hizo el cambio.
+Medido: SPY subió 16,6% en dólares a un año mientras quien mide en pesos
+perdía 5,5%, porque el peso se revaluó 19%. La descomposición es EXACTA:
+
+    efecto activo = cantidad · (precio_hoy − coste_medio_local) · fx_hoy
+    efecto divisa = cantidad · coste_medio_local · (fx_hoy − fx_medio)
+
+y suma el P&L no realizado. El efecto del activo se mide al tipo de HOY porque
+es la convención que deja el residuo en cero; repartir el término cruzado de
+otro modo haría que las dos cifras no sumaran el total.
+
+Para eso el replay lleva el coste **también en divisa local**
+(`AssetPosition.total_cost_local`). Al vender se retira en la misma proporción
+que el de divisa base, no con un coste medio local calculado aparte: con dos
+cálculos independientes el redondeo los separaría y la atribución dejaría de
+cuadrar.
+
+### Histórico de tipos de cambio
+
+`refresh_fx_history` rellena los CIERRES diarios. Dos reglas:
+
+- **El día en curso no lo toca**: el «cierre» que Yahoo da para hoy es el
+  último precio, y guardarlo lo congelaría como si la jornada hubiera
+  terminado. Ese día lo mantiene `refresh_fx` con la cotización viva.
+- **Un día ya cerrado SÍ se pisa** (`bulk.upsert`, no `insert_ignore_duplicates`).
+  Una fila escrita por el refresco de jornada guarda la cotización viva del
+  momento en que se pidió, no el cierre: medido sobre USD/COP, esas filas se
+  desviaban del cierre entre 0,1% y 0,9%.
+
+El relleno mira el rango COMPLETO almacenado, no solo la última fecha: con
+solo el máximo únicamente sabe avanzar, y sobre la base real traía 2 filas
+dejando intactos tres años de hueco anterior.
+
 ## Trampas conocidas
 
+- **Un nombre de categoría comparado por SUBCADENA clasifica mal.**
+  «Com·muni·cations» contiene «muni». Ver `services/asset_class.py`.
+- **Ni `asset_type` ni `quoteType` identifican un futuro.** `GC=F` y `CL=F`
+  están guardados como `STOCK`; `CT=F` llega como `ALTSYMBOL`. Solo el sufijo.
+- **Anular un múltiplo sin anular `eps_trailing` no sirve de nada**, porque
+  `fresh_trailing_pe` lo reconstruye con el precio de hoy.
+- **El relleno de histórico tiene que mirar la PRIMERA barra, no solo la
+  última**, o subir la ventana no trae ni un día de pasado.
+- **Banrep no envía el certificado intermedio.** `curl` lo resuelve, Python
+  no. Se arregla añadiendo el intermedio, nunca con `verify=False`.
+- **`run_sync` sale a DOS proveedores**, Yahoo y Banrep. `FakeProvider` solo
+  cubre el primero: sin `TABLERO_ENABLE_REFERENCE_RATES=false` la suite sale a
+  internet de verdad y se cuelga.
+
+- **`yf.download` NO aplana el MultiIndex con un solo símbolo.** Las columnas
+  siguen siendo `('AAPL', 'Close')`, así que leer el frame entero devuelve
+  None en todas las filas y CERO barras sin lanzar nada. Estuvo roto en
+  `fetch_history` y en `_download_quotes` a la vez, y solo mordía con
+  exactamente un símbolo: la carga perezosa y los `?symbols=` tecleados. Se
+  lee con `_sub_frame`, que acepta las dos formas porque yfinance ha cambiado
+  este comportamiento entre versiones.
+- **Tailwind no aplica `/10` a un color que es `var(--good)`.** No puede
+  componer el canal alfa sobre una custom property opaca, así que la utilidad
+  **no se emite** y la clase queda muerta en el HTML, sin advertencia. Regía
+  igual bajo el Play CDN: `bg-good/10`, `bg-s1/10`, `bg-bg/85` y otras 24 no
+  pintaron nunca. Se resuelve con `color-mix` en `tailwind.config.js`, que deja
+  la paleta donde está (`app.css`).
+- **No hay CDN.** Tailwind, Alpine y Chart.js se sirven desde
+  `app/static/vendor/`. Sin red, la página se quedaba sin estilos y sin Alpine,
+  o sea inservible: lo contrario de lo que hace el backend, que degrada y avisa.
+  El plugin `collapse` va ANTES que el core de Alpine.
+
+- **Un fallo de JavaScript en Alpine no se ve.** Expresiones que llaman a
+  métodos inexistentes dejan la sección vacía sin error visible: tras tocar
+  `ficha.js`, `journal.js` o `import.js` conviene abrir la vista en un
+  navegador y mirar la consola, no fiarse solo de los tests.
+- **`GET /api/opportunities` lanza un refresco de fondo** que puede mantener la
+  base SQLite bloqueada para escritura mientras espera a la red
+  (`busy_timeout` = 5 s): una transacción registrada en ese momento puede
+  fallar con «database is locked».
 - **`<template x-if>` no puede envolver a `<template x-for>`.** Alpine clona
   `firstElementChild`; si es otro template, el bucle no se inicializa y la
   sección se renderiza **vacía sin error en consola**. Calcula la colección en
@@ -465,6 +1125,16 @@ insert_ignore_duplicates` (ON CONFLICT DO NOTHING, consciente del dialecto).
   trampa más cara del sistema porque no lanza nada: produce una posición
   valorada 100 veces de más que, si se registra una compra, queda congelada en
   el coste medio para siempre. Ver `app/providers/currencies.py`.
+- **Las cotizaciones traen ruido de coma flotante.** IVV no cotiza a 764,92
+  sino a 764.919982910156. Quien registra una compra al precio de hoy -que el
+  formulario redondea a dos decimales- se queda con un P&L de −0,0000170898, y
+  la pantalla mostraba «−US$ 0,00» EN ROJO: el signo y el color afirmaban una
+  pérdida que la propia cifra desmiente. Se resuelve en PRESENTACIÓN
+  (`roundsToZero` en `store.js`), no redondeando el dato: el backend mantiene
+  Decimal exacto a propósito y recortar el precio rompería los activos que
+  cotizan por debajo del centavo. Por eso `pnlClass` recibe los decimales con
+  que se imprime la cifra: el color tiene que coincidir con lo que se lee al
+  lado.
 - **Pydantic serializa `Decimal` como string.** Todo valor monetario del JSON
   pasa por `window.fmt.num()` en el frontend; sin eso, `a > b` compara
   lexicográficamente.
@@ -486,13 +1156,27 @@ insert_ignore_duplicates` (ON CONFLICT DO NOTHING, consciente del dialecto).
 Están en la interfaz y en los docstrings; no las quites al refactorizar:
 
 - El Opportunity Score **no es una recomendación de inversión**. Los pesos son
-  un juicio de diseño, sin backtest detrás.
+  un juicio de diseño, sin backtest detrás, y el score es un percentil DENTRO
+  de su clase: el de una acción y el de una cripto no son comparables.
+- Las etiquetas A-E hablan de las **señales medidas**, no de la empresa. Una
+  nota con 2 de 4 señales no vale lo mismo que una con 4, y se declara.
+- El **plan de asignación es del usuario**: el tablero mide la desviación y
+  nunca propone vender.
 - El coste medio ponderado mide rendimiento, **no genera declaraciones
   fiscales** (coincide con el costo promedio del Estatuto Tributario colombiano
   para acciones, pero eso lo verifica un contador).
+- La renta fija directa se valora a **costo más devengo**: es lo que vale si se
+  lleva a vencimiento, no lo que alguien pagaría hoy. Las tasas de Banrep son
+  una REFERENCIA para decidir, y el propio Banrep avisa de que su curva no
+  sirve para valorar carteras.
+- `scorecard` **no es un backtest**: espera al futuro y nunca es concluyente.
 - Los tickers de la BVC **sí están verificados** ya (22 símbolos con precio y
   divisa reales, `.CL`, en COP y por tanto sin conversión). Lo que
   sigue sin verificar es la correspondencia entre un ticker de Yahoo y el
   instrumento exacto que uno compra por su comisionista.
+- La ficha, las banderas y el tamaño de posición son heurísticas SIN backtest y
+  no son asesoría financiera: el veredicto nunca debe decir «compra».
+- Los datos de Yahoo llegan con retraso y errores posibles; la interfaz declara
+  su fecha y manda a comprobar las cifras clave en fuentes oficiales.
 - La caja puede quedar negativa: es deliberado, para poder cargar un histórico
   ya existente sin registrar depósitos previos.

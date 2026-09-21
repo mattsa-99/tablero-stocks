@@ -20,14 +20,44 @@ os.environ["TABLERO_DATABASE_URL"] = f"sqlite:///{Path(_TMP_DIR) / 'test.db'}"
 # red de verdad.
 os.environ["TABLERO_ENABLE_BACKGROUND_REFRESH"] = "false"
 
+# Por el mismo motivo: `Settings` lee el `.env` del directorio de trabajo, así
+# que sin fijarla aquí la suite hereda la divisa base del desarrollador. Pasó
+# de verdad: `test_intraday_universe_refresh_touches_only_quotes_and_fx`
+# esperaba un par de cambio y pasaba en local -con un `.env` que ponía COP- y
+# fallaba en un checkout limpio, donde el valor por defecto es USD. Se fija al
+# valor de producción para que la suite pruebe la configuración real.
+os.environ["TABLERO_DEFAULT_BASE_CURRENCY"] = "USD"
+
+# Y por el mismo motivo que el planificador: `run_sync` pide las tasas de
+# referencia a Banrep, que es una fuente de red DISTINTA de Yahoo y por tanto
+# no la cubre `FakeProvider`. Sin esto la suite salía a internet de verdad y se
+# colgaba en los tests de sincronización.
+os.environ["TABLERO_ENABLE_REFERENCE_RATES"] = "false"
+
 from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
 import app.db.session  # noqa: E402, F401  -- registra el listener de PRAGMAs
 from app.db.registry import Base  # noqa: E402
 from app.models import Asset, Portfolio  # noqa: E402
+from app.services import opportunities as _opportunities  # noqa: E402
 
 UTC = dt.UTC
+
+
+@pytest.fixture(autouse=True)
+def _clean_opportunity_cache() -> Iterator[None]:
+    """La memoización del universo NO puede sobrevivir a un test.
+
+    No es higiene opcional: cada test estrena una base con el mismo esquema y
+    los mismos ids -portafolio 1, activos 1..N- así que dos tests distintos
+    producen huellas IDÉNTICAS con facilidad. Sin este reseteo, el segundo
+    recibiría el ranking del primero y pasaría o fallaría por una razón que no
+    tiene nada que ver con lo que comprueba.
+    """
+    _opportunities.clear_cache()
+    yield
+    _opportunities.clear_cache()
 
 
 @pytest.fixture
@@ -96,7 +126,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
-from app.routers.dependencies import get_provider  # noqa: E402
+from app.routers.dependencies import get_provider, get_session_factory  # noqa: E402
 from tests.fakes import (  # noqa: E402
     FakeProvider,
     fundamentals,
@@ -192,6 +222,10 @@ def client(api_session_factory, provider) -> Iterator[TestClient]:
 
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_provider] = lambda: provider
+    # Las tareas de fondo se abren su PROPIA sesión, porque la de la petición
+    # ya está cerrada cuando arrancan. Sin sustituir también la fábrica,
+    # escribirían en tablero.db -la base de verdad- mientras corre la suite.
+    app.dependency_overrides[get_session_factory] = lambda: api_session_factory
 
     # El planificador se apaga: un bucle de fondo en los tests introduce
     # llamadas no deterministas y hace fallar aserciones de conteo.

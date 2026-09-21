@@ -8,6 +8,7 @@ import math
 import pytest
 from sqlalchemy import func, select
 
+from app.core.config import settings
 from app.models import Asset, AssetType, FundamentalSnapshot, PriceHistory, Transaction
 from app.services import catalog
 from app.services import correlation as corr
@@ -439,7 +440,12 @@ def test_suggestion_endpoint_returns_a_justified_pick(client, portfolio_id, db_o
             )
 
     assert body["assumed_weight_pct"] == 5.0
-    assert body["concentration_threshold_pct"] == 25.0
+    # UN SOLO umbral en todo el sistema. Antes había dos -25% aquí y 30% en el
+    # motor de oportunidades- y la misma concentración se penalizaba dos veces
+    # con criterios distintos.
+    assert body["concentration_threshold_pct"] == pytest.approx(
+        settings.opportunity_sector_threshold * 100
+    )
     assert "NO es asesoramiento financiero" in body["disclaimer"]
 
 

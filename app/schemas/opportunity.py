@@ -44,11 +44,51 @@ class AbsoluteAssessment(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     grade: str = Field(description="A | B | C | D | E | SIN_CALIFICAR")
-    label: str = Field(description="Muy buena | Buena | Normal | Mala | Muy mala")
+    label: str = Field(
+        description="Muy favorables | Favorables | Mixtas | Desfavorables | "
+        "Muy desfavorables. Habla de las SEÑALES medidas, no de la empresa."
+    )
     points: int
     max_points: int
     signals: list[SignalDetail]
     notes: list[str] = Field(default_factory=list)
+    available_signals: int = Field(
+        default=0, description="Cuántas de las 4 señales tienen datos"
+    )
+    capped_by_coverage: bool = Field(
+        default=False,
+        description=(
+            "La nota está limitada por falta de señales: la proporción daría "
+            "más, pero con menos de 3 señales eso premiaría la falta de datos"
+        ),
+    )
+
+
+class DataFreshness(BaseModel):
+    """De cuándo son los datos que alimentan el ranking.
+
+    Existe porque un ranking se lee como si fuera de HOY. Con los precios de
+    hace una semana y los fundamentales de hace dos, el orden puede ser otro, y
+    nada en la pantalla lo delataba.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    prices_newest: dt.datetime | None = None
+    prices_oldest: dt.datetime | None = None
+    fundamentals_newest: dt.date | None = None
+    fundamentals_oldest: dt.date | None = None
+    fundamentals_fresh_pct: float | None = Field(
+        default=None,
+        description=(
+            "Qué porcentaje del universo tiene fundamentales recientes. "
+            "`fundamentals_oldest` por sí solo no distingue UN activo viejo "
+            "de la mitad del universo viejo, y son cosas muy distintas"
+        ),
+    )
+    fundamentals_stale_count: int = Field(
+        default=0, description="Cuántos candidatos puntúan con datos viejos"
+    )
 
 
 class OpportunityRead(BaseModel):
@@ -56,7 +96,13 @@ class OpportunityRead(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    rank: int
+    rank: int = Field(
+        description="Puesto DENTRO DE SU CLASE en el ranking completo por score, "
+        "con huecos cuando la vista está filtrada"
+    )
+    rank_in_grade: int = Field(
+        default=0, description="Puesto entre los de su misma clase y calificación"
+    )
     symbol: str
     name: str | None
     sector: str | None
@@ -65,9 +111,39 @@ class OpportunityRead(BaseModel):
         description="US | COL | LATAM | EU | ASIA | GLOBAL, por domicilio de la empresa"
     )
 
+    asset_class: str = Field(
+        default="accion",
+        description=(
+            "accion | fondo_acciones | renta_fija | materias_primas | cripto | "
+            "derivado | desconocido. El score es un rango percentil DENTRO de "
+            "esta clase: no es comparable con el de otra."
+        ),
+    )
+    asset_class_label: str = Field(default="Acciones")
+    expense_ratio_pct: float | None = Field(
+        default=None,
+        description=(
+            "Coste anual del fondo, en porcentaje. Es de lo poco que predice "
+            "rendimiento futuro de forma fiable: se resta todos los años, "
+            "haya subido o bajado el mercado"
+        ),
+    )
+    asset_class_is_assumed: bool = Field(
+        default=False,
+        description="La clase salió de una suposición y no de un dato del proveedor",
+    )
+    class_size: int = Field(
+        default=0,
+        description=(
+            "Cuántos candidatos hay en esta clase. Es la referencia contra la "
+            "que se calculó el score, y con pocos miembros discrimina poco."
+        ),
+    )
+
     score: float = Field(ge=0, le=100)
     baseline: float = Field(
-        description="Desplazamiento afín (+20) que mapea el rango natural [-20,80] a [0,100]"
+        description="Desplazamiento afín que lleva el mínimo a 0; la escala a [0,100] "
+        "se completa dividiendo por la suma de pesos"
     )
 
     value: FactorDetail
@@ -76,6 +152,35 @@ class OpportunityRead(BaseModel):
     risk: FactorDetail
 
     current_price: float | None
+    price_as_of: dt.datetime | None = Field(
+        default=None, description="Cuándo se cotizó ese precio"
+    )
+    fundamentals_as_of: dt.date | None = Field(
+        default=None, description="Fecha de los fundamentales usados"
+    )
+    fundamentals_age_days: int | None = Field(
+        default=None,
+        description=(
+            "Días desde esos fundamentales. Por encima del umbral la "
+            "confianza de la fila baja: un dato viejo puntúa igual de bien "
+            "que uno fresco y nada en la pantalla lo delataba"
+        ),
+    )
+    value_basis: str = Field(
+        default="class",
+        description="Contra qué se ordenaron los múltiplos: 'sector' (sus pares del "
+        "mismo sector) o 'class' (su clase de activo, si el sector tiene pocos pares "
+        "o no aplica)",
+    )
+    value_reference: str | None = Field(
+        default=None, description="Sector o clase usado como referencia de valoración"
+    )
+    sector_pe: float | None = Field(
+        default=None, description="Mediana del P/E trailing de su sector (referencia)"
+    )
+    sector_peer_count: int | None = Field(
+        default=None, description="Empresas con P/E positivo en que se basa esa mediana"
+    )
     exposure_bucket: str = Field(
         description="Cubo de exposición usado para diversificar: sector GICS o clase de activo"
     )
@@ -114,10 +219,16 @@ class OpportunityResponse(BaseModel):
     weights: dict[str, float]
     sector_threshold_pct: float
 
+    freshness: DataFreshness = Field(default_factory=DataFreshness)
     benchmark_symbol: str | None = Field(
         default=None, description="Referencia de mercado usada para la valoración absoluta"
     )
     benchmark_pe: float | None = None
+    class_counts: dict[str, int] = Field(
+        default_factory=dict,
+        description="Cuántos candidatos hay en cada clase de activo, sobre el "
+        "universo completo y no sobre el resultado filtrado",
+    )
     grade_counts: dict[str, int] = Field(
         default_factory=dict, description="Cuántos candidatos hay en cada calificación"
     )
@@ -130,6 +241,16 @@ class OpportunityResponse(BaseModel):
     universe_quality_warning: str | None = Field(
         default=None,
         description="Aviso cuando NINGÚN candidato alcanza una calificación buena",
+    )
+
+    refreshing: bool = Field(
+        default=False,
+        description=(
+            "Hay un refresco de precios en curso por detrás. La respuesta ya "
+            "es válida -está puntuada con los últimos datos guardados-; "
+            "cuando esto sea true conviene volver a pedirla en unos segundos "
+            "para ver los precios recién traídos"
+        ),
     )
 
     warnings: list[str] = Field(default_factory=list)

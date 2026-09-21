@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Iterable
 from decimal import Decimal
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.models import Asset, AssetQuote, FundamentalSnapshot, FxRateDaily, PriceHistory
 
@@ -80,6 +81,86 @@ def get_price_series_bulk(
     return series
 
 
+def get_price_series_dated(
+    db: Session,
+    asset_ids: list[int],
+    *,
+    since: dt.date,
+    adjusted: bool = True,
+) -> dict[int, list[tuple[dt.date, float]]]:
+    """Series (fecha, precio) de varios activos en UNA consulta.
+
+    `adjusted` elige la columna, y la elección NO es un detalle de precisión:
+
+    - `True` (`adj_close`) para medir RENDIMIENTO: momentum, volatilidad,
+      correlación. Sin ajustar por splits, un 2:1 aparece como una caída del
+      50% y el momentum sale con el signo invertido.
+    - `False` (`close`) para VALORAR una cartera en una fecha. `adj_close`
+      reescribe el pasado también por dividendos, y esos ya están en el ledger
+      como entradas de caja: usarlo los contaría dos veces. Además el último
+      punto de la curva tiene que coincidir con el valor que el tablero enseña
+      arriba, y ese se calcula con el precio real, no con el ajustado.
+
+    El coste de `close` es que un split no registrado en el ledger aparece como
+    un desplome. Hoy el ledger no procesa `SPLIT`, así que ese caso ya deja la
+    posición mal en la valoración de hoy, no solo en la curva.
+    """
+    if not asset_ids:
+        return {}
+
+    column = PriceHistory.adj_close if adjusted else PriceHistory.close
+    rows = db.execute(
+        select(
+            PriceHistory.asset_id,
+            PriceHistory.date,
+            func.coalesce(column, PriceHistory.close),
+        )
+        .where(PriceHistory.asset_id.in_(asset_ids), PriceHistory.date >= since)
+        .order_by(PriceHistory.asset_id, PriceHistory.date)
+    ).all()
+
+    series: dict[int, list[tuple[dt.date, float]]] = {}
+    for asset_id, day, price in rows:
+        if price is not None and price > 0:
+            series.setdefault(asset_id, []).append((day, price))
+    return series
+
+
+def get_fx_series(
+    db: Session, pairs: Iterable[tuple[str, str]], *, since: dt.date
+) -> dict[tuple[str, str], list[tuple[dt.date, Decimal]]]:
+    """Series diarias de varios pares, ascendentes por fecha.
+
+    Solo el par DIRECTO: invertir una serie entera para ahorrarse una fila por
+    día escondería que falta el dato, y aquí un tipo ausente tiene que notarse.
+    El relleno (`refresh_fx_history`) guarda los dos sentidos.
+    """
+    wanted = {(b.upper(), q.upper()) for b, q in pairs}
+    if not wanted:
+        return {}
+
+    rows = db.execute(
+        select(
+            FxRateDaily.base_currency,
+            FxRateDaily.quote_currency,
+            FxRateDaily.date,
+            FxRateDaily.rate,
+        )
+        .where(
+            FxRateDaily.base_currency.in_({b for b, _ in wanted}),
+            FxRateDaily.quote_currency.in_({q for _, q in wanted}),
+            FxRateDaily.date >= since,
+        )
+        .order_by(FxRateDaily.base_currency, FxRateDaily.quote_currency, FxRateDaily.date)
+    ).all()
+
+    series: dict[tuple[str, str], list[tuple[dt.date, Decimal]]] = {}
+    for base, quote, day, rate in rows:
+        if (base, quote) in wanted and rate is not None and rate > 0:
+            series.setdefault((base, quote), []).append((day, rate))
+    return series
+
+
 def get_last_bar_dates(db: Session, asset_ids: list[int]) -> dict[int, dt.date]:
     """Última barra almacenada de cada activo, en una sola consulta.
 
@@ -95,6 +176,38 @@ def get_last_bar_dates(db: Session, asset_ids: list[int]) -> dict[int, dt.date]:
     return {asset_id: last for asset_id, last in rows if last is not None}
 
 
+def get_bar_date_ranges(
+    db: Session, asset_ids: list[int]
+) -> dict[int, tuple[dt.date, dt.date]]:
+    """Primera y última barra de cada activo, en una sola consulta.
+
+    El refresco diario solo necesita la última -pide lo nuevo y ya-, pero eso
+    solo sabe AVANZAR. Con la primera se puede además responder "¿mi serie
+    llega tan atrás como quiero?", que es lo que hace falta para rellenar hacia
+    atrás.
+
+    Es exactamente la corrección que ya se hizo en `get_fx_date_range`: mirando
+    solo el máximo, el relleno de tipos de cambio traía 2 filas y dejaba
+    intactos tres años de hueco anterior.
+    """
+    if not asset_ids:
+        return {}
+    rows = db.execute(
+        select(
+            PriceHistory.asset_id,
+            func.min(PriceHistory.date),
+            func.max(PriceHistory.date),
+        )
+        .where(PriceHistory.asset_id.in_(asset_ids))
+        .group_by(PriceHistory.asset_id)
+    ).all()
+    return {
+        asset_id: (first, last)
+        for asset_id, first, last in rows
+        if first is not None and last is not None
+    }
+
+
 def get_last_bar_date(db: Session, asset_id: int) -> dt.date | None:
     return db.scalar(
         select(func.max(PriceHistory.date)).where(PriceHistory.asset_id == asset_id)
@@ -104,11 +217,24 @@ def get_last_bar_date(db: Session, asset_id: int) -> dt.date | None:
 def get_latest_fundamentals(
     db: Session, asset_ids: list[int]
 ) -> dict[int, FundamentalSnapshot]:
-    """Último snapshot de cada activo.
+    """Último snapshot de cada activo, SIN la columna `raw`.
 
     Se resuelve con una subconsulta de máximos por activo en lugar de N
     consultas: el motor de oportunidades pide fundamentales de todo el universo
     a la vez.
+
+    `raw` SE DIFIERE, y no es un detalle. Es el payload íntegro de yfinance
+    -unos 5 KB de JSON por fila, 17 MB de los 43 MB de la base- y NINGÚN
+    lector de esta función lo usa: el motor solo toca las columnas tipadas.
+    Traerlo obligaba a deserializar 494 blobs en cada petición para tirarlos
+    acto seguido. Medido sobre el universo real: 10,8 ms -> 3,5 ms.
+
+    Diferir y no eliminar porque la columna sigue teniendo su razón de ser
+    (evita re-descargarlo todo si hiciera falta un campo no modelado); lo que
+    no tiene sentido es pagarla en el camino caliente. Si algún consumidor
+    futuro necesita `raw`, que lo pida explícitamente: con la carga diferida
+    lo obtendría igual, pero con una consulta por fila bien visible en el
+    perfil en lugar de un coste repartido e invisible.
     """
     if not asset_ids:
         return {}
@@ -123,7 +249,9 @@ def get_latest_fundamentals(
         .subquery()
     )
     rows = db.scalars(
-        select(FundamentalSnapshot).join(
+        select(FundamentalSnapshot)
+        .options(defer(FundamentalSnapshot.raw))
+        .join(
             latest,
             (FundamentalSnapshot.asset_id == latest.c.asset_id)
             & (FundamentalSnapshot.as_of == latest.c.as_of),
@@ -176,6 +304,75 @@ def get_fx_rate(
     return None
 
 
+def get_fx_date_range(
+    db: Session, pairs: Iterable[tuple[str, str]]
+) -> dict[tuple[str, str], tuple[dt.date, dt.date]]:
+    """Primera y última fecha almacenadas de cada par, en UNA consulta.
+
+    Devuelve las DOS y no solo la última, que es lo que se hizo primero y
+    estaba mal. Con solo el máximo, el relleno únicamente sabe avanzar hacia
+    adelante: en una base que ya tenía tres semanas de USD/COP pedía desde el
+    día siguiente al último y traía 2 filas, dejando intactos los tres años de
+    hueco ANTERIORES. Conociendo también la primera fecha se distingue "estoy
+    al día" de "me falta todo lo de antes".
+    """
+    wanted = {(b.upper(), q.upper()) for b, q in pairs}
+    if not wanted:
+        return {}
+
+    rows = db.execute(
+        select(
+            FxRateDaily.base_currency,
+            FxRateDaily.quote_currency,
+            func.min(FxRateDaily.date),
+            func.max(FxRateDaily.date),
+        )
+        .where(
+            FxRateDaily.base_currency.in_({b for b, _ in wanted}),
+            FxRateDaily.quote_currency.in_({q for _, q in wanted}),
+        )
+        .group_by(FxRateDaily.base_currency, FxRateDaily.quote_currency)
+    ).all()
+    # El filtro de arriba es un producto cartesiano de las divisas pedidas, así
+    # que puede traer pares que nadie pidió: se descartan aquí en vez de
+    # componer un OR por par, que con muchos pares sería una consulta enorme.
+    return {
+        (base, quote): (first, last)
+        for base, quote, first, last in rows
+        if first is not None and last is not None and (base, quote) in wanted
+    }
+
+
+def get_fx_rates(
+    db: Session, currencies: Iterable[str], base: str, on_date: dt.date | None = None
+) -> dict[str, Decimal | None]:
+    """Tipos `divisa` -> `base` de VARIAS divisas, sin repetir consultas.
+
+    Existe porque `get_fx_rate` se llamaba dentro del bucle de posiciones: con
+    veinte posiciones en dólares eran veinte consultas -o cuarenta, porque el
+    par inverso es una segunda- resolviendo exactamente el mismo par. Una
+    cartera tiene decenas de posiciones pero dos o tres divisas, así que
+    deduplicar por divisa es donde está todo el ahorro.
+
+    Deliberadamente NO intenta resolverlo en una sola consulta con GROUP BY:
+    cada par necesita "la fila más reciente hasta la fecha", el número de
+    divisas distintas es diminuto y una consulta única traería todo el
+    histórico de esos pares para descartarlo en Python. Deduplicar basta y
+    deja `get_fx_rate` como el único sitio donde vive la regla de directo,
+    inverso y rechazo.
+
+    Un valor None se CONSERVA en el diccionario: significa "no hay tipo" y el
+    llamador debe distinguirlo de "no lo he pedido". Asumir 1 erraría por
+    ~4000x en COP/USD.
+    """
+    resolved: dict[str, Decimal | None] = {}
+    for currency in currencies:
+        key = currency.upper()
+        if key not in resolved:
+            resolved[key] = get_fx_rate(db, key, base, on_date)
+    return resolved
+
+
 def get_assets_by_symbols(db: Session, symbols: list[str]) -> dict[str, Asset]:
     if not symbols:
         return {}
@@ -187,4 +384,19 @@ def get_assets_by_symbols(db: Session, symbols: list[str]) -> dict[str, Asset]:
 def get_active_assets(db: Session) -> list[Asset]:
     return list(
         db.scalars(select(Asset).where(Asset.is_active.is_(True)).order_by(Asset.symbol)).all()
+    )
+
+
+def get_latest_fundamental_with_raw(db: Session, asset_id: int) -> FundamentalSnapshot | None:
+    """Último snapshot de UN activo, con el payload íntegro `raw`.
+
+    Aparte de `get_latest_fundamentals` a propósito: aquella difiere `raw` para
+    no deserializar 494 blobs por petición. La ficha mira una sola empresa y sí
+    lo necesita, así que lo pide explícitamente.
+    """
+    return db.scalar(
+        select(FundamentalSnapshot)
+        .where(FundamentalSnapshot.asset_id == asset_id)
+        .order_by(FundamentalSnapshot.as_of.desc())
+        .limit(1)
     )

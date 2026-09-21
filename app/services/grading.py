@@ -48,12 +48,24 @@ class Grade(StrEnum):
     UNRATED = "SIN_CALIFICAR"
 
 
+# LAS ETIQUETAS HABLAN DE LAS SEÑALES, NO DE LA EMPRESA.
+#
+# Antes eran «Muy buena / Buena / Normal / Mala / Muy mala», y eso es un juicio
+# sobre el negocio que este módulo no está en condiciones de emitir: lo que
+# mide son cuatro señales de precio y de ratios contables contra unas anclas.
+# Llamar «Mala» a una empresa por su momentum y su volatilidad es afirmar
+# mucho más de lo que se ha comprobado, y es lo que hace que un usuario lea la
+# letra como un veredicto en vez de como un resumen de lo medido.
+#
+# Los SLUGS no cambian (`muy_buena`, `buena`...): viven en las URLs
+# compartidas y en el `localStorage` de quien ya usa el tablero, y romperlos
+# por un cambio de redacción dejaría enlaces guardados apuntando a nada.
 GRADE_LABEL = {
-    Grade.EXCELLENT: "Muy buena",
-    Grade.GOOD: "Buena",
-    Grade.NEUTRAL: "Normal",
-    Grade.POOR: "Mala",
-    Grade.BAD: "Muy mala",
+    Grade.EXCELLENT: "Muy favorables",
+    Grade.GOOD: "Favorables",
+    Grade.NEUTRAL: "Mixtas",
+    Grade.POOR: "Desfavorables",
+    Grade.BAD: "Muy desfavorables",
     Grade.UNRATED: "Sin calificar",
 }
 
@@ -95,6 +107,28 @@ def parse_quality_tiers(raw: str | None) -> set[Grade] | None:
 # tiende al centro y todo saldría "Normal", que es afirmar algo sin base.
 MIN_SIGNALS_FOR_GRADE = 2
 
+# Y hacen falta 3 para poder sacar "Muy favorables" o "Favorables".
+#
+# EL FALLO QUE ESTO CORRIGE, medido sobre los 490 activos del ranking real:
+#
+#     ETF     n=181   A: 74 (40,9%)   A+B: 137 (75,7%)   señales medias: 2,71
+#     STOCK   n=271   A: 17 ( 6,3%)   A+B: 117 (43,2%)   señales medias: 3,96
+#
+# Un ETF tenía 6,5 veces más probabilidad de sacar una A que una acción. No
+# por ser mejor: por tener menos señales que suspender. La nota es
+# `points / max_points` con `max_points = 2 x señales disponibles`, así que
+# con 2 señales bastan dos aciertos para un 4/4 perfecto, mientras que con 4
+# hay que acertar en casi todo.
+#
+# La regla de la proporción sigue siendo necesaria -un futuro sin contabilidad
+# no puede necesitar 5 puntos sobre 4-, pero sin este tope PREMIA la ausencia
+# de datos. 43 de los 263 A/B del ranking (16%) descansaban sobre 2 señales,
+# incluidos 7 contratos de futuros con A.
+#
+# El tope no baja la nota a "Mala": la deja en "Normal", que es lo que
+# significa no tener base para afirmar más.
+MIN_SIGNALS_FOR_TOP_GRADES = 3
+
 
 @dataclass
 class Signal:
@@ -119,10 +153,19 @@ class Assessment:
     max_points: int
     signals: list[Signal]
     notes: list[str] = field(default_factory=list)
+    # True si la nota está topada por falta de señales. La interfaz lo enseña
+    # junto a la letra ("Normal, 2 de 4 señales"): una nota parcial presentada
+    # como completa es la forma más fácil de que el usuario confíe de más.
+    capped_by_coverage: bool = False
 
     @property
     def available_signals(self) -> int:
         return sum(1 for s in self.signals if s.available)
+
+    @property
+    def coverage(self) -> float:
+        """Fracción de las 4 señales que tienen datos."""
+        return self.available_signals / len(self.signals) if self.signals else 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -135,6 +178,9 @@ def _valuation_signal(
     forward_pe: float | None,
     price_to_book: float | None,
     market_pe: float | None,
+    sector_trailing_pe: float | None = None,
+    sector_forward_pe: float | None = None,
+    sector_name: str | None = None,
 ) -> Signal:
     inputs = {
         "trailing_pe": trailing_pe,
@@ -153,39 +199,60 @@ def _valuation_signal(
     # como una carencia de información en lugar de como la señal negativa que
     # son.
     pe = None
+    sector_pe = None
     if (trailing_pe or 0) > 0:
         pe = trailing_pe
+        sector_pe = sector_trailing_pe
     elif (forward_pe or 0) > 0:
         pe = forward_pe
+        sector_pe = sector_forward_pe
     elif trailing_pe is not None or forward_pe is not None:
         return Signal(
             "valuation", "Valoración", -1,
             "La empresa no tiene beneficios positivos", inputs,
         )
 
-    if pe is None or market_pe is None or market_pe <= 0:
+    # El ancla es la mediana de SU SECTOR cuando existe, y el índice solo como
+    # respaldo. Un banco a P/E 9,6 «cotiza al 39% del mercado» y parece una
+    # ganga, pero los bancos cotizan así casi siempre: contra otros bancos la
+    # misma cifra puede ser exactamente lo normal. Se compara trailing con
+    # trailing y forward con forward: mezclarlos sesgaría a favor del forward,
+    # que casi siempre es menor.
+    use_sector = sector_pe is not None and sector_pe > 0
+    anchor = sector_pe if use_sector else market_pe
+    reference = f"de su sector ({sector_name})" if use_sector and sector_name else (
+        "de su sector" if use_sector else "del mercado"
+    )
+    inputs["reference_pe"] = anchor
+
+    if pe is None or anchor is None or anchor <= 0:
         return Signal(
             "valuation", "Valoración", None,
             "Sin P/E propio o sin referencia de mercado", inputs,
         )
 
-    ratio = pe / market_pe
-    inputs["pe_vs_market"] = round(ratio, 3)
+    ratio = pe / anchor
+    # UNA sola clave. Antes se escribían `pe_vs_market` y `pe_vs_reference` con
+    # el MISMO valor, y el nombre viejo mentía en cuanto el ancla pasó a ser la
+    # mediana del sector: decía "frente al mercado" sobre una cifra que ya no
+    # se calculaba contra el mercado. `reference_pe` de arriba dice cuál es el
+    # ancla usada, así que la pareja se lee sola.
+    inputs["pe_vs_reference"] = round(ratio, 3)
 
     if ratio < 0.7:
         return Signal("valuation", "Valoración", 2,
-                      f"Cotiza a {ratio:.0%} del P/E del mercado: muy por debajo", inputs)
+                      f"Cotiza a {ratio:.0%} del P/E {reference}: muy por debajo", inputs)
     if ratio < 0.9:
         return Signal("valuation", "Valoración", 1,
-                      f"Cotiza a {ratio:.0%} del P/E del mercado: por debajo", inputs)
+                      f"Cotiza a {ratio:.0%} del P/E {reference}: por debajo", inputs)
     if ratio <= 1.3:
         return Signal("valuation", "Valoración", 0,
-                      f"Cotiza a {ratio:.0%} del P/E del mercado: en línea", inputs)
+                      f"Cotiza a {ratio:.0%} del P/E {reference}: en línea", inputs)
     if ratio <= 1.8:
         return Signal("valuation", "Valoración", -1,
-                      f"Cotiza a {ratio:.0%} del P/E del mercado: cara", inputs)
+                      f"Cotiza a {ratio:.0%} del P/E {reference}: cara", inputs)
     return Signal("valuation", "Valoración", -2,
-                  f"Cotiza a {ratio:.0%} del P/E del mercado: muy cara", inputs)
+                  f"Cotiza a {ratio:.0%} del P/E {reference}: muy cara", inputs)
 
 
 # ---------------------------------------------------------------------------
@@ -381,7 +448,7 @@ def _grade_from_points(points: int, max_points: int) -> Grade:
     La banda "Normal" absorbe los positivos leves a propósito. Las señales
     están construidas para que CUMPLIR la convención puntúe 0 y solo
     SUPERARLA sume, así que una empresa decente cae de forma natural algo por
-    encima de cero; si eso bastara para "Buena", la escala dejaría de
+    encima de cero; si eso bastara para "Favorables", la escala dejaría de
     discriminar.
 
     CALIBRACIÓN, no validación: el corte de A se subió de 0,50 a 0,75 tras ver
@@ -418,10 +485,22 @@ def assess(
     profit_margin: float | None = None,
     debt_to_equity: float | None = None,
     revenue_growth: float | None = None,
+    sector_trailing_pe: float | None = None,
+    sector_forward_pe: float | None = None,
+    sector_name: str | None = None,
 ) -> Assessment:
-    """Califica un activo en términos absolutos, sin mirar a otros candidatos."""
+    """Califica un activo en términos absolutos, sin mirar a otros candidatos.
+
+    `sector_*` son opcionales: si se pasan, la valoración se ancla en la
+    MEDIANA de P/E del sector de la empresa en lugar de en la del índice. Es
+    seguir siendo absoluto -no depende de qué otros candidatos se estén
+    mostrando ni de sus puestos-, pero contra la referencia correcta.
+    """
     signals = [
-        _valuation_signal(trailing_pe, forward_pe, price_to_book, market_pe),
+        _valuation_signal(
+            trailing_pe, forward_pe, price_to_book, market_pe,
+            sector_trailing_pe, sector_forward_pe, sector_name,
+        ),
         _trend_signal(sma_trend, momentum_12_1),
         _risk_signal(volatility, max_drawdown),
         _quality_signal(roe, profit_margin, debt_to_equity, revenue_growth),
@@ -454,6 +533,18 @@ def assess(
         notes.append(f"Sin datos para: {', '.join(missing)}. La calificación es parcial.")
 
     grade = _grade_from_points(points, max_points)
+
+    capped = False
+    if grade in (Grade.EXCELLENT, Grade.GOOD) and len(available) < MIN_SIGNALS_FOR_TOP_GRADES:
+        capped = True
+        notes.append(
+            f"Con {len(available)} de 4 señales no hay base para una nota alta: "
+            f"se limita a «{GRADE_LABEL[Grade.NEUTRAL]}». La proporción alcanzada "
+            f"({points}/{max_points}) daría «{GRADE_LABEL[grade]}», pero sobre "
+            f"tan pocas señales eso premia la falta de datos, no la calidad."
+        )
+        grade = Grade.NEUTRAL
+
     return Assessment(
         grade=grade,
         label=GRADE_LABEL[grade],
@@ -461,4 +552,5 @@ def assess(
         max_points=max_points,
         signals=signals,
         notes=notes,
+        capped_by_coverage=capped,
     )

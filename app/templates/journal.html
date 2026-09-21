@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}Diario · Tablero{% endblock %}
+{% block scripts %}
+<script src="{{ static_url('/static/js/journal.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div x-data="journalView()">
+
+  <!-- ================= Cabecera ================= -->
+  <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-semibold tracking-tight">Diario y vigilancia</h1>
+      <p class="mt-1 max-w-2xl text-xs leading-relaxed text-ink-mute">
+        Escribe <em>por qué</em> decides algo, qué hecho te haría cambiar de opinión y cuándo
+        volverás a mirar. El Tablero guarda una foto de hoy y te avisa cuando algo pide revisión.
+        Anotar una decisión <strong>no crea ninguna operación</strong>.
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="button" @click="toggleArchived()"
+              class="h-9 rounded-lg border border-line bg-surf-2 px-3 text-sm text-ink-soft transition-colors
+                     hover:border-line-strong hover:text-ink"
+              :aria-pressed="includeArchived">
+        <span x-text="includeArchived ? 'Ocultar cerradas' : 'Ver cerradas'"></span>
+      </button>
+      <button type="button" @click="openNew()"
+              class="h-9 rounded-lg bg-s1 px-4 text-sm font-medium text-white transition-opacity hover:opacity-90">
+        Anotar decisión
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= Resumen ================= -->
+  <div x-show="data" x-cloak class="mb-5 flex flex-wrap items-center gap-x-5 gap-y-1 rounded-xl border border-line bg-surf px-4 py-3 text-xs text-ink-soft">
+    <span><span class="tabular font-semibold text-ink" x-text="counts.active"></span> activas</span>
+    <span :class="counts.breached ? 'text-bad' : ''">
+      <span class="tabular font-semibold" x-text="counts.breached"></span> con precio bajo tu nivel de invalidación
+    </span>
+    <span :class="counts.overdue ? 'text-warn' : ''">
+      <span class="tabular font-semibold" x-text="counts.overdue"></span> con revisión vencida
+    </span>
+  </div>
+
+  <!-- ================= Formulario ================= -->
+  <section id="journal-form" x-show="formOpen" x-cloak class="mb-6 rounded-2xl border border-line bg-surf p-5">
+    <h2 class="mb-4 text-sm font-semibold" x-text="editingId ? 'Editar entrada' : 'Anotar una decisión'"></h2>
+    <form @submit.prevent="save()" class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="j-symbol" class="mb-1.5 block text-xs font-medium text-ink-soft">Símbolo</label>
+        <input id="j-symbol" x-model="form.symbol" :disabled="editingId" required placeholder="KO"
+               class="h-9 w-full rounded-lg border border-line bg-surf-2 px-3 text-sm uppercase outline-none
+                      focus:border-s1 disabled:opacity-60">
+      </div>
+      <div>
+        <label for="j-kind" class="mb-1.5 block text-xs font-medium text-ink-soft">Qué decides</label>
+        <select id="j-kind" x-model="form.kind"
+                class="h-9 w-full rounded-lg border border-line bg-surf-2 px-3 text-sm outline-none focus:border-s1">
+          <template x-for="k in kinds" :key="k.value">
+            <option :value="k.value" x-text="k.label"></option>
+          </template>
+        </select>
+      </div>
+      <div class="sm:col-span-2">
+        <label for="j-thesis" class="mb-1.5 block text-xs font-medium text-ink-soft">
+          ¿Por qué? <span class="font-normal text-ink-mute">(tu razón, en tus palabras)</span>
+        </label>
+        <textarea id="j-thesis" x-model="form.thesis" required rows="3" maxlength="2000"
+                  placeholder="Ej.: Negocio estable, caja libre creciente y poca deuda. La quiero 5 años."
+                  class="w-full rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm outline-none focus:border-s1"></textarea>
+      </div>
+      <div class="sm:col-span-2">
+        <label for="j-inv" class="mb-1.5 block text-xs font-medium text-ink-soft">
+          ¿Qué demostraría que me equivoqué? <span class="font-normal text-ink-mute">(opcional, pero es lo más valioso)</span>
+        </label>
+        <textarea id="j-inv" x-model="form.invalidation" rows="2" maxlength="1000"
+                  placeholder="Ej.: Si recorta el dividendo o la deuda neta pasa de 3x EBITDA."
+                  class="w-full rounded-lg border border-line bg-surf-2 px-3 py-2 text-sm outline-none focus:border-s1"></textarea>
+      </div>
+      <div>
+        <label for="j-price" class="mb-1.5 block text-xs font-medium text-ink-soft">
+          Precio de invalidación <span class="font-normal text-ink-mute">(divisa de cotización)</span>
+        </label>
+        <input id="j-price" x-model="form.invalidation_price" inputmode="decimal" placeholder="Si baja de aquí, avisa"
+               class="h-9 w-full rounded-lg border border-line bg-surf-2 px-3 text-sm outline-none focus:border-s1">
+      </div>
+      <div>
+        <label for="j-date" class="mb-1.5 block text-xs font-medium text-ink-soft">
+          Volver a mirar el <span class="font-normal text-ink-mute">(por defecto, en 90 días)</span>
+        </label>
+        <input id="j-date" x-model="form.review_date" type="date"
+               class="h-9 w-full rounded-lg border border-line bg-surf-2 px-3 text-sm outline-none focus:border-s1">
+      </div>
+
+      <p x-show="formError" x-cloak class="text-xs text-bad sm:col-span-2" x-text="formError"></p>
+
+      <div class="flex justify-end gap-2 sm:col-span-2">
+        <button type="button" @click="closeForm()"
+                class="rounded-lg px-3 py-2 text-sm text-ink-soft transition-colors hover:bg-surf-2 hover:text-ink">
+          Cancelar
+        </button>
+        <button type="submit" :disabled="saving"
+                class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50">
+          <span x-text="saving ? 'Guardando…' : 'Guardar'"></span>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ================= Estados ================= -->
+  <div x-show="loading" class="space-y-3">
+    <div class="skeleton h-28 w-full rounded-xl"></div>
+    <div class="skeleton h-28 w-full rounded-xl"></div>
+  </div>
+
+  <div x-show="error" x-cloak class="flex items-start gap-3 rounded-xl border border-bad/40 bg-bad/10 p-4">
+    <p class="flex-1 text-xs text-bad" x-text="error"></p>
+    <button @click="load()" class="text-xs text-ink-soft underline hover:text-ink">Reintentar</button>
+  </div>
+
+  <div x-show="!loading && !error && data && entries.length === 0" x-cloak
+       class="mx-auto max-w-lg rounded-2xl border border-line bg-surf p-10 text-center">
+    <h2 class="mb-2 text-base font-semibold">Aún no has anotado ninguna decisión</h2>
+    <p class="mb-5 text-sm leading-relaxed text-ink-soft">
+      Antes de comprar, escribe por qué. Dentro de unos meses sabrás si tu idea era buena o si
+      solo te dejaste llevar por el precio. Desde la ficha de cualquier empresa puedes pasarla
+      aquí en un clic.
+    </p>
+    <button @click="openNew()" class="rounded-lg bg-s1 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90">
+      Anotar la primera
+    </button>
+  </div>
+
+  <!-- ================= Entradas ================= -->
+  <div class="space-y-4" x-show="!loading && entries.length" x-cloak>
+    <template x-for="entry in entries" :key="entry.id">
+      <article class="rounded-xl border border-line bg-surf p-5" :class="!entry.is_active && 'opacity-70'">
+
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-base font-semibold" x-text="entry.symbol"></h3>
+              <span class="rounded-lg border border-line bg-surf-2 px-2 py-0.5 text-[11px] text-ink-soft"
+                    x-text="kindLabel(entry.kind)"></span>
+              <span x-show="entry.held" class="rounded-lg border border-s1/40 bg-s1/10 px-2 py-0.5 text-[11px] text-s1">
+                la tienes
+              </span>
+              <span x-show="!entry.is_active" class="rounded-lg border border-line px-2 py-0.5 text-[11px] text-ink-mute">
+                cerrada
+              </span>
+            </div>
+            <p class="mt-0.5 truncate text-xs text-ink-mute" x-text="entry.name ?? ''"></p>
+          </div>
+          <p class="text-right text-[11px] text-ink-mute">
+            Revisar el <span class="tabular text-ink-soft" x-text="dateLabel(entry.review_date)"></span><br>
+            <span x-text="reviewText(entry)"></span>
+          </p>
+        </div>
+
+        <!-- Alertas: lo primero, con etiqueta escrita. -->
+        <ul x-show="entry.alerts.length" class="mt-3 space-y-1.5">
+          <template x-for="alert in entry.alerts" :key="alert.code">
+            <li class="flex items-start gap-2.5 rounded-lg border px-3 py-2"
+                :class="[alertStyle(alert.level).ring, alertStyle(alert.level).bg]">
+              <span class="mt-px w-14 shrink-0 text-[10px] font-semibold uppercase tracking-wide"
+                    :class="alertStyle(alert.level).text" x-text="alertStyle(alert.level).label"></span>
+              <span class="text-[11px] leading-relaxed text-ink-soft" x-text="alert.text"></span>
+            </li>
+          </template>
+        </ul>
+
+        <div class="mt-3 grid gap-4 sm:grid-cols-2">
+          <div>
+            <p class="mb-1 text-[10px] font-medium uppercase tracking-wider text-ink-mute">Tu razón</p>
+            <p class="whitespace-pre-line text-xs leading-relaxed" x-text="entry.thesis"></p>
+          </div>
+          <div>
+            <p class="mb-1 text-[10px] font-medium uppercase tracking-wider text-ink-mute">Qué me haría cambiar de opinión</p>
+            <p x-show="entry.invalidation" class="whitespace-pre-line text-xs leading-relaxed" x-text="entry.invalidation"></p>
+            <p x-show="entry.invalidation_price" class="mt-1 text-xs text-ink-soft">
+              Precio de invalidación:
+              <span class="tabular font-medium" x-text="price(entry.invalidation_price, entry.currency)"></span>
+            </p>
+            <p x-show="!entry.invalidation && !entry.invalidation_price" class="text-xs text-ink-mute">
+              No escribiste ninguna. Sin ella, cuando caiga el precio no sabrás si vender o aguantar.
+            </p>
+          </div>
+        </div>
+
+        <!-- Entonces frente a hoy -->
+        <div class="mt-4 grid gap-x-6 gap-y-1 rounded-lg border border-line bg-surf-2/50 p-3 text-[11px] sm:grid-cols-2">
+          <p class="text-ink-mute">
+            <span class="font-medium text-ink-soft">Cuando lo anotaste</span> ·
+            precio <span class="tabular" x-text="price(entry.snapshot.price, entry.currency)"></span> ·
+            <span x-show="entry.snapshot.rank">puesto <span class="tabular" x-text="'#' + entry.snapshot.rank"></span> ·</span>
+            <span x-text="entry.snapshot.grade ? gradeLabel(entry.snapshot.grade) : 'sin calificación'"></span>
+          </p>
+          <p class="text-ink-mute">
+            <span class="font-medium text-ink-soft">Hoy</span> ·
+            precio <span class="tabular" x-text="price(entry.now.price, entry.currency)"></span>
+            (<span class="tabular" x-text="signedPct(entry.now.change_since_entry_pct)"></span>) ·
+            <span x-show="entry.now.rank">puesto <span class="tabular" x-text="'#' + entry.now.rank"></span> ·</span>
+            <span x-text="entry.now.grade_label ?? 'fuera del ranking'"></span>
+          </p>
+        </div>
+
+        <p x-show="entry.review_note" class="mt-3 text-[11px] leading-relaxed text-ink-mute">
+          <span class="font-medium text-ink-soft">Última revisión:</span>
+          <span x-text="entry.review_note"></span>
+        </p>
+
+        <!-- Acciones -->
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+          <button x-show="entry.is_active" @click="openReview(entry)"
+                  class="rounded-lg border border-line px-3 py-1.5 text-xs text-ink-soft transition-colors hover:border-line-strong hover:text-ink">
+            Marcar como revisada
+          </button>
+          <button x-show="!entry.is_active" x-cloak @click="reopen(entry)"
+                  class="rounded-lg border border-line px-3 py-1.5 text-xs text-ink-soft transition-colors hover:border-line-strong hover:text-ink">
+            Reabrir
+          </button>
+          <button @click="openEdit(entry)"
+                  class="rounded-lg px-3 py-1.5 text-xs text-ink-soft transition-colors hover:bg-surf-2 hover:text-ink">
+            Editar
+          </button>
+          <a :href="`/oportunidades?symbols=${entry.symbol}`"
+             class="rounded-lg px-3 py-1.5 text-xs text-ink-soft transition-colors hover:bg-surf-2 hover:text-ink">
+            Ver en el ranking
+          </a>
+          <button @click="remove(entry)"
+                  class="ml-auto rounded-lg px-3 py-1.5 text-xs text-ink-mute transition-colors hover:text-bad">
+            Borrar
+          </button>
+        </div>
+
+        <!-- Formulario de revisión, en línea -->
+        <form x-show="reviewingId === entry.id" x-cloak @submit.prevent="submitReview()"
+              class="mt-3 space-y-3 rounded-lg border border-line bg-surf-2/50 p-3">
+          <div>
+            <label class="mb-1 block text-[11px] font-medium text-ink-soft">¿Qué viste hoy? ¿Sigue en pie tu razón?</label>
+            <textarea x-model="reviewNote" required rows="2" maxlength="2000"
+                      class="w-full rounded-lg border border-line bg-surf px-3 py-2 text-xs outline-none focus:border-s1"></textarea>
+          </div>
+          <div class="flex flex-wrap items-end gap-3">
+            <div>
+              <label class="mb-1 block text-[11px] text-ink-mute">Próxima revisión (por defecto, 90 días)</label>
+              <input x-model="reviewNext" type="date" :disabled="reviewArchive"
+                     class="h-8 rounded-lg border border-line bg-surf px-2 text-xs outline-none focus:border-s1 disabled:opacity-50">
+            </div>
+            <label class="flex items-center gap-1.5 text-[11px] text-ink-soft">
+              <input type="checkbox" x-model="reviewArchive"> Cerrar esta entrada
+            </label>
+            <div class="ml-auto flex gap-2">
+              <button type="button" @click="reviewingId = null"
+                      class="rounded-lg px-3 py-1.5 text-xs text-ink-soft hover:bg-surf-2">Cancelar</button>
+              <button type="submit"
+                      class="rounded-lg bg-s1 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">Guardar revisión</button>
+            </div>
+          </div>
+        </form>
+      </article>
+    </template>
+  </div>
+
+  <template x-if="data">
+    <p class="mx-auto mt-6 max-w-3xl text-center text-[11px] leading-relaxed text-ink-mute"
+       x-text="data.disclaimer"></p>
+  </template>
+</div>
+{% endblock %}

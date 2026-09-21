@@ -33,6 +33,45 @@
   scripts/scheduled_refresh.py decide que hacer segun la hora del Este; los
   fines de semana sale sin tocar la red, y launchd ejecuta la corrida perdida
   al despertar el equipo.
+
+  MANTENER DESPIERTO EL EQUIPO. El comando va envuelto en `caffeinate`, que
+  sostiene una aserción de energía mientras el refresco corre y la suelta al
+  terminar. No es un adorno: muchos portátiles se suspenden en cuanto quedan
+  inactivos y una sincronización completa tarda entre 7 y 15 minutos,
+  así que sin esto se dormía a mitad. Comprueba el tuyo con `pmset -g | grep sleep`.
+
+    -i  no dormir por inactividad   (funciona también con batería)
+    -m  no dormir el disco
+    -s  no suspender el sistema     (solo tiene efecto con el cargador puesto)
+
+  Pantalla BLOQUEADA no es lo mismo que equipo SUSPENDIDO: con la pantalla
+  bloqueada y el Mac despierto, este agente ya corría bien. Lo que lo rompía
+  era la suspensión.
+
+  DESPERTAR el equipo NO hace falta, y está medido. Sobre 9 días hábiles de
+  log, las cuatro franjas dispararon todas las veces con 14 minutos de retraso
+  como máximo: launchd ejecuta el disparo perdido al despertar y el margen es
+  de sobra para lo que hace cada corrida. Un `sudo pmset repeat wakeorpoweron`
+  añadiría un despertador diario del sistema sin resolver nada.
+
+  Lo que sí fallaba es lo que pasa DESPUÉS de arrancar, y se concentra en una
+  sola franja:
+
+      franja          líneas de log    fallos de red
+      07-09 mañana           2.450                5
+      13-17 tarde            4.231                0
+      18-23 noche           10.777            1.582
+
+  Es contraintuitivo -a las 18:00 el equipo suele estar en uso- pero encaja:
+  la franja de cierre es la ÚNICA que hace el trabajo pesado y tarda entre 7
+  y 15 minutos, así que es la única que sigue viva cuando el usuario se va y
+  la máquina se suspende. Las otras tres son cotizaciones y terminan antes de
+  que el equipo llegue a quedarse inactivo.
+
+  Los huecos del log lo confirman: en la corrida del 18-09-2026 hay 13
+  silencios de 927 s, 932 s, 1034 s... que coinciden con los timeouts de curl
+  ("Operation timed out after 946059 milliseconds"). El equipo se duerme, la
+  conexión queda colgada y cada lote tarda un cuarto de hora en rendirse.
 -->
 <plist version="1.0">
 <dict>
@@ -41,6 +80,14 @@
 
     <key>ProgramArguments</key>
     <array>
+        <!-- caffeinate sostiene la aserción de energía mientras dura el
+             refresco y la suelta al terminar: sin esto el equipo se suspende
+             al minuto y la sincronización muere a mitad. Ver la nota de
+             arriba. -->
+        <string>/usr/bin/caffeinate</string>
+        <string>-i</string>
+        <string>-m</string>
+        <string>-s</string>
         <string>__RUTA_PROYECTO__/.venv/bin/python</string>
         <string>-m</string>
         <string>scripts.scheduled_refresh</string>

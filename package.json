@@ -1,0 +1,12 @@
+{
+  "name": "tablero-stocks",
+  "private": true,
+  "description": "Solo para compilar Tailwind. La app no necesita node para ejecutarse: el CSS compilado se versiona.",
+  "scripts": {
+    "build:css": "tailwindcss -i app/static/css/tailwind.src.css -o app/static/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i app/static/css/tailwind.src.css -o app/static/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

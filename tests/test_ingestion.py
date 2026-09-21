@@ -7,7 +7,7 @@ import datetime as dt
 import pytest
 from sqlalchemy import func, select, text
 
-from app.models import Asset, PriceHistory
+from app.models import Asset, Portfolio, PriceHistory
 from app.models.sync import SyncRun, SyncStatus, SyncTrigger
 from app.services import ingestion
 from app.services import universe as universe_service
@@ -190,6 +190,16 @@ def test_sync_can_target_specific_symbols(db):
 
 
 def test_intraday_universe_refresh_touches_only_quotes_and_fx(db):
+    """Cotizaciones y tipos de cambio sí; barras y fundamentales no.
+
+    La cartera se crea en COP EXPLÍCITAMENTE, y no se deja a la divisa por
+    defecto: los activos sintéticos cotizan en USD, así que el par que se
+    espera refrescar solo existe si la divisa base es otra. Dejándolo al valor
+    por defecto, el test medía la configuración del desarrollador -pasaba con
+    un `.env` que ponía COP y fallaba en un checkout limpio- en vez de medir
+    el pipeline.
+    """
+    db.add(Portfolio(name="Base COP", base_currency="COP"))
     universe_service.seed_universe(db, ["AAA", "BBB"])
     before = db.scalar(select(func.count()).select_from(PriceHistory))
 
@@ -198,7 +208,7 @@ def test_intraday_universe_refresh_touches_only_quotes_and_fx(db):
     )
 
     assert report.quotes_updated == 2
-    assert report.fx_updated == 1
+    assert report.fx_updated == 1, "USD->COP tenía que refrescarse"
     assert report.bars_written == 0
     assert report.fundamentals_updated == 0
     assert db.scalar(select(func.count()).select_from(PriceHistory)) == before
@@ -365,3 +375,33 @@ def test_prune_endpoint_refuses_a_reckless_retention(client):
 @pytest.mark.parametrize("path", ["/api/market-data/sync", "/api/market-data/status"])
 def test_endpoints_are_in_the_schema(client, path):
     assert path in client.get("/openapi.json").json()["paths"]
+
+
+def test_the_sync_never_reaches_banrep_in_tests(db, monkeypatch):
+    """Banrep es una fuente de red DISTINTA de Yahoo y `FakeProvider` no la cubre.
+
+    Sin el interruptor, `run_sync` salía a internet de verdad y la suite se
+    colgaba. El test no comprueba la configuración: comprueba que el gancho la
+    respeta, que es lo que evita que vuelva a pasar si alguien cambia el
+    defecto.
+    """
+    from app.core.config import settings
+    from app.services import reference_rates as rates_service
+
+    llamadas = []
+
+    def espia(*args, **kwargs):
+        llamadas.append(1)
+        raise AssertionError("Ningún test puede salir a Banrep")
+
+    monkeypatch.setattr(rates_service, "refresh", espia)
+
+    monkeypatch.setattr(settings, "enable_reference_rates", False)
+    ingestion.run_sync(db, FakeProvider(), force=True)
+    assert llamadas == []
+
+    # Y con el interruptor puesto SÍ se llama: si no, el test anterior pasaría
+    # aunque el gancho no existiera.
+    monkeypatch.setattr(settings, "enable_reference_rates", True)
+    with pytest.raises(AssertionError, match="Banrep"):
+        rates_service.refresh(db)

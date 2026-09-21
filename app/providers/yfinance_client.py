@@ -21,12 +21,14 @@ from typing import Any
 from app.core.exceptions import (
     ProviderRateLimited,
     ProviderUnavailable,
+    ProviderUnreachable,
     SymbolNotFound,
 )
 from app.providers.base import (
     AssetMetadata,
     BarData,
     FundamentalData,
+    FundProfile,
     QuoteData,
     SearchHit,
 )
@@ -40,6 +42,67 @@ logger = logging.getLogger(__name__)
 
 # Yahoo señaliza el rate limit de varias formas según el endpoint y la versión.
 _RATE_LIMIT_MARKERS = ("rate limit", "too many requests", "429")
+
+# Fallos en los que NO se llegó a hablar con Yahoo. Salen textuales del log
+# del agente de launchd, donde son el 80% de los errores:
+#
+#   Failed to perform, curl: (6) Could not resolve host: query2.finance...
+#   Failed to perform, curl: (28) Operation timed out after 946059 millise...
+#
+# "failed to perform" es el envoltorio de curl_cffi para CUALQUIER fallo de
+# transporte, así que por sí solo ya identifica la clase entera; los demás
+# marcadores cubren los caminos que no pasan por curl.
+_CONNECTION_MARKERS = (
+    "failed to perform",
+    "could not resolve host",
+    "temporary failure in name resolution",
+    "operation timed out",
+    "timed out",
+    "timeout",
+    "failed to connect",
+    "connection refused",
+    "connection reset",
+    "connection aborted",
+    "network is unreachable",
+    "max retries exceeded",
+    "remote disconnected",
+    "empty reply from server",
+    "ssl connect error",
+)
+
+
+def _sub_frame(frame, symbol: str):
+    """Las columnas de UN símbolo dentro del frame de `yf.download`.
+
+    Aquí vivía un fallo silencioso y caro. El código asumía que con un solo
+    símbolo yfinance aplana el MultiIndex y hacía `frame[symbol] if
+    len(symbols) > 1 else frame`. La versión instalada NO lo aplana con
+    `group_by="ticker"`: las columnas siguen siendo `('AAPL', 'Close')`, así
+    que `row.get("Close")` devolvía None en todas las filas y la función
+    entregaba CERO barras sin lanzar nada.
+
+    Medido antes del arreglo:
+
+        fetch_history(["AAPL"])          -> 0 barras
+        fetch_history(["AAPL", "MSFT"])  -> 9 y 9 barras
+
+    Lo que rompía es justo el camino de un símbolo suelto: la carga perezosa
+    de `ensure_data_for` y los que el usuario escribe en `?symbols=`, que se
+    traen EN LÍNEA precisamente para poder puntuarlos. Sin histórico no se
+    puntúan y desaparecían del ranking que se había pedido a propósito.
+
+    Se prueban las dos formas en vez de fijar una: yfinance ha cambiado este
+    comportamiento entre versiones y volver a atarse a una sola es repetir el
+    fallo en la siguiente actualización.
+    """
+    columns = getattr(frame, "columns", None)
+    if columns is not None and getattr(columns, "nlevels", 1) > 1:
+        try:
+            return frame[symbol]
+        except KeyError:
+            return None
+    # Frame plano: solo puede ser de este símbolo si se pidió uno.
+    return frame
 
 
 def _clean(value: Any) -> float | None:
@@ -66,10 +129,50 @@ def _clean_int(value: Any) -> int | None:
 
 
 def _translate_error(exc: Exception, context: str) -> Exception:
+    """Clasifica un fallo del proveedor en las tres cosas distintas que puede ser.
+
+    El orden importa: el rate limit se comprueba PRIMERO porque un 429 llega
+    por una conexión que funcionó, y confundirlo con una caída de red haría
+    que reintentáramos pronto contra un proveedor que pidió justo lo
+    contrario.
+    """
     text = str(exc).lower()
     if any(marker in text for marker in _RATE_LIMIT_MARKERS):
         return ProviderRateLimited(f"Rate limit de Yahoo Finance en {context}: {exc}")
+    if any(marker in text for marker in _CONNECTION_MARKERS):
+        return ProviderUnreachable(f"Sin conexión con el proveedor en {context}: {exc}")
     return ProviderUnavailable(f"Fallo del proveedor en {context}: {exc}")
+
+
+_yf_configured = False
+
+
+def _configure_yfinance(yfinance: Any) -> None:
+    """Ajustes globales de yfinance, una sola vez por proceso.
+
+    **Silenciar su logger no es esconder errores.** yfinance escribe una línea
+    por símbolo sin datos MÁS un resumen de "N Failed downloads", y en un
+    refresco del universo eso son decenas de líneas por las que no se puede
+    hacer nada: el mismo hecho ya se registra aquí como "Sin precio para X" y
+    llega a la interfaz como aviso. Mantener las dos copias solo consigue que
+    la terminal sea ilegible justo cuando hay algo que leer.
+
+    **`retries` viene de fábrica en 0.** Se sube a 2 porque el reintento de
+    yfinance solo cubre errores de RED -timeouts y conexiones cortadas, no el
+    429, que tiene su propio tipo y no cuenta como transitorio-, y espera
+    2^intento segundos entre uno y otro. Es decir: ayuda con el wifi y no
+    puede convertirse en un martilleo contra un proveedor que ya está
+    rechazando peticiones.
+    """
+    global _yf_configured
+    if _yf_configured:
+        return
+    logging.getLogger("yfinance").setLevel(logging.CRITICAL)
+    try:
+        yfinance.config.network.retries = 2
+    except Exception:  # pragma: no cover - versión sin config de red
+        logger.debug("Esta versión de yfinance no expone config.network.retries")
+    _yf_configured = True
 
 
 class YFinanceClient:
@@ -96,48 +199,110 @@ class YFinanceClient:
             raise ProviderUnavailable(
                 "yfinance no está instalado: pip install yfinance"
             ) from exc
+        _configure_yfinance(yfinance)
         return yfinance
 
     # ------------------------------------------------------------------
     # Cotizaciones
     # ------------------------------------------------------------------
 
-    def fetch_quotes(self, symbols: list[str]) -> dict[str, QuoteData]:
-        if not symbols:
-            return {}
+    def _download_quotes(
+        self, symbols: list[str], divisors: dict[str, float]
+    ) -> dict[str, QuoteData]:
+        """Una pasada de descarga agrupada. No avisa de lo que falte."""
         yf = self._yf()
-        quotes: dict[str, QuoteData] = {}
-
         try:
-            tickers = yf.Tickers(" ".join(symbols))
+            frame = yf.download(
+                tickers=symbols,
+                period="5d",
+                interval="1d",
+                auto_adjust=False,
+                actions=False,
+                group_by="ticker",
+                progress=False,
+                threads=True,
+                timeout=self.timeout,
+            )
         except Exception as exc:
             raise _translate_error(exc, "fetch_quotes") from exc
 
+        if frame is None or frame.empty:
+            return {}
+
+        now = dt.datetime.now(dt.UTC)
+        quotes: dict[str, QuoteData] = {}
         for symbol in symbols:
-            try:
-                info = tickers.tickers[symbol].fast_info
-                price = _clean(getattr(info, "last_price", None))
-                if price is None:
-                    logger.warning("Sin precio para %s", symbol)
-                    continue
-                # La divisa se normaliza ANTES de usar el precio: "GBp" trae
-                # peniques, y pasarlos como GBP infla la posición 100 veces.
-                currency, divisor = normalize_currency(
-                    getattr(info, "currency", None)
-                )
-                quotes[symbol] = QuoteData(
-                    symbol=symbol,
-                    price=scale(price, divisor),
-                    previous_close=scale(
-                        _clean(getattr(info, "previous_close", None)), divisor
-                    ),
-                    currency=currency or "USD",
-                    quote_time=dt.datetime.now(dt.UTC),
-                )
-            except KeyError:
-                logger.warning("Símbolo desconocido en el lote: %s", symbol)
-            except Exception as exc:  # un símbolo roto no debe tumbar el lote
-                logger.warning("Error obteniendo cotización de %s: %s", symbol, exc)
+            sub = _sub_frame(frame, symbol)
+            if sub is None:
+                continue
+
+            closes = [v for v in (_clean(x) for x in sub["Close"]) if v is not None]
+            if not closes:
+                continue
+
+            divisor = divisors.get(symbol, 1.0)
+            quotes[symbol] = QuoteData(
+                symbol=symbol,
+                price=closes[-1] / divisor,
+                previous_close=scale(closes[-2] if len(closes) > 1 else None, divisor),
+                currency=None,
+                quote_time=now,
+            )
+        return quotes
+
+    def fetch_quotes(self, symbols: list[str]) -> dict[str, QuoteData]:
+        """Cotizaciones del lote en descargas agrupadas, no una por símbolo.
+
+        `yf.Tickers(...)` es PEREZOSO: construirlo no cuesta nada y cada
+        `fast_info` que se le pide después es un viaje de ida y vuelta propio.
+        Medido: 3 ms de construcción y 0,42 s por símbolo, o sea 208 s para el
+        universo de 494 -y una ráfaga de 494 peticiones que Yahoo corta a
+        mitad con un 429-. Con `yf.download` el mismo universo tarda 81 s y
+        no dispara el límite.
+
+        Se piden 5 días y se usan las dos últimas barras CON precio: la última
+        es la cotización -durante la sesión Yahoo va actualizando la barra del
+        día en curso- y la anterior el cierre previo. Buscar la última con
+        precio, y no la última fila, es lo que evita quedarse a cero un
+        festivo.
+
+        **Cinco días y no un mes, aunque un mes devuelva más.** Con ventana
+        larga, un símbolo cuya serie lleva semanas parada devuelve igualmente
+        un número y lo presentaría como el precio de hoy: AVB da 68,14 con
+        `period="1mo"` -su última barra es del 24 de agosto- cuando cotiza a
+        184. Con cinco días no devuelve nada, que es el fallo correcto: sin
+        cotización se conserva el último valor y se marca `is_stale`, en vez
+        de inventar una caída del 63%.
+
+        **Reintento acotado de los rezagados.** Una descarga grande deja caer
+        símbolos bajo carga: en el universo completo faltaron 18, y al volver
+        a pedir solo esos 12 aparecieron en 3,5 s. Se reintenta UNA vez y solo
+        si la primera pasada trajo algo: que no venga nada no son rezagados,
+        es una caída o un rate limit, y repetir entonces solo dobla la carga
+        justo cuando el proveedor pide que pares.
+
+        NO devuelve divisa, y es deliberado: `yf.download` no la da. Dejarla
+        en None hace que el consumidor use la del activo, fijada por los
+        metadatos, que es donde `normalize_currency` ya corrió. Poner un "USD"
+        por defecto marcaría como dólares los 22 tickers de la BVC. Lo que sí
+        se aplica en esta frontera es el divisor de subunidad: `GBp` llega en
+        peniques sin ninguna marca, con el mismo sondeo acotado que ya usa el
+        histórico.
+        """
+        if not symbols:
+            return {}
+
+        divisors = self._minor_unit_divisors(symbols)
+        quotes = self._download_quotes(symbols, divisors)
+
+        missing = [s for s in symbols if s not in quotes]
+        if quotes and missing:
+            logger.info("Reintentando %d símbolos rezagados del lote", len(missing))
+            quotes.update(self._download_quotes(missing, divisors))
+
+        for symbol in symbols:
+            if symbol not in quotes:
+                logger.warning("Sin precio para %s", symbol)
 
         return quotes
 
@@ -214,10 +379,8 @@ class YFinanceClient:
 
         result: dict[str, list[BarData]] = {}
         for symbol in symbols:
-            try:
-                # Con un solo símbolo yfinance aplana el MultiIndex.
-                sub = frame[symbol] if len(symbols) > 1 else frame
-            except KeyError:
+            sub = _sub_frame(frame, symbol)
+            if sub is None:
                 continue
 
             divisor = divisors.get(symbol, 1.0)
@@ -285,7 +448,42 @@ class YFinanceClient:
                 industry=info.get("industry"),
                 country=info.get("country"),
                 asset_type=(info.get("quoteType") or "").upper() or None,
+                fund_category=info.get("category") or None,
             )
+        return result
+
+    def fetch_fund_profiles(self, symbols: list[str]) -> dict[str, FundProfile]:
+        """Perfil de cada fondo. Un símbolo que no lo sea se omite sin ruido.
+
+        `funds_data` lanza `YFDataException` para todo lo que no es un fondo
+        -y también para los de la BVC, que Yahoo no cubre-, así que el fallo
+        POR SÍMBOLO es el caso normal y no se propaga: omitir es la respuesta
+        correcta. Lo que sí se propaga es un rate limit, porque ahí el
+        problema no es el símbolo sino el ritmo.
+        """
+        result: dict[str, FundProfile] = {}
+        for symbol in symbols:
+            try:
+                data = self._yf().Ticker(symbol).funds_data
+                overview = data.fund_overview or {}
+                classes = data.asset_classes or {}
+                result[symbol] = FundProfile(
+                    symbol=symbol,
+                    category=overview.get("categoryName") or None,
+                    legal_type=overview.get("legalType") or None,
+                    stock_position=_clean(classes.get("stockPosition")),
+                    bond_position=_clean(classes.get("bondPosition")),
+                    cash_position=_clean(classes.get("cashPosition")),
+                    other_position=_clean(classes.get("otherPosition")),
+                    expense_ratio=_frame_cell(
+                        data.fund_operations, "Annual Report Expense Ratio"
+                    ),
+                    credit_ratings=_positive_ratings(data.bond_ratings),
+                )
+            except ProviderRateLimited:
+                raise
+            except Exception:  # noqa: BLE001 - no ser un fondo es lo normal
+                logger.debug("%s: sin perfil de fondo", symbol)
         return result
 
     def fetch_fundamentals(self, symbols: list[str]) -> dict[str, FundamentalData]:
@@ -388,6 +586,41 @@ class YFinanceClient:
         """
         return f"{base.upper()}{quote.upper()}=X"
 
+    def fetch_fx_history(
+        self, pairs: list[tuple[str, str]], start: dt.date, end: dt.date
+    ) -> dict[tuple[str, str], list[tuple[dt.date, float]]]:
+        """Cierres diarios de un par de divisas.
+
+        Es la MISMA descarga que la de un activo -un par de divisas en Yahoo es
+        un ticker más, `USDCOP=X`- así que reutiliza `fetch_history` en lugar de
+        duplicar el manejo de errores, el lote y el timeout.
+
+        Devuelve CIERRES, no cotizaciones vivas. La diferencia importa: el tipo
+        del día en curso se sigue tomando de `fetch_fx_rates`, que da el precio
+        de ahora, mientras que esto rellena los días ya cerrados. Mezclarlos al
+        revés pondría un cierre de ayer como tipo de hoy.
+
+        El sondeo de subunidad no interfiere: solo mira los sufijos `.L`, `.TA`
+        y `.JO`, y un par de divisas termina en `=X`.
+        """
+        if not pairs:
+            return {}
+        tickers = {self.fx_ticker(base, quote): (base.upper(), quote.upper())
+                   for base, quote in pairs}
+        bars_by_ticker = self.fetch_history(list(tickers), start, end)
+
+        result: dict[tuple[str, str], list[tuple[dt.date, float]]] = {}
+        for ticker, pair in tickers.items():
+            bars = bars_by_ticker.get(ticker)
+            if not bars:
+                continue
+            # Un tipo de cambio no negativo ni nulo: un 0 aquí produciría una
+            # división por cero al invertir el par.
+            serie = [(bar.date, bar.close) for bar in bars if bar.close > 0]
+            if serie:
+                result[pair] = serie
+        return result
+
     def fetch_fx_rates(self, pairs: list[tuple[str, str]]) -> dict[tuple[str, str], float]:
         if not pairs:
             return {}
@@ -400,3 +633,31 @@ class YFinanceClient:
             if data is not None and data.price > 0:
                 result[(base.upper(), quote.upper())] = data.price
         return result
+
+
+def _frame_cell(frame, row: str) -> float | None:
+    """Una celda de los DataFrame de `funds_data`, o None si no está.
+
+    Vienen con la columna del símbolo y otra de media de categoría, y con
+    `<NA>` de pandas donde no hay dato: `float(<NA>)` lanza, así que el
+    acceso va envuelto.
+    """
+    try:
+        value = frame.loc[row].iloc[0]
+    except Exception:  # noqa: BLE001 - fila ausente o frame vacío
+        return None
+    return _clean(value)
+
+
+def _positive_ratings(ratings: dict | None) -> dict[str, float] | None:
+    """Reparto por calificación crediticia, sin los ceros.
+
+    Yahoo devuelve las once categorías siempre, con 0.0 en las que no
+    aplican: guardarlas todas llenaría la ficha de filas vacías. Para un fondo
+    de acciones el diccionario entero es cero, y entonces se devuelve None,
+    que es la verdad.
+    """
+    if not ratings:
+        return None
+    vivos = {k: float(v) for k, v in ratings.items() if v}
+    return vivos or None

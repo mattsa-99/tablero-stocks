@@ -58,12 +58,21 @@ def test_crypto_and_futures_belong_to_no_national_economy():
 
 
 def test_commodity_and_world_etfs_are_not_the_us_market():
-    """GLD cotiza en EE.UU. pero sigue al oro; VT sigue al mundo entero."""
-    assert classify(asset("GLD", asset_type=AssetType.ETF)) is MarketRegion.GLOBAL
-    assert classify(asset("VT", asset_type=AssetType.ETF)) is MarketRegion.GLOBAL
+    """GLD cotiza en EE.UU. pero sigue al oro; VT sigue al mundo entero.
+
+    La región de un fondo se resuelve por su CUBO, y el cubo por la categoría
+    del proveedor: por eso los activos de este test la llevan.
+    """
+    def fondo(symbol, category):
+        return asset(symbol, asset_type=AssetType.ETF, fund_category=category)
+
+    assert classify(fondo("GLD", "Commodities Focused")) is MarketRegion.GLOBAL
+    assert classify(fondo("VT", "Global Large-Stock Blend")) is MarketRegion.GLOBAL
+    # Un ETF de bitcoin al contado tampoco es la economía estadounidense.
+    assert classify(fondo("IBIT", "Digital Assets")) is MarketRegion.GLOBAL
     # Un sectorial o de bonos del Tesoro sí es mercado estadounidense.
-    assert classify(asset("XLE", asset_type=AssetType.ETF)) is MarketRegion.US
-    assert classify(asset("TLT", asset_type=AssetType.ETF)) is MarketRegion.US
+    assert classify(fondo("XLE", "Equity Energy")) is MarketRegion.US
+    assert classify(fondo("TLT", "Long Government")) is MarketRegion.US
 
 
 def test_classification_never_returns_none():
@@ -371,3 +380,4 @@ def test_the_frontend_uses_the_same_quality_slugs():
 
     expected = {grade.value: slug for grade, slug in GRADE_SLUG.items()}
     assert in_js == expected, f"JS={in_js} vs Python={expected}"
+

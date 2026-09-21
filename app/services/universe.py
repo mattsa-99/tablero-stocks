@@ -4,6 +4,7 @@ El universo NO es "todo lo que hay en el catálogo". Es la unión de:
 
   1. Los miembros declarados (`is_universe`), sembrados desde configuración.
   2. Los activos con posición abierta en cualquier portafolio.
+  3. Los activos que vigilas o has anotado en el diario (entradas activas).
 
 La segunda parte es lo que evita el fallo silencioso más obvio de un pipeline
 con lista fija: comprar algo fuera de la lista y quedarse sin precio para
@@ -18,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models import Asset, AssetType, Transaction, TransactionType
+from app.models import Asset, AssetType, JournalEntry, Transaction, TransactionType
 
 logger = logging.getLogger(__name__)
 
@@ -123,9 +124,23 @@ def held_asset_ids(db: Session) -> set[int]:
     return set(rows)
 
 
+def watched_asset_ids(db: Session) -> set[int]:
+    """Activos con una entrada ACTIVA en el diario o la lista de vigilancia.
+
+    Vigilar una empresa sin refrescar su precio sería una promesa vacía: la
+    alerta de «cayó por debajo de tu nivel de invalidación» se calcularía con
+    un precio de hace semanas. Por eso entran en la ingesta, igual que lo que
+    posees.
+    """
+    rows = db.scalars(
+        select(JournalEntry.asset_id).where(JournalEntry.is_active.is_(True)).distinct()
+    ).all()
+    return set(rows)
+
+
 def get_ingestion_universe(db: Session) -> list[Asset]:
     """Los activos que el pipeline debe refrescar, ordenados por símbolo."""
-    held = held_asset_ids(db)
+    held = held_asset_ids(db) | watched_asset_ids(db)
     stmt = select(Asset).where(
         Asset.is_active.is_(True),
         (Asset.is_universe.is_(True)) | (Asset.id.in_(held) if held else False),

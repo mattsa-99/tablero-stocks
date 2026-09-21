@@ -27,6 +27,14 @@ class InvalidLedgerOperation(TableroError):
     """
 
 
+class InvalidJournalEntry(TableroError):
+    """La entrada del diario no cumple las reglas (fecha pasada, sin razón...). -> 422"""
+
+
+class InvalidAllocationPlan(TableroError):
+    """El plan de asignación no es coherente (suma > 100, clase no válida). -> 422"""
+
+
 class InsufficientUniverse(TableroError):
     """No hay candidatos suficientes para un ranking con sentido. -> 422
 
@@ -58,6 +66,21 @@ class ProviderRateLimited(ProviderError):
 
 class ProviderUnavailable(ProviderError):
     """Timeout, error de red o respuesta ilegible."""
+
+
+class ProviderUnreachable(ProviderUnavailable):
+    """No se llegó a hablar con el proveedor: DNS, conexión o timeout.
+
+    Subclase y no hermana de `ProviderUnavailable` para que todo lo que hoy
+    la captura siga funcionando. La distinción importa en un solo sitio, y es
+    el que evita el fallo más caro de este pipeline: un fallo de CONEXIÓN no
+    dice nada sobre el símbolo que se pidió, así que no puede apuntarse
+    contra él.
+
+    Medido en el log del agente de launchd: 1.282 fallos de DNS frente a 23
+    de rate limit. Con el portátil suspendido a mitad de sincronización, los
+    494 símbolos del universo quedaban marcados como fallidos y en backoff
+    exponencial individual por una red que se cayó."""
 
 
 class MarketDataUnavailable(ProviderError):

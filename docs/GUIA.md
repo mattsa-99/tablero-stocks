@@ -87,8 +87,10 @@ truco que más me ha servido:
 Voy a la vista **Oportunidades**. Sin filtros son ~490 candidatos: demasiados.
 Filtro en dos golpes.
 
-**Primero por calidad.** En la fila **Calidad** pulso `Muy buena` y `Buena`.
-Son chips: se activan y desactivan, y se combinan. Con eso descarto de golpe
+**Primero por calidad.** Al abrir la vista ya vienen activados `Muy buena` y
+`Buena`, y un aviso te dice cuántas quedan fuera; **Ver todos** las muestra.
+En la fila **Calidad** puedo cambiarlo: son chips, se activan y desactivan.
+Se combinan. Con eso descarto de golpe
 todo lo que en términos absolutos no merece la pena, sin importar qué puesto
 ocupe.
 
@@ -139,6 +141,32 @@ Luego despliego **Métricas observadas** y miro tres cosas:
 - **`annualized_volatility`** — cuánto oscila. Un ETF amplio ronda el 15%; por
   encima del 30% prepárate para sustos.
 
+### Paso 2b — Antes de decidir: la ficha de compra (5 min)
+
+Con un candidato que me interesa, pulso **Ver ficha de compra** en su tarjeta.
+Es una sola pantalla con lo que un score no puede decir:
+
+- **Banderas** rojas, amarillas y verdes, ordenadas por gravedad. El veredicto
+  solo dice si el filtro encontró problemas; **sin banderas rojas no significa
+  «compra»**, significa que este filtro no vio nada grave.
+- **Salud financiera**: deuda neta frente al EBITDA, margen operativo, caja
+  libre, liquidez. En bancos aparece «no aplica»: esas métricas no miden un
+  banco.
+- **Calendario y analistas**: próximos resultados y objetivo medio, como
+  opinión, no como dato.
+- **Frente a su sector**: su puesto entre las empresas del mismo sector. La
+  valoración se compara con la mediana del sector, no con todo el universo.
+- **Tu cartera**: si ya la tienes y cuánto pesa.
+- **Cuánto poner**: un techo, no una orden. Se calcula como presupuesto de
+  riesgo dividido entre la caída que la empresa podría repetir. Puedo cambiar
+  el capital, el riesgo aceptado y el tope por posición y pulsar **Recalcular**.
+- **De cuándo son los datos**: precio, histórico y fundamentales con su fecha.
+  Si algo está viejo, lo dice.
+
+Para el mismo informe en texto: `python scripts/ficha.py SYMBOL`.
+
+Si la ficha me convence, pulso **Anotar en el diario** (ver el paso 4).
+
 ### Paso 3 — What-if (Simulador · 10 min)
 
 Ya tengo un candidato. **No lo compro todavía.** Paso al simulador, que
@@ -184,6 +212,19 @@ comisiones y tipo de cambio quedan congelados, y de ahí sale mi coste medio.
 > 2. **Si son varias operaciones y falla a mitad, puede quedar aplicada solo
 >    una parte.** La app te avisa cuando pasa. Revisa la lista de posiciones
 >    antes de reintentar, o registrarás la misma compra dos veces.
+
+**Anoto por qué.** En la vista **Diario** pulso **Anotar decisión** y escribo,
+con mis palabras: por qué lo compro, **qué hecho demostraría que me equivoqué**,
+a qué precio dejo de creerme la tesis y cuándo vuelvo a mirar (por defecto, en
+90 días). El Tablero guarda una foto del score de ese día y me avisa cuando el
+precio cae bajo mi nivel, cuando toca revisar o cuando la calificación empeora.
+Anotar una decisión **no registra ninguna operación**, y una alerta pide
+revisar, no vender.
+
+**Si ya tengo un historial.** En Portafolio, **Importar CSV** carga operaciones
+con la plantilla del Tablero (se descarga desde el mismo diálogo). Primero
+revisa todo sin escribir nada; si una sola fila falla, no se importa ninguna.
+Volver a subir el mismo archivo no duplica operaciones.
 
 Y ya está. Cierro el tablero. **No vuelvo a mirarlo hasta mañana.**
 
@@ -288,6 +329,13 @@ debes leer lo que ves**:
 - **Lo que no se puede medir, no se rankea.** Los candidatos sin histórico
   suficiente quedan excluidos con su motivo visible al final de la lista. No
   aparecerán nunca entre tus oportunidades, aunque sean buenas empresas.
+- **La ficha y el tamaño de posición son heurísticas, no un backtest.** Las
+  banderas usan umbrales de sentido común y el techo de peso usa una caída de
+  estrés con un suelo (35 % en acciones, 25 % en fondos), porque con un año de
+  histórico una calma reciente no garantiza que no pueda caer más.
+- **Las fechas de los datos importan.** Los fundamentales son trimestrales y
+  Yahoo llega con retraso: antes de comprar, comprueba las cifras clave en la
+  web de la empresa o en la bolsa.
 - **El coste medio mide tu rendimiento, no es una declaración fiscal.**
   Coincide con el costo promedio del Estatuto Tributario colombiano para
   acciones, pero eso lo confirma un contador, no este tablero.
@@ -300,8 +348,10 @@ debes leer lo que ves**:
 1. Portafolio  →  ¿caja sana? ¿algún sector desbocado?   (5 min)
 2. Oportunidades → filtro Calidad + filtro Mercado        (10 min)
                    miro la CALIFICACIÓN antes que el score
+   Ficha       →  banderas, salud, sector, cuánto poner    (5 min)
 3. Simulador   →  ¿sube Diversificación? ¿caja positiva?  (10 min)
 4. Aplicar     →  solo si el "después" es mejor que el "antes"
+   Diario      →  anota por qué y qué te haría cambiar de opinión
 ```
 
 **La regla que resume todo:** si no puedes explicar en una frase por qué esta
