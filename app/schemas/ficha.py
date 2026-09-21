@@ -158,6 +158,9 @@ class SizingRead(BaseModel):
 
     risk_budget_pct: float
     max_position_pct: float
+    asset_class: str = Field(
+        default="accion", description="Clase con la que se eligió el suelo de estrés"
+    )
     stress_loss_pct: float
     stress_source: Literal["observed", "floor"]
     observed_drawdown_pct: float | None = None
@@ -171,7 +174,47 @@ class SizingRead(BaseModel):
     add_amount: Decimal | None = None
     loss_if_repeats_amount: Decimal | None = None
     loss_if_repeats_pct_of_capital: float
+    applies_to: Literal["single_position", "core_or_single"] = Field(
+        default="single_position",
+        description=(
+            "'core_or_single' cuando el activo es diversificado: entonces este "
+            "techo solo vale si lo tratas como una posición más, y no si es el "
+            "núcleo de tu cartera. Un núcleo se dimensiona en el plan de "
+            "asignación, no por presupuesto de riesgo"
+        ),
+    )
     notes: list[str] = Field(default_factory=list)
+
+
+class FundProfileRead(BaseModel):
+    """Qué hay dentro de un fondo y cuánto cuesta tenerlo.
+
+    NO trae duración ni pesos por sector, y no es un olvido: se probaron y no
+    son fiables. SJNK -de corto plazo- venía con más duración que TLT, que es
+    el de 20+ años, y los pesos por sector de SJNK dicen «comunicaciones
+    100%» en un fondo que es 98,7% bonos.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    category: str | None = None
+    legal_type: str | None = None
+    stock_position: float | None = None
+    bond_position: float | None = None
+    cash_position: float | None = None
+    other_position: float | None = None
+    expense_ratio_pct: float | None = None
+    # Coste anual sobre una posición del tamaño que sugiere el sizing: el
+    # porcentaje solo no se siente, y sentirlo es el punto.
+    expense_amount: Decimal | None = None
+    credit_ratings: dict[str, float] | None = Field(
+        default=None,
+        description="Reparto por calificación crediticia; solo en fondos de bonos",
+    )
+    investment_grade_pct: float | None = Field(
+        default=None,
+        description="Cuánto del fondo está en grado de inversión (BBB o mejor)",
+    )
 
 
 class FichaResponse(BaseModel):
@@ -202,6 +245,7 @@ class FichaResponse(BaseModel):
     sector_rank: int | None = None
     sector_size: int | None = None
     portfolio: PortfolioContext
+    fund: FundProfileRead | None = None
     sizing: SizingRead | None = None
     freshness: Freshness
     warnings: list[str] = Field(default_factory=list)

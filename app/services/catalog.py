@@ -130,6 +130,7 @@ def seed_catalog(db: Session, *, promote_to_universe: bool = False) -> dict[str,
                     # ventana suficiente para registrar una compra cuyo
                     # `fx_rate_to_base` ya queda congelado y erróneo.
                     currency=(entry.get("currency") or "USD").upper(),
+                    declared_asset_class=entry.get("asset_class"),
                     exchange=entry.get("exchange"),
                     is_universe=promote_to_universe or bool(entry.get("universe")),
                 )
@@ -143,6 +144,13 @@ def seed_catalog(db: Session, *, promote_to_universe: bool = False) -> dict[str,
             touched = True
         if not asset.sector and entry.get("sector"):
             asset.sector = entry["sector"]
+
+        # La clase declarada SÍ se pisa al resembrar, a diferencia del sector.
+        # El sector viene del proveedor y el catálogo no debe sobrescribirlo;
+        # esto es al revés: es una corrección humana a lo que el proveedor NO
+        # sabe, así que la fuente de verdad es el catálogo.
+        if entry.get("asset_class"):
+            asset.declared_asset_class = entry["asset_class"]
             touched = True
         if not asset.exchange and entry.get("exchange"):
             asset.exchange = entry["exchange"]

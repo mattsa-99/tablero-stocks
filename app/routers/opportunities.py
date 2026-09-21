@@ -15,6 +15,7 @@ from app.services import ingestion as ingestion_service
 from app.services import opportunities as opportunity_service
 from app.services import refresh_jobs
 from app.services import universe as universe_service
+from app.services.asset_class import parse_asset_classes
 from app.services.grading import parse_quality_tiers
 from app.services.regions import parse_regions
 
@@ -69,6 +70,16 @@ def get_opportunities(
         ),
         examples=["US,COL"],
     ),
+    asset_classes: str | None = Query(
+        None,
+        description=(
+            "Clases de activo a mostrar, separadas por coma: accion, "
+            "fondo_acciones, renta_fija, materias_primas, cripto. Vacío = "
+            "todas. El score es un percentil DENTRO de cada clase, así que "
+            "filtrar por clase es lo único que deja ver un ranking comparable"
+        ),
+        examples=["accion,fondo_acciones"],
+    ),
 ):
     """Ranking de oportunidades con el desglose completo de cada score.
 
@@ -76,7 +87,8 @@ def get_opportunities(
     `symbols`. NO es una recomendación de inversión: es un ranking relativo
     dentro del universo evaluado, y la respuesta lo declara explícitamente.
 
-    `quality_tiers` y `regions` filtran QUÉ SE MUESTRA, no qué se evalúa: el
+    `quality_tiers`, `regions` y `asset_classes` filtran QUÉ SE MUESTRA, no
+    qué se evalúa: el
     universo puntuado es siempre el completo, porque el score es un percentil
     y recalcularlo sobre un subconjunto cambiaría su significado. Un valor
     desconocido en cualquiera de los dos se ignora en lugar de devolver 422:
@@ -144,6 +156,7 @@ def get_opportunities(
         limit=limit,
         quality_tiers=parse_quality_tiers(quality_tiers),
         regions=parse_regions(regions),
+        asset_classes=parse_asset_classes(asset_classes),
     )
     # `refresh_running` y no "acabo de encolar una": entre encolar y ejecutar
     # hay un hueco, y si otra petición ya tenía el candado la nuestra no hará

@@ -238,12 +238,22 @@ def test_opportunities_ranks_the_universe(client, portfolio_id):
     assert body["universe_size"] >= 5
     assert len(body["opportunities"]) <= 10
 
-    scores = [row["score"] for row in body["opportunities"]]
-    assert scores == sorted(scores, reverse=True), "Debe venir ordenado por score"
+    filas = body["opportunities"]
+    scores = [row["score"] for row in filas]
     assert all(0 <= score <= 100 for score in scores)
-    assert [row["rank"] for row in body["opportunities"]] == list(
-        range(1, len(scores) + 1)
-    )
+
+    # ORDEN DE PRESENTACIÓN: la calificación manda sobre el score. Ordenar
+    # solo por score ponía a ETB.CL -calificación «Mala»- en el puesto 2 de
+    # 490, encima de cien empresas mejor calificadas.
+    orden = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "SIN_CALIFICAR": 5}
+    clave = [(orden[row["assessment"]["grade"]], -row["score"]) for row in filas]
+    assert clave == sorted(clave), "Primero la calificación, luego el score"
+
+    # Dentro de una misma clase y calificación, el score sigue mandando.
+    for fila in filas:
+        assert fila["rank"] >= 1
+        assert fila["class_size"] >= 1
+        assert fila["rank"] <= fila["class_size"]
 
 
 def test_score_equals_sum_of_contributions(client, portfolio_id):
@@ -277,7 +287,15 @@ def test_risk_contribution_is_negative(client, portfolio_id):
 
 
 def test_sector_concentration_penalizes_candidates(client, portfolio_id):
-    """Con la cartera 100% en Technology, sus candidatos deben perder puntos."""
+    """Con la cartera cargada de Technology, sus candidatos deben perder puntos.
+
+    La línea base se toma con la cartera YA con una posición, no vacía. Con la
+    cartera vacía el factor queda sin medir -no hay nada contra lo que
+    diversificar- y comparar ese estado con uno medido no diría nada sobre la
+    penalización, que es lo único que este test quiere comprobar.
+    """
+    buy(client, portfolio_id, "SOLID", qty="1", price="100", fx="4000")
+
     baseline = opportunities(client, portfolio_id).json()
     before = {r["symbol"]: r["diversification"]["score"] for r in baseline["opportunities"]}
 
@@ -290,7 +308,8 @@ def test_sector_concentration_penalizes_candidates(client, portfolio_id):
     assert after["CHEAP"] == pytest.approx(before["CHEAP"]), "Energy no debe verse afectado"
 
     penalized = next(r for r in after_body["opportunities"] if r["symbol"] == "EXPENSIVE")
-    assert float(penalized["sector_weight_pct"]) == pytest.approx(100.0)
+    # No es el 100% exacto porque queda la posición pequeña de Healthcare.
+    assert float(penalized["sector_weight_pct"]) > 95.0
     assert any("penalización" in note for note in penalized["notes"])
 
 

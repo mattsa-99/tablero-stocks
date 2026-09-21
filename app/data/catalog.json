@@ -2012,6 +2012,37 @@
    "universe": true
   },
   {
+   "symbol": "GXTESCOL.CL",
+   "name": "Fondo Bursatil Global Tes Colombia Cop Gbiemid Etf",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_funds",
+   "universe": true,
+   "asset_class": "renta_fija"
+  },
+  {
+   "symbol": "HCOLSEL.CL",
+   "name": "Fondo Bursátil Horizons Colombia Select de S&P",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_funds",
+   "universe": true
+  },
+  {
+   "symbol": "ICOLCAP.CL",
+   "name": "Fondo Bursátil iShares MSCI COLCAP",
+   "asset_type": "ETF",
+   "sector": null,
+   "currency": "COP",
+   "exchange": "BVC",
+   "group": "bvc_funds",
+   "universe": true
+  },
+  {
    "symbol": "BOGOTA.CL",
    "name": "Banco de Bogotá S.A.",
    "asset_type": "STOCK",

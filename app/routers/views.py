@@ -70,6 +70,13 @@ def opportunities(request: Request):
     )
 
 
+@router.get("/plan", response_class=HTMLResponse)
+def plan(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="plan.html", context={"active_page": "/plan"}
+    )
+
+
 @router.get("/diario", response_class=HTMLResponse)
 def journal(request: Request):
     return templates.TemplateResponse(

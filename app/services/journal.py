@@ -266,7 +266,8 @@ def _alerts(entry: JournalEntry, asset: Asset, ctx: _Context) -> list[JournalAle
 
 def _grade_label(grade: str | None) -> str:
     return {
-        "A": "Muy buena", "B": "Buena", "C": "Normal", "D": "Mala", "E": "Muy mala",
+        "A": "Muy favorables", "B": "Favorables", "C": "Mixtas",
+        "D": "Desfavorables", "E": "Muy desfavorables",
     }.get(grade or "", grade or "sin calificar")
 
 

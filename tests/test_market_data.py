@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.models import Asset, AssetQuote, DataSyncState, FxRateDaily, PriceHistory
 from app.providers.cache import UNREACHABLE_COOLDOWN_MAX, ResourceType, SyncGate
 from app.services.market_data import MarketDataService, fx_sanity_check
@@ -389,6 +390,74 @@ def test_history_requests_only_the_gap(db):
     )
 
 
+def test_history_fills_the_past_when_the_window_widens(db, monkeypatch):
+    """Ampliar la ventana trae pasado. Antes no traía nada.
+
+    EL FALLO QUE ESTO FIJA. `start` era siempre `última + 1 día`, así que el
+    relleno solo sabía avanzar: con barras ya guardadas, subir
+    `price_history_days` de 400 a 1.825 no traía ni un día más. Sobre la base
+    real eso afectaba a los 711 activos con histórico, y dejaba la «caída
+    máxima» de `sizing.py` midiendo catorce meses de mercado alcista.
+
+    Es el mismo fallo que ya se corrigió en `refresh_fx_history`, que con solo
+    el máximo traía 2 filas y dejaba tres años de hueco anterior.
+    """
+    asset = make_asset(db)
+    hoy = dt.date.today()
+    completo = synthetic_series(50.0, 600, end=hoy - dt.timedelta(days=1))
+    provider = FakeProvider(history={"AAPL": completo})
+
+    # Ventana corta: entran solo los últimos 100 días.
+    monkeypatch.setattr(settings, "price_history_days", 100)
+    MarketDataService(db, provider).refresh_price_history([asset])
+    guardadas = len(db.scalars(select(PriceHistory)).all())
+    assert 0 < guardadas < 600
+
+    # La ventana se amplía. No hace falta forzar nada: la profundidad forma
+    # parte de la clave del sello, así que el sello anterior deja de valer.
+    monkeypatch.setattr(settings, "price_history_days", 1_000)
+    MarketDataService(db, provider).refresh_price_history([asset])
+
+    assert len(db.scalars(select(PriceHistory)).all()) == 600, (
+        "Con la ventana ampliada tiene que entrar la serie entera"
+    )
+    llamadas = [c for c in provider.calls if c[0] == "fetch_history"]
+    assert llamadas[-1][1][1] < completo[0].date, (
+        "La segunda llamada pide DESDE ANTES de la primera barra guardada"
+    )
+
+
+def test_the_backfill_is_not_repeated_for_a_young_symbol(db):
+    """Un símbolo joven no puede alcanzar la profundidad pedida: no se insiste.
+
+    Sin este sello, «¿me falta pasado?» sería siempre que sí para cualquier
+    activo salido a bolsa hace poco, y cada sincronización redescargaría cinco
+    años de nada.
+    """
+    asset = make_asset(db)
+    # El proveedor solo tiene 60 días: la serie NUNCA llegará a la ventana.
+    bars = synthetic_series(100.0, 60, end=dt.date.today() - dt.timedelta(days=1))
+    provider = FakeProvider(history={"AAPL": bars})
+    service = MarketDataService(db, provider)
+
+    service.refresh_price_history([asset])
+    service.refresh_price_history([asset], force=True)
+
+    llamadas = [c for c in provider.calls if c[0] == "fetch_history"]
+    assert len(llamadas) == 2, "La segunda pasada sí ocurre: busca barras nuevas"
+    assert llamadas[1][1][1] == bars[-1].date + dt.timedelta(days=1), (
+        "pero arranca tras la última barra: el pasado ya se preguntó y se selló"
+    )
+
+    sellos = db.scalars(
+        select(DataSyncState).where(
+            DataSyncState.resource_type == ResourceType.PRICE_HISTORY_BACKFILL
+        )
+    ).all()
+    assert len(sellos) == 1
+    assert sellos[0].last_success_at is not None
+
+
 def test_history_skips_entirely_when_up_to_date(db):
     """Si la última barra es de hoy no hay nada que pedir: ni una llamada."""
     asset = make_asset(db)
@@ -492,3 +561,67 @@ def test_full_refresh_touches_every_resource(db):
     assert report.fundamentals_updated == 1
     assert report.fx_updated == 1
     assert report.metadata_updated == 1
+
+
+# --------------------------------------------------------------------------
+# El informe tiene que servir para diagnosticar
+# --------------------------------------------------------------------------
+
+
+def test_routine_ratio_drops_do_not_bury_the_real_failures(db):
+    """Descartar el P/B de un ADR es rutina, no una incidencia.
+
+    Pasa con ~80 activos en CADA sincronización. Escribir una línea por activo
+    llenaba el informe de ~200 mensajes, y como se guardan solo los 40
+    primeros, «Sin cotización para AVB» se perdía antes de llegar a la
+    pantalla. Un informe en el que no se puede encontrar lo que falló no sirve
+    para lo que existe.
+    """
+    from app.services.market_data import RefreshReport
+
+    report = RefreshReport()
+    for i in range(80):
+        report.drop(f"ADR{i}", {
+            "price_to_book": "cotiza en USD y reporta en EUR: el proveedor no convierte",
+            "ev_to_ebitda": "cotiza en USD y reporta en EUR: el proveedor no convierte",
+        })
+    report.note("Sin cotización para AVB")
+
+    assert len(report.warnings) == 1, "Los descartes NO son avisos"
+    assert report.warnings[0] == "Sin cotización para AVB"
+
+    resumen = report.summarise_drops()
+    assert "80 activos" in resumen
+    assert "rutina, no un fallo" in resumen
+
+
+def test_the_drop_summary_groups_by_cause_not_by_value(db):
+    """«-78,58 fuera del rango plausible» no agruparía con «-16,78»."""
+    from app.services.market_data import RefreshReport
+
+    report = RefreshReport()
+    report.drop("ABBV", {"price_to_book": "-78.5829 fuera del rango plausible [0.01, 1000]"})
+    report.drop("AZO", {"price_to_book": "-16.785 fuera del rango plausible [0.01, 1000]"})
+    report.drop(
+        "ASML",
+        {"price_to_book": "cotiza en USD y reporta en EUR: el proveedor no convierte"},
+    )
+
+    assert report.ratio_drops == {
+        "magnitud implausible": 2,
+        "cotiza en USD y reporta en EUR": 1,
+    }
+
+
+def test_the_drop_counters_survive_the_merge_between_batches(db):
+    """`full_refresh` corre veinte veces por sincronización."""
+    from app.services.market_data import RefreshReport
+
+    total = RefreshReport()
+    for lote in range(3):
+        parcial = RefreshReport()
+        parcial.drop(f"X{lote}", {"price_to_book": "cotiza en USD y reporta en EUR: x"})
+        total.merge(parcial)
+
+    assert len(total.assets_with_drops) == 3
+    assert sum(total.ratio_drops.values()) == 3

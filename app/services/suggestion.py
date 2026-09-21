@@ -36,6 +36,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.money import ZERO
 from app.models import Asset, Portfolio, PriceHistory
 from app.schemas.opportunity import OpportunityRead
@@ -50,10 +51,19 @@ logger = logging.getLogger(__name__)
 # cartera. Se declara en la respuesta: el impacto depende de este supuesto.
 ASSUMED_WEIGHT = 0.05
 
-# Por encima de esto, un cubo se considera concentrado. El enunciado pedía
-# 25-30%; se toma el extremo bajo porque este motor RECOMIENDA, y equivocarse
-# recomendando concentrar es peor que dejar pasar una opción.
-CONCENTRATION_THRESHOLD = 0.25
+def concentration_threshold() -> float:
+    """Por encima de esto, un cubo se considera concentrado.
+
+    UN SOLO UMBRAL EN TODO EL SISTEMA. Antes había dos: aquí 25% y en el motor
+    de oportunidades 30%, y la MISMA concentración se penalizaba dos veces con
+    dos criterios distintos, una en el score y otra en el multiplicador. Al
+    salir la diversificación del score (ver `opportunities`), esta es la única
+    penalización que queda, y toma el valor configurable.
+
+    Se lee de `settings` en cada llamada, no como constante de módulo, para
+    que un cambio por entorno o en un test se vea sin reimportar.
+    """
+    return settings.opportunity_sector_threshold
 
 # Calificaciones que se pueden sugerir.
 ACCEPTABLE_GRADES = {"A", "B", "C"}
@@ -109,8 +119,9 @@ def correlation_factor(rho: float | None) -> float:
     return 1.0 + 0.5 * (-max(-1.0, min(1.0, rho)))
 
 
-def concentration_factor(weight: float, threshold: float = CONCENTRATION_THRESHOLD) -> float:
+def concentration_factor(weight: float, threshold: float | None = None) -> float:
     """1.0 hasta el umbral; cae hasta 0.25 con toda la cartera en ese cubo."""
+    threshold = concentration_threshold() if threshold is None else threshold
     weight = max(0.0, min(1.0, weight))
     if weight <= threshold:
         return 1.0
@@ -128,10 +139,10 @@ def _build_reasons(candidate: SuggestionCandidate, base_currency: str) -> None:
         candidate.reasons.append(
             f"«{bucket}» tiene 0% de peso en tu cartera: es exposición nueva."
         )
-    elif candidate.bucket_weight <= CONCENTRATION_THRESHOLD:
+    elif candidate.bucket_weight <= concentration_threshold():
         candidate.reasons.append(
             f"«{bucket}» pesa {weight_pct:.1f}%, por debajo del umbral de "
-            f"concentración ({CONCENTRATION_THRESHOLD * 100:.0f}%)."
+            f"concentración ({concentration_threshold() * 100:.0f}%)."
         )
     else:
         candidate.caveats.append(

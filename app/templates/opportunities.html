@@ -82,12 +82,12 @@
   </template>
 
   <!-- ================= Filtro por defecto ================= -->
-  <!-- Solo aparece en la primera visita: se ven las calificaciones «Muy buena»
-       y «Buena», y se dice claramente que hay más y cómo verlas. -->
+  <!-- Solo aparece en la primera visita: se ven las calificaciones «Muy
+       favorables» y «Favorables», y se dice claramente que hay más. -->
   <template x-if="defaultTiers && data">
     <div class="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-s1/30 bg-s1/10 px-4 py-3">
       <p class="min-w-0 flex-1 text-xs leading-relaxed text-ink-soft">
-        Por defecto ves solo las empresas calificadas <strong class="font-medium text-ink">«Muy buena» y «Buena»</strong>.
+        Por defecto ves solo lo que tiene señales <strong class="font-medium text-ink">«Muy favorables» y «Favorables»</strong>.
         Otras <span class="tabular font-medium text-ink" x-text="hiddenByDefault"></span> siguen en el universo
         pero no se muestran: el ranking las incluye, y algunas de ellas encabezan la lista sin ser buenas.
       </p>
@@ -120,7 +120,7 @@
   <!-- ================= Filtros: calidad y mercado =================
        Los recuentos son SIEMPRE los del universo completo, no los del
        resultado filtrado. Si reflejaran el filtro activo, al seleccionar
-       «Muy buena» los demás chips marcarían 0 y el usuario no tendría forma
+       «Muy favorables» los demás chips marcarían 0 y el usuario no tendría forma
        de saber qué le queda por explorar. -->
   <template x-if="data && gradeSummary.length">
     <div class="mb-5 space-y-2.5 rounded-xl border border-line bg-surf px-4 py-3">
@@ -144,6 +144,37 @@
           Referencia: <span class="text-ink-soft" x-text="data.benchmark_symbol"></span>
           · P/E <span class="tabular" x-text="data.benchmark_pe?.toFixed(1)"></span>
         </span>
+      </div>
+
+      <!-- Clase de activo.
+           Va ANTES que el mercado porque es la dimensión de primer nivel: el
+           score es un rango percentil DENTRO de la clase, así que dos filas de
+           clases distintas no llevan el mismo número en la misma escala. El
+           chip es la forma de ver un ranking realmente comparable. -->
+      <div class="flex flex-wrap items-center gap-2 border-t border-line pt-2.5">
+        <span class="mr-1 w-20 shrink-0 text-xs text-ink-mute">Clase</span>
+        <button type="button" @click="activeClasses = []; localStorage.removeItem('tablero:classes'); load()"
+                :aria-pressed="activeClasses.length === 0"
+                class="rounded-lg border px-2 py-1 text-[11px] transition-colors
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1"
+                :class="activeClasses.length === 0
+                          ? 'border-s1 bg-s1/10 text-s1 ring-1 ring-inset ring-s1/30'
+                          : 'border-line bg-transparent text-ink-mute hover:border-line-strong hover:text-ink-soft'">
+          Todas
+        </button>
+        <template x-for="c in classSummary" :key="c.assetClass">
+          <button type="button" @click="toggleClass(c.assetClass)"
+                  :aria-pressed="activeClasses.includes(c.assetClass)"
+                  :disabled="c.count === 0"
+                  :title="`Ver solo ${c.label}: el score se compara dentro de la clase`"
+                  class="flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px]
+                         transition-colors focus-visible:outline-none focus-visible:ring-2
+                         focus-visible:ring-s1 disabled:cursor-not-allowed disabled:opacity-40"
+                  :class="classChipClass(c.assetClass)">
+            <span class="tabular font-semibold" x-text="c.count"></span>
+            <span x-text="c.label"></span>
+          </button>
+        </template>
       </div>
 
       <!-- Mercado / región -->
@@ -291,6 +322,31 @@
   </template>
 
   <!-- ================= Tarjetas ================= -->
+  <!-- Vacío POR EL FILTRO DE CALIDAD, no por falta de candidatos.
+       Renta fija, materias primas y cripto no pueden sacar nota alta por
+       construcción: tienen 2 o 3 señales y hacen falta 3. Sin este aviso, el
+       genérico deja creer que el tablero no tiene renta fija. -->
+  <template x-if="emptyBecauseOfQuality">
+    <div class="mb-4 rounded-xl border border-line bg-surf px-4 py-3.5">
+      <p class="text-sm text-ink-soft">
+        Hay <span class="tabular font-medium text-ink" x-text="emptyBecauseOfQuality.total"></span>
+        candidatos en <span class="font-medium text-ink" x-text="emptyBecauseOfQuality.classes"></span>,
+        pero ninguno llega a <span class="font-medium text-ink" x-text="emptyBecauseOfQuality.tiers"></span>.
+      </p>
+      <p class="mt-1.5 text-xs leading-relaxed text-ink-mute">
+        No es casualidad: una nota alta exige al menos 3 de las 4 señales con
+        datos, y un fondo de bonos o una cripto no tienen estados financieros
+        que puntuar. Quita el filtro de calidad para verlos.
+      </p>
+      <button type="button" @click="showAll()"
+              class="mt-3 rounded-lg border border-s1/30 bg-s1/10 px-2.5 py-1 text-[11px]
+                     font-medium text-s1 transition-colors hover:bg-s1/20
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-s1">
+        Ver todas las calificaciones
+      </button>
+    </div>
+  </template>
+
   <div x-show="hasResults" x-cloak class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
     <template x-for="row in results" :key="row.symbol">
       <article class="flex flex-col rounded-xl border border-line bg-surf p-5 transition-colors hover:border-line-strong">
@@ -299,8 +355,12 @@
         <div class="mb-5 flex items-start justify-between gap-4">
           <div class="min-w-0">
             <div class="flex items-center gap-2">
+              <!-- El puesto es DENTRO DE SU CLASE, y el «de N» no es adorno:
+                   sin él, un «#1» se lee como «el mejor de todo» cuando puede
+                   ser el mejor de 20. -->
               <span class="tabular rounded-md bg-surf-2 px-1.5 py-0.5 text-[11px] font-medium text-ink-mute"
-                    x-text="'#' + row.rank"></span>
+                    :title="`Puesto ${row.rank} de ${row.class_size} en ${classLabel(row.asset_class)}`"
+                    x-text="'#' + row.rank + ' de ' + row.class_size"></span>
               <h3 class="truncate text-base font-semibold" x-text="row.symbol"></h3>
             </div>
             <p class="mt-1 truncate text-xs text-ink-mute" x-text="row.name ?? '—'"></p>
@@ -317,6 +377,16 @@
                       x-text="row.assessment.points + '/' + row.assessment.max_points"></span>
               </span>
 
+              <!-- COBERTURA. Una nota sobre 2 señales no vale lo mismo que
+                   sobre 4, y presentarlas igual premiaba la falta de datos:
+                   los ETFs sacaban «Muy favorables» 6,5 veces más a menudo
+                   que las acciones solo por tener menos que suspender. -->
+              <span x-show="row.assessment.capped_by_coverage" x-cloak
+                    class="ml-1 inline-flex items-center rounded-lg border border-line px-2 py-0.5
+                           text-[11px] text-ink-mute"
+                    :title="`Solo ${row.assessment.available_signals} de 4 señales tienen datos: la nota está limitada`"
+                    x-text="row.assessment.available_signals + '/4 señales'"></span>
+
               <!-- Mercado. Es el DOMICILIO de la empresa, no su bolsa: CIB
                    cotiza en Nueva York y es Colombia. Se puede pulsar para
                    filtrar por ese mercado. -->
@@ -330,6 +400,13 @@
             </p>
 
             <p class="mt-1.5 text-[11px] text-ink-mute">
+              <button type="button" @click="toggleClass(row.asset_class)"
+                      :title="`Ver solo ${classLabel(row.asset_class)}`"
+                      class="underline decoration-dotted underline-offset-2 transition-colors
+                             hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2
+                             focus-visible:ring-s1"
+                      x-text="classLabel(row.asset_class)"></button>
+              <span aria-hidden="true">·</span>
               <span x-text="row.exposure_bucket"></span>
               <span x-show="row.exposure_is_assumed" class="opacity-70" title="Supuesto: fondo sin sector declarado">(supuesto)</span>
               <template x-if="row.current_price !== null">
@@ -373,6 +450,25 @@
               </div>
             </div>
           </template>
+
+          <!-- ENCAJE, no factor. Va aquí abajo, separado y sin «pts», porque
+               ya no suma al score: dice cuánto pesa ese cubo en tu cartera. -->
+          <div x-show="row.diversification.available" x-cloak
+               class="border-t border-line pt-2.5 text-[11px]">
+            <div class="mb-1 flex items-baseline justify-between gap-2">
+              <span class="text-ink-mute" x-text="fit.label"></span>
+              <span class="tabular text-ink-soft"
+                    x-text="row.diversification.score.toFixed(0) + ' / 100'"></span>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill"
+                   :style="`width:${row.diversification.score}%;background:${fit.color};opacity:.55`"></div>
+            </div>
+            <p class="mt-1 text-[10px] leading-relaxed text-ink-mute">
+              No entra en el score: el score dice si la oportunidad es buena, y
+              eso no puede depender de lo que ya tengas comprado.
+            </p>
+          </div>
         </div>
 
         <!-- Penalización activa: se muestra INLINE, no plegada.

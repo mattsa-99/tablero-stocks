@@ -94,6 +94,7 @@ def grouped_percentile_ranks(
     values: Sequence[float | None],
     groups: Sequence[str | None],
     min_peers: int,
+    fallback_groups: Sequence[str | None] | None = None,
 ) -> list[float | None]:
     """Rango percentil DENTRO de cada grupo (p. ej. el sector), con respaldo.
 
@@ -105,17 +106,33 @@ def grouped_percentile_ranks(
 
     - Un grupo con MENOS de `min_peers` valores reales NO se ordena por dentro:
       con 3 empresas, «la más barata de su sector» saldría con 83 puntos por no
-      tener rivales. Ese grupo usa el rango del universo completo.
-    - Un valor sin grupo (`None`: un ETF, una cripto) usa también el universo.
+      tener rivales. Ese grupo cae al respaldo.
+    - Un valor sin grupo (`None`) cae también al respaldo.
     - Un valor ausente sigue siendo `None`; aquí no se imputa nada.
+
+    EL RESPALDO. Sin `fallback_groups` es el universo entero, que era el
+    comportamiento original. Con él, cada valor cae en el rango de SU grupo de
+    respaldo -la clase de activo- en lugar de mezclarse con todo. Es lo que
+    impide que el P/E de un fondo de acciones se ordene contra el de una
+    empresa: son dos cosas distintas con el mismo nombre.
 
     Así la escala es siempre la misma (0-100, 50 = la mediana de la referencia
     usada). Quien llama es quien sabe cuál fue la referencia de cada valor y
     debe decirlo en la interfaz: dos scores con la misma escala pero distinta
     referencia no son directamente comparables.
     """
-    universe = percentile_ranks(values)
-    result = list(universe)
+    if fallback_groups is None:
+        result = list(percentile_ranks(values))
+    else:
+        result: list[float | None] = [None] * len(values)
+        base: dict[str | None, list[int]] = defaultdict(list)
+        for index, group in enumerate(fallback_groups):
+            if values[index] is not None:
+                base[group].append(index)
+        for indices in base.values():
+            ranks = percentile_ranks([values[i] for i in indices])
+            for index, rank in zip(indices, ranks, strict=True):
+                result[index] = rank
 
     members: dict[str, list[int]] = defaultdict(list)
     for index, group in enumerate(groups):

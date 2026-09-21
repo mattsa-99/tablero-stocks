@@ -195,7 +195,13 @@ def test_rows_say_which_reference_they_were_ranked_against(db, two_sectors):
     assert bank.sector_pe == pytest.approx(11.5)   # mediana de 8..15
 
 
-def test_a_sector_with_few_peers_is_ranked_against_the_universe_and_says_so(db):
+def test_a_sector_with_few_peers_falls_back_to_the_class_and_says_so(db):
+    """Sin pares de sector suficientes, la referencia es la CLASE.
+
+    Antes el respaldo era el universo entero. Ya no existe: mezclar el P/E de
+    una eléctrica con el de un fondo de bonos era justo lo que producía que un
+    fondo con `trailingPE = 0,89` encabezara la valoración de los 490.
+    """
     assets = [_add(db, f"BK{i}", "Financial Services", 8.0 + i) for i in range(8)]
     assets += [_add(db, f"UT{i}", "Utilities", 15.0 + i) for i in range(3)]
     portfolio = Portfolio(name="Pocos", base_currency="USD")
@@ -204,23 +210,35 @@ def test_a_sector_with_few_peers_is_ranked_against_the_universe_and_says_so(db):
 
     rows = {r.symbol: r for r in _run(db, (portfolio, assets)).opportunities}
 
-    assert rows["UT0"].value_basis == "universe"
-    assert rows["UT0"].value_reference is None
+    assert rows["UT0"].value_basis == "class"
+    assert rows["UT0"].value_reference == "Acciones"
     assert rows["BK0"].value_basis == "sector"
 
 
 def test_etfs_never_join_a_sector_group(db):
-    """Un ETF sectorial trae sector, pero su P/E es el de su cesta."""
+    """Un ETF sectorial trae sector, pero su P/E es el de su cesta.
+
+    Los cinco ETFs son el mínimo para que su clase se pueda ordenar por
+    dentro; con menos quedaría fuera del ranking por otra razón y este test
+    pasaría sin comprobar nada.
+    """
     assets = [_add(db, f"BK{i}", "Financial Services", 10.0 + i) for i in range(8)]
-    etf = _add(db, "XLF", "Financial Services", 1.0, asset_type=AssetType.ETF)
+    etfs = [
+        _add(db, f"XL{i}", "Financial Services", 1.0 + i, asset_type=AssetType.ETF)
+        for i in range(5)
+    ]
     portfolio = Portfolio(name="ETF", base_currency="USD")
     db.add(portfolio)
     db.commit()
 
-    rows = {r.symbol: r for r in _run(db, (portfolio, [*assets, etf])).opportunities}
+    rows = {r.symbol: r for r in _run(db, (portfolio, [*assets, *etfs])).opportunities}
 
-    assert rows["XLF"].value_basis == "universe"
-    assert rows["BK0"].sector_pe == pytest.approx(13.5)   # sin el 1,0 del ETF
+    assert rows["XL0"].value_basis == "class", (
+        "El ETF no entra en el grupo sectorial: su P/E es el de su cesta, "
+        "así que se ordena contra otros fondos de acciones"
+    )
+    assert rows["XL0"].value_reference == "Fondos de acciones"
+    assert rows["BK0"].sector_pe == pytest.approx(13.5)   # sin los P/E de los ETFs
 
 
 def test_the_sector_reference_does_not_change_when_the_view_is_filtered(db, two_sectors):

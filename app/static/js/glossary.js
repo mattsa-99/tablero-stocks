@@ -160,81 +160,248 @@ const GLOSSARY = {
   opportunities: {
     label: "Oportunidades",
     intro:
-      "Los ejemplos usan la ficha real de CIB (Bancolombia), primera del " +
-      "ranking con 86,3 puntos.",
+      "Los ejemplos usan fichas reales observadas el 21/09/2026. Las cifras " +
+      "concretas cambian a diario; lo que enseñan, no.",
     groups: [
+      {
+        /* Va PRIMERO a propósito. Todo lo que sigue son métricas concretas, y
+         * sin esta sección el usuario aprende a leerlas una por una sin saber
+         * nunca cuánta confianza merece el conjunto. La advertencia estaba
+         * repartida en `caveat`s sueltos; aquí se explica de una vez. */
+        title: "Qué confianza merece esto",
+        entries: [
+          {
+            term: "Heurística (qué significa «sin backtest»)",
+            definition:
+              "Una heurística es una regla <b>razonada pero no demostrada</b>. " +
+              "Los pesos de la fórmula y los umbrales de las banderas son " +
+              "juicios de diseño: alguien decidió que la valoración pesara 35% " +
+              "y el momentum 30%, y que «ya subió mucho» empezara en +50% a " +
+              "doce meses. Son defendibles; no están probados.",
+            example:
+              "Cuando la ficha de EQNR dice <b>«ya subió 79% en 12 meses»</b>, " +
+              "el 79% es un HECHO. Que eso merezca una bandera amarilla es un " +
+              "JUICIO. Lo mismo con «volatilidad alta (39%)»: el 39% se mide, " +
+              "el umbral de 35% se eligió.",
+            caveat:
+              "Distinguir el hecho del juicio es la lectura correcta de toda " +
+              "esta pantalla. Los hechos se pueden verificar; los umbrales se " +
+              "pueden discutir.",
+          },
+          {
+            term: "Backtest (y por qué aquí no hay)",
+            definition:
+              "Un backtest aplica la regla al pasado para ver si habría " +
+              "funcionado: «comprando cada mes los 10 primeros desde 2015, " +
+              "¿habría ganado más que comprando el índice?». <b>Eso nunca se " +
+              "hizo aquí</b>, y por eso lo advierte cada pantalla.",
+            example:
+              "Hacerlo bien exigiría fundamentales históricos —el P/E que se " +
+              "veía en 2018, no el de hoy—, incluir las empresas que quebraron " +
+              "y no usar ningún dato antes de su fecha de publicación. El " +
+              "tablero guarda precios desde 2025 y la foto ACTUAL de los " +
+              "fundamentales.",
+            caveat:
+              "Un backtest malo es PEOR que ninguno: ajustando los pesos hasta " +
+              "que el pasado se vea bonito salen cifras espectaculares que no " +
+              "valen nada (se llama sobreajuste). Y entonces esta advertencia " +
+              "desaparecería, le creerías más, y estarías peor informado.",
+          },
+          {
+            term: "Cuánta diferencia de puntos significa algo",
+            definition:
+              "El score tiene dos decimales, y esa precisión es <b>falsa</b>. " +
+              "Separa bien los extremos y no separa nada en el medio: una " +
+              "diferencia de uno o dos puntos no distingue dos activos.",
+            example:
+              "Observado el 20/09/2026: <b>#1 CIB con 76,46 y #4 PBR con " +
+              "75,36</b> — tres puestos de distancia y apenas un punto. En " +
+              "cambio un 76 frente a un 45 sí dice algo.",
+            caveat:
+              "Los ejemplos llevan fecha porque el score es un percentil sobre " +
+              "datos vivos: las cifras exactas cambian cada día, la lección no. " +
+              "Y nunca compres algo solo porque es #1: es el primero de ESTA " +
+              "lista, con ESTOS pesos, HOY.",
+          },
+          {
+            term: "Qué es más fiable que el score",
+            definition:
+              "No todo en esta pantalla merece la misma confianza. Las " +
+              "<b>banderas</b> responden a hechos concretos y verificables " +
+              "(«la deuda es 4,5 veces el EBITDA»). La <b>calificación A–E</b> " +
+              "compara contra anclas externas: el P/E de su sector y umbrales " +
+              "contables. El <b>puesto</b> es una suma ponderada de cuatro " +
+              "juicios, y es lo más frágil de los tres.",
+            example:
+              "Observado el 21/09/2026: <b>PBR era #1 de 268 acciones con " +
+              "82,29 y ETB.CL #4 con 78,53</b>. Cuatro puntos de diferencia en " +
+              "el score, y veredictos opuestos en la calificación: «Muy " +
+              "favorables» frente a «Desfavorables». Hazle caso a la " +
+              "calificación.",
+            caveat:
+              "Si el puesto y la calificación se contradicen, el puesto es el " +
+              "que suele estar equivocado.",
+          },
+          {
+            term: "Cómo comprobarlo tú mismo",
+            definition:
+              "Lo único que puede convertir estas heurísticas en algo medido " +
+              "es tu propio historial. Cada decisión anotada en el <b>diario</b> " +
+              "—con su tesis, su invalidación y su fecha— es una predicción " +
+              "escrita ANTES de conocer el resultado.",
+            example:
+              "En seis meses tendrás tu propio backtest: pequeño, pero <b>sin " +
+              "sobreajuste posible</b>, porque las reglas se escribieron antes. " +
+              "Es exactamente lo que ningún backtest de folleto puede prometer.",
+            caveat:
+              "Solo funciona si anotas también las que salen mal, y si no " +
+              "reinterpretas la invalidación a tu favor cuando se cumple.",
+          },
+        ],
+      },
       {
         title: "La nota global",
         entries: [
           {
             term: "Opportunity Score (0-100)",
             definition:
-              "Combina cuatro pilares en una sola cifra. Es un <b>ranking " +
-              "RELATIVO</b>: mide cómo se compara un activo con los otros del " +
-              "universo evaluado, no si es bueno en términos absolutos. Siempre " +
-              "hay un primero, aunque todos sean malos.",
+              "Combina tres pilares en una sola cifra. Es un <b>ranking " +
+              "RELATIVO dentro de su clase de activo</b>: mide cómo se compara " +
+              "con los otros de su clase, no si es bueno en términos absolutos. " +
+              "Siempre hay un primero, aunque todos sean malos.",
             example:
-              "CIB saca <b>86,3</b> = 20 de base + 33,0 de valoración + 28,9 de " +
-              "momentum + 15,0 de diversificación − 10,6 de riesgo.",
+              "CIB saca <b>81,27</b> = 23,53 de base + 35,65 de valoración + " +
+              "33,97 de momentum − 11,88 de riesgo. El desglose de cada " +
+              "tarjeta suma exactamente el score: si no cuadra, es un error.",
             caveat:
-              "No es una recomendación de inversión. Los pesos de la fórmula son " +
-              "un juicio de diseño, sin backtest que los respalde.",
+              "No es una recomendación de inversión. Los pesos son un juicio " +
+              "de diseño, sin backtest que los respalde. Y el score de una " +
+              "acción NO es comparable con el de una cripto: cada uno es un " +
+              "percentil contra los de SU clase.",
           },
           {
-            term: "Calificación A-E (Muy buena → Muy mala)",
+            term: "Clase de activo",
             definition:
-              "La respuesta a «¿esto es bueno?», que es distinta de «¿qué puesto " +
-              "ocupa?». No mira a los demás candidatos: compara contra el P/E del " +
-              "mercado, contra el signo de la tendencia y contra umbrales fijos " +
-              "de riesgo y calidad contable.",
+              "La dimensión de primer nivel: acciones, fondos de acciones, " +
+              "renta fija, materias primas y cripto. <b>El score se calcula " +
+              "dentro de cada clase</b>, porque ordenar una acción frente a un " +
+              "bono no es una decisión que un número pueda tomar. Entre clases " +
+              "lo que se decide es el PESO, y eso lo decides tú en el Plan.",
             example:
-              "ETB.CL sale <b>#2 del ranking con 84,6 puntos</b> y sin embargo " +
-              "está calificada <b>«Mala»</b>: encabeza la lista sin ser buena.",
+              "Antes, con un solo ranking, <b>SJNK -un fondo de bonos basura- " +
+              "salía con la MEJOR valoración de los 490</b>, porque el " +
+              "proveedor le asigna un «P/E» de 0,89 a algo que no tiene " +
+              "beneficios. Hoy compite contra otros 30 fondos de renta fija.",
             caveat:
-              "Con menos de 2 de 4 señales con datos aparece «Sin calificar», " +
-              "nunca «Normal»: un neutro por defecto afirmaría algo sin base.",
+              "Cuando la clase sale de una suposición y no de un dato del " +
+              "proveedor, la tarjeta lo dice. Hoy solo pasa con un activo.",
+          },
+          {
+            term: "El puesto: «#7 de 31»",
+            definition:
+              "El puesto es dentro de <b>su clase</b>, y el «de N» no es " +
+              "adorno: un «#1» se lee como «el mejor de todo» cuando puede ser " +
+              "el mejor de veinte. Al filtrar la vista el puesto NO se " +
+              "renumera, así que ver huecos (#1, #4, #32) es normal y es " +
+              "información.",
+            example:
+              "<b>BTC-USD es #1 de 25 en cripto con 68,12 puntos, y su " +
+              "calificación es «Muy desfavorables»</b>. Encabeza su clase sin " +
+              "ser una buena idea: alguien tiene que ser el primero.",
+            caveat:
+              "Es el mejor ejemplo de por qué el puesto no basta. Compararlo " +
+              "siempre con la calificación, que sí es absoluta.",
+          },
+          {
+            term: "Calificación (Muy favorables → Muy desfavorables)",
+            definition:
+              "La respuesta a «¿esto es bueno?», que es distinta de «¿qué " +
+              "puesto ocupa?». No mira a los demás candidatos: compara contra " +
+              "el P/E de su sector, contra el signo de la tendencia y contra " +
+              "umbrales fijos de riesgo y calidad contable. <b>Habla de las " +
+              "SEÑALES medidas, no de la empresa</b>: son cuatro indicadores " +
+              "de precio y de contabilidad, no un juicio sobre el negocio.",
+            example:
+              "<b>ETB.CL es #4 de 268 acciones con 78,53 puntos y está " +
+              "«Desfavorables»</b>. Por eso la lista se ordena primero por " +
+              "calificación: un score alto no puede encabezar la pantalla si " +
+              "el propio tablero dice que las señales son malas.",
+            caveat:
+              "Con menos de 2 de 4 señales aparece «Sin calificar», nunca " +
+              "«Mixtas»: un neutro por defecto afirmaría algo sin base.",
+          },
+          {
+            term: "Cobertura: «2/4 señales»",
+            definition:
+              "Cuántas de las cuatro señales tienen datos. Hacen falta <b>al " +
+              "menos 3 para una nota alta</b>; con menos, la calificación se " +
+              "limita a «Mixtas» y la tarjeta lo declara.",
+            example:
+              "Sin ese tope, la nota se calculaba sobre lo disponible y por " +
+              "tanto <b>premiaba la falta de datos</b>: medido sobre los 490 " +
+              "del ranking, un ETF sacaba la nota máxima el <b>40,9%</b> de " +
+              "las veces y una acción el <b>6,3%</b>. Seis veces y media más, " +
+              "solo por tener menos que suspender.",
+            caveat:
+              "Topar no es suspender. «Mixtas» significa que no hay base para " +
+              "afirmar más, no que el activo sea malo.",
           },
         ],
       },
       {
-        title: "Los cuatro pilares",
+        title: "Los tres pilares",
         entries: [
           {
-            term: "Valoración (35% del peso)",
+            term: "Valoración (41% del peso)",
             definition:
-              "Si el activo está barato o caro frente al resto del universo, " +
-              "según sus ratios de precio contra beneficios, valor contable y " +
-              "flujo operativo.",
+              "Si el activo está barato o caro, según sus ratios de precio " +
+              "contra beneficios, valor contable y flujo operativo. La " +
+              "referencia es <b>su sector</b> cuando tiene pares suficientes, " +
+              "y su clase de activo cuando no: un banco a P/E 9,6 no es " +
+              "barato, es un banco.",
             example:
-              "CIB suma <b>+33,0 pts</b>: con un P/E de 9,5 está entre lo más " +
-              "barato de los 491 candidatos.",
+              "CIB suma <b>+35,7 pts</b>: con un P/E de 9,5 está entre lo más " +
+              "barato de los servicios financieros. IVV, en cambio, suma solo " +
+              "<b>+8,1</b>: un P/E de 24,4 es caro <i>frente a otros fondos " +
+              "de acciones</i>, que es contra quien se le compara.",
           },
           {
-            term: "Momentum (30%)",
+            term: "Momentum (35%)",
             definition:
               "Si el precio viene subiendo de forma sostenida. Mide tendencia " +
-              "reciente, no valor: una acción cara puede tener buen momentum.",
-            example: "CIB suma <b>+28,9 pts</b>: casi duplicó su precio en un año.",
+              "reciente, no valor: una acción cara puede tener buen momentum. " +
+              "Las ventanas se miden en TIEMPO, no en barras, para que «doce " +
+              "meses» signifiquen lo mismo en una bolsa y en un mercado que " +
+              "abre los 365 días.",
+            example: "CIB suma <b>+34,0 pts</b>: casi duplicó su precio en un año.",
           },
           {
-            term: "Diversificación (15%)",
+            term: "Riesgo (−24%, penaliza)",
             definition:
-              "Cuánto te aportaría a TI en concreto. Premia lo que no tienes: si " +
-              "el activo pertenece a un sector ausente de tu cartera, puntúa al " +
-              "máximo. Es el único pilar que depende de tus posiciones.",
+              "Resta, no suma. Combina cuánto oscila el precio y cuál ha sido " +
+              "su peor caída, medida sobre <b>cinco años</b> de histórico. Dos " +
+              "activos con el mismo retorno no son equivalentes si uno llegó " +
+              "ahí con el triple de sobresaltos.",
             example:
-              "CIB suma <b>+15,0 pts</b>, el máximo, porque no tienes nada del " +
-              "sector financiero.",
+              "CIB resta <b>−11,9 pts</b>. La caída máxima mira la serie " +
+              "entera y no el último año: un activo tranquilo doce meses puede " +
+              "haber caído un 60% dieciocho meses atrás.",
           },
           {
-            term: "Riesgo (−20%, penaliza)",
+            term: "Encaje con tu cartera (no suma)",
             definition:
-              "Resta, no suma. Combina cuánto oscila el precio y cuál ha sido su " +
-              "peor caída. Dos activos con el mismo retorno no son equivalentes " +
-              "si uno llegó ahí con el triple de sobresaltos.",
+              "Cuánto pesa ya en tus posiciones el cubo de exposición de este " +
+              "activo. Se muestra aparte y <b>con contribución cero a " +
+              "propósito</b>: el score dice si la oportunidad es buena, y eso " +
+              "no puede depender de lo que ya tengas comprado.",
             example:
-              "CIB resta <b>−10,6 pts</b> por una volatilidad del 33,5% y una " +
-              "caída máxima del 23,9%.",
+              "Antes sí sumaba, y el efecto estaba medido: <b>483 de 490 " +
+              "símbolos cambiaban de puesto</b> al mirar el mismo universo " +
+              "desde otra cartera. IVV pasaba del #220 al #113 sin que nada " +
+              "hubiera cambiado en IVV.",
+            caveat:
+              "Sigue pesando donde la pregunta sí es «¿esto me conviene a " +
+              "mí?»: en la Sugerencia óptima y en el Plan de asignación.",
           },
         ],
       },
@@ -353,9 +520,9 @@ const GLOSSARY = {
               "El veredicto es rojo si hay UNA roja; verde solo si no hay ni rojas " +
               "ni amarillas.",
             example:
-              "ETB.CL es la <b>#2 del ranking</b> y aun así la ficha marca " +
-              "<b>2 banderas rojas</b> (calificación «Mala» y volatilidad del 61%) " +
-              "y 3 amarillas: encabezar el ranking no la hace buena.",
+              "ETB.CL es la <b>#4 de 268 acciones</b> y aun así la ficha marca " +
+              "<b>banderas rojas</b> (señales «Desfavorables» y volatilidad " +
+              "alta): estar arriba en el score no la hace buena.",
             caveat:
               "El veredicto NUNCA dice «compra». Sin banderas rojas solo significa " +
               "que este filtro no encontró problemas: no mide el negocio, la " +

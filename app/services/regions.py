@@ -228,7 +228,16 @@ def classify(asset: Asset) -> MarketRegion:
         from app.services import exposure
 
         bucket = exposure.exposure_bucket(asset)
-        if bucket in (exposure.COMMODITIES, exposure.BROAD_EQUITY):
+        if bucket in (
+            exposure.COMMODITIES,
+            exposure.BROAD_EQUITY,
+            # Un ETF de bitcoin al contado (IBIT, FBTC) cotiza en Nueva York y
+            # no sigue a la economía estadounidense. Antes caía en
+            # «Diversificado» por suposición y acababa aquí por accidente;
+            # ahora llega por su clase y el resultado es el mismo a propósito.
+            exposure.CRYPTO,
+            exposure.DERIVATIVES,
+        ):
             # Oro y "mundo entero" no son el mercado estadounidense aunque
             # coticen en él.
             return MarketRegion.GLOBAL

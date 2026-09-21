@@ -48,12 +48,24 @@ class Grade(StrEnum):
     UNRATED = "SIN_CALIFICAR"
 
 
+# LAS ETIQUETAS HABLAN DE LAS SEÑALES, NO DE LA EMPRESA.
+#
+# Antes eran «Muy buena / Buena / Normal / Mala / Muy mala», y eso es un juicio
+# sobre el negocio que este módulo no está en condiciones de emitir: lo que
+# mide son cuatro señales de precio y de ratios contables contra unas anclas.
+# Llamar «Mala» a una empresa por su momentum y su volatilidad es afirmar
+# mucho más de lo que se ha comprobado, y es lo que hace que un usuario lea la
+# letra como un veredicto en vez de como un resumen de lo medido.
+#
+# Los SLUGS no cambian (`muy_buena`, `buena`...): viven en las URLs
+# compartidas y en el `localStorage` de quien ya usa el tablero, y romperlos
+# por un cambio de redacción dejaría enlaces guardados apuntando a nada.
 GRADE_LABEL = {
-    Grade.EXCELLENT: "Muy buena",
-    Grade.GOOD: "Buena",
-    Grade.NEUTRAL: "Normal",
-    Grade.POOR: "Mala",
-    Grade.BAD: "Muy mala",
+    Grade.EXCELLENT: "Muy favorables",
+    Grade.GOOD: "Favorables",
+    Grade.NEUTRAL: "Mixtas",
+    Grade.POOR: "Desfavorables",
+    Grade.BAD: "Muy desfavorables",
     Grade.UNRATED: "Sin calificar",
 }
 
@@ -95,6 +107,28 @@ def parse_quality_tiers(raw: str | None) -> set[Grade] | None:
 # tiende al centro y todo saldría "Normal", que es afirmar algo sin base.
 MIN_SIGNALS_FOR_GRADE = 2
 
+# Y hacen falta 3 para poder sacar "Muy favorables" o "Favorables".
+#
+# EL FALLO QUE ESTO CORRIGE, medido sobre los 490 activos del ranking real:
+#
+#     ETF     n=181   A: 74 (40,9%)   A+B: 137 (75,7%)   señales medias: 2,71
+#     STOCK   n=271   A: 17 ( 6,3%)   A+B: 117 (43,2%)   señales medias: 3,96
+#
+# Un ETF tenía 6,5 veces más probabilidad de sacar una A que una acción. No
+# por ser mejor: por tener menos señales que suspender. La nota es
+# `points / max_points` con `max_points = 2 x señales disponibles`, así que
+# con 2 señales bastan dos aciertos para un 4/4 perfecto, mientras que con 4
+# hay que acertar en casi todo.
+#
+# La regla de la proporción sigue siendo necesaria -un futuro sin contabilidad
+# no puede necesitar 5 puntos sobre 4-, pero sin este tope PREMIA la ausencia
+# de datos. 43 de los 263 A/B del ranking (16%) descansaban sobre 2 señales,
+# incluidos 7 contratos de futuros con A.
+#
+# El tope no baja la nota a "Mala": la deja en "Normal", que es lo que
+# significa no tener base para afirmar más.
+MIN_SIGNALS_FOR_TOP_GRADES = 3
+
 
 @dataclass
 class Signal:
@@ -119,10 +153,19 @@ class Assessment:
     max_points: int
     signals: list[Signal]
     notes: list[str] = field(default_factory=list)
+    # True si la nota está topada por falta de señales. La interfaz lo enseña
+    # junto a la letra ("Normal, 2 de 4 señales"): una nota parcial presentada
+    # como completa es la forma más fácil de que el usuario confíe de más.
+    capped_by_coverage: bool = False
 
     @property
     def available_signals(self) -> int:
         return sum(1 for s in self.signals if s.available)
+
+    @property
+    def coverage(self) -> float:
+        """Fracción de las 4 señales que tienen datos."""
+        return self.available_signals / len(self.signals) if self.signals else 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -405,7 +448,7 @@ def _grade_from_points(points: int, max_points: int) -> Grade:
     La banda "Normal" absorbe los positivos leves a propósito. Las señales
     están construidas para que CUMPLIR la convención puntúe 0 y solo
     SUPERARLA sume, así que una empresa decente cae de forma natural algo por
-    encima de cero; si eso bastara para "Buena", la escala dejaría de
+    encima de cero; si eso bastara para "Favorables", la escala dejaría de
     discriminar.
 
     CALIBRACIÓN, no validación: el corte de A se subió de 0,50 a 0,75 tras ver
@@ -490,6 +533,18 @@ def assess(
         notes.append(f"Sin datos para: {', '.join(missing)}. La calificación es parcial.")
 
     grade = _grade_from_points(points, max_points)
+
+    capped = False
+    if grade in (Grade.EXCELLENT, Grade.GOOD) and len(available) < MIN_SIGNALS_FOR_TOP_GRADES:
+        capped = True
+        notes.append(
+            f"Con {len(available)} de 4 señales no hay base para una nota alta: "
+            f"se limita a «{GRADE_LABEL[Grade.NEUTRAL]}». La proporción alcanzada "
+            f"({points}/{max_points}) daría «{GRADE_LABEL[grade]}», pero sobre "
+            f"tan pocas señales eso premia la falta de datos, no la calidad."
+        )
+        grade = Grade.NEUTRAL
+
     return Assessment(
         grade=grade,
         label=GRADE_LABEL[grade],
@@ -497,4 +552,5 @@ def assess(
         max_points=max_points,
         signals=signals,
         notes=notes,
+        capped_by_coverage=capped,
     )

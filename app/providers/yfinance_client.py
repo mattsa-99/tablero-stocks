@@ -28,6 +28,7 @@ from app.providers.base import (
     AssetMetadata,
     BarData,
     FundamentalData,
+    FundProfile,
     QuoteData,
     SearchHit,
 )
@@ -447,7 +448,42 @@ class YFinanceClient:
                 industry=info.get("industry"),
                 country=info.get("country"),
                 asset_type=(info.get("quoteType") or "").upper() or None,
+                fund_category=info.get("category") or None,
             )
+        return result
+
+    def fetch_fund_profiles(self, symbols: list[str]) -> dict[str, FundProfile]:
+        """Perfil de cada fondo. Un símbolo que no lo sea se omite sin ruido.
+
+        `funds_data` lanza `YFDataException` para todo lo que no es un fondo
+        -y también para los de la BVC, que Yahoo no cubre-, así que el fallo
+        POR SÍMBOLO es el caso normal y no se propaga: omitir es la respuesta
+        correcta. Lo que sí se propaga es un rate limit, porque ahí el
+        problema no es el símbolo sino el ritmo.
+        """
+        result: dict[str, FundProfile] = {}
+        for symbol in symbols:
+            try:
+                data = self._yf().Ticker(symbol).funds_data
+                overview = data.fund_overview or {}
+                classes = data.asset_classes or {}
+                result[symbol] = FundProfile(
+                    symbol=symbol,
+                    category=overview.get("categoryName") or None,
+                    legal_type=overview.get("legalType") or None,
+                    stock_position=_clean(classes.get("stockPosition")),
+                    bond_position=_clean(classes.get("bondPosition")),
+                    cash_position=_clean(classes.get("cashPosition")),
+                    other_position=_clean(classes.get("otherPosition")),
+                    expense_ratio=_frame_cell(
+                        data.fund_operations, "Annual Report Expense Ratio"
+                    ),
+                    credit_ratings=_positive_ratings(data.bond_ratings),
+                )
+            except ProviderRateLimited:
+                raise
+            except Exception:  # noqa: BLE001 - no ser un fondo es lo normal
+                logger.debug("%s: sin perfil de fondo", symbol)
         return result
 
     def fetch_fundamentals(self, symbols: list[str]) -> dict[str, FundamentalData]:
@@ -597,3 +633,31 @@ class YFinanceClient:
             if data is not None and data.price > 0:
                 result[(base.upper(), quote.upper())] = data.price
         return result
+
+
+def _frame_cell(frame, row: str) -> float | None:
+    """Una celda de los DataFrame de `funds_data`, o None si no está.
+
+    Vienen con la columna del símbolo y otra de media de categoría, y con
+    `<NA>` de pandas donde no hay dato: `float(<NA>)` lanza, así que el
+    acceso va envuelto.
+    """
+    try:
+        value = frame.loc[row].iloc[0]
+    except Exception:  # noqa: BLE001 - fila ausente o frame vacío
+        return None
+    return _clean(value)
+
+
+def _positive_ratings(ratings: dict | None) -> dict[str, float] | None:
+    """Reparto por calificación crediticia, sin los ceros.
+
+    Yahoo devuelve las once categorías siempre, con 0.0 en las que no
+    aplican: guardarlas todas llenaría la ficha de filas vacías. Para un fondo
+    de acciones el diccionario entero es cero, y entonces se devuelve None,
+    que es la verdad.
+    """
+    if not ratings:
+        return None
+    vivos = {k: float(v) for k, v in ratings.items() if v}
+    return vivos or None

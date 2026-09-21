@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from app.schemas.ficha import Flag, Verdict
 from app.schemas.opportunity import OpportunityRead
+from app.services import exposure as exposure_service
 from app.services.health import (
     STRUCTURALLY_LEVERAGED_SECTORS,
     CalendarInfo,
@@ -110,6 +111,7 @@ def build_flags(
     flags += _portfolio_flags(
         opportunity, portfolio_position_count, concentration_threshold
     )
+    flags += _tax_flags(opportunity)
 
     # Contexto de sector: solo si cambia cómo se lee el resto.
     if sector in CYCLICAL_SECTORS:
@@ -232,9 +234,14 @@ def _valuation_flags(op: OpportunityRead) -> list[Flag]:
     if ratio is None:
         return []
 
-    basis = (
-        f"su sector ({op.value_reference})" if op.value_basis == "sector" else "el mercado"
-    )
+    # Contra QUÉ se comparó. Nombrarlo es la mitad de la bandera: «cara» sin
+    # decir cara frente a qué no es accionable.
+    if op.value_basis == "sector" and op.value_reference:
+        basis = f"su sector ({op.value_reference})"
+    elif op.value_reference:
+        basis = f"su clase ({op.value_reference})"
+    else:
+        basis = "su grupo de referencia"
     evidence = {"pe_vs_reference": ratio, "reference_pe": reference, "basis": basis}
 
     if ratio > VERY_EXPENSIVE_RATIO:
@@ -580,6 +587,71 @@ def _data_flags(op: OpportunityRead, health: HealthSnapshot) -> list[Flag]:
 
 
 # ---------------------------------------------------------------------------
+# Fiscalidad: la PREGUNTA, nunca la respuesta
+# ---------------------------------------------------------------------------
+#
+# Estas banderas no calculan ni un peso de impuestos y no citan tipos. Es
+# deliberado: el tratamiento fiscal colombiano de un dividendo extranjero, de
+# un TES o de una cripto depende de la residencia, del monto, de la frecuencia
+# de las operaciones y de convenios que cambian, y una cifra concreta puesta en
+# una interfaz se lee como un cálculo aunque vaya rodeada de avisos.
+#
+# Lo que SÍ puede hacer el tablero es recordar QUÉ hay que preguntar, que es
+# donde está el valor: el error caro no es equivocarse en el tipo, es no saber
+# que esa clase tributa distinto. El coste medio ponderado que se usa aquí mide
+# rendimiento y no genera declaraciones.
+_TAX_QUESTIONS: dict[str, tuple[str, str]] = {
+    "accion": (
+        "Impuestos de una acción extranjera",
+        "Pregunta por la retención en origen sobre los dividendos, si existe "
+        "convenio de doble tributación con ese país y hasta dónde llega el "
+        "descuento tributario en Colombia.",
+    ),
+    "fondo_acciones": (
+        "Impuestos de un fondo extranjero",
+        "Pregunta cómo se tratan los dividendos que distribuye y si el fondo "
+        "es de acumulación o de reparto: cambia cuándo se tributa, no solo "
+        "cuánto.",
+    ),
+    "renta_fija": (
+        "Impuestos de la renta fija",
+        "Pregunta por la retención sobre los rendimientos y por el componente "
+        "inflacionario: en renta fija la diferencia entre rentabilidad nominal "
+        "y real es lo que decide si ganas o pierdes poder adquisitivo.",
+    ),
+    "cripto": (
+        "Impuestos de una cripto",
+        "Pregunta si tu caso es ganancia ocasional o renta ordinaria -depende "
+        "de cuánto tiempo la tengas y de con qué frecuencia operes- y si te "
+        "obliga a declarar activos en el exterior.",
+    ),
+    "materias_primas": (
+        "Impuestos de una materia prima",
+        "Pregunta por la estructura del vehículo: un ETF respaldado por metal "
+        "físico y uno por futuros pueden tributar distinto aunque sigan al "
+        "mismo precio.",
+    ),
+}
+
+
+def _tax_flags(op: OpportunityRead) -> list[Flag]:
+    pregunta = _TAX_QUESTIONS.get(op.asset_class)
+    if pregunta is None:
+        return []
+    titulo, detalle = pregunta
+    return [Flag(
+        code="tax_treatment", level="info",
+        title=titulo,
+        detail=(
+            f"{detalle} El tablero NO calcula impuestos: el coste medio "
+            f"ponderado que usa mide rendimiento y no sirve para declarar. "
+            f"Confírmalo con un contador antes de decidir."
+        ),
+        evidence={"asset_class": op.asset_class},
+    )]
+
+
+# ---------------------------------------------------------------------------
 # Cartera
 # ---------------------------------------------------------------------------
 
@@ -601,16 +673,49 @@ def _portfolio_flags(
         return flags
 
     weight = (op.sector_weight_pct or 0.0) / 100.0
-    if weight > threshold:
+    if weight <= threshold:
+        return flags
+
+    evidencia = {
+        "sector_weight_pct": op.sector_weight_pct,
+        "threshold_pct": threshold * 100,
+        "exposure_bucket": op.exposure_bucket,
+    }
+
+    # «DIVERSIFICADO» NO ES UN SECTOR, y tratarlo como tal era un aviso falso.
+    #
+    # Quien arma un núcleo con un fondo mundial tendrá siempre más del 30% ahí:
+    # es lo que se pretende. Con la regla general, cada ficha traía una bandera
+    # amarilla por hacer exactamente lo recomendado. «Si el sector cae, cae
+    # todo junto» es cierto de Tecnología y falso de un índice mundial.
+    #
+    # Lo que SÍ hay que advertir es otra cosa, y solo cuando aplica: un fondo
+    # amplio de un solo país concentra en ese país aunque diversifique por
+    # sector. Por eso el aviso se mantiene, pero en `info` y con otro texto.
+    if op.exposure_bucket == exposure_service.BROAD_EQUITY:
+        if op.market_region in ("GLOBAL",):
+            return flags
         flags.append(Flag(
-            code="sector_concentration", level="yellow",
-            title=f"Ya pesas {weight * 100:.0f}% en «{op.exposure_bucket}»",
+            code="broad_fund_single_market", level="info",
+            title=f"Tu núcleo diversificado está concentrado en un mercado ({op.market_region})",
             detail=(
-                "Otra compra en el mismo sector añade el mismo riesgo que ya "
-                "tienes: si el sector cae, cae todo junto."
+                "Un fondo amplio te diversifica entre sectores y empresas, que "
+                "es para lo que sirve. Lo que no te diversifica es el país ni "
+                "la divisa: si ese mercado cae, cae el núcleo entero."
             ),
-            evidence={"sector_weight_pct": op.sector_weight_pct, "threshold_pct": threshold * 100},
+            evidence=evidencia,
         ))
+        return flags
+
+    flags.append(Flag(
+        code="sector_concentration", level="yellow",
+        title=f"Ya pesas {weight * 100:.0f}% en «{op.exposure_bucket}»",
+        detail=(
+            "Otra compra en el mismo sector añade el mismo riesgo que ya "
+            "tienes: si el sector cae, cae todo junto."
+        ),
+        evidence=evidencia,
+    ))
     return flags
 
 

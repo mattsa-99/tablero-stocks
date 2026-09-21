@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import AssetType
 
@@ -31,6 +31,10 @@ class PositionRead(BaseModel):
     # de activo para ETFs amplios, renta fija y materias primas. Sin esto, un
     # ETF de índice contaba como "sector desconocido".
     exposure_bucket: str = "Desconocido"
+    asset_class: str = Field(
+        default="accion",
+        description="Clase de activo, la dimensión del plan de asignación",
+    )
 
     # --- Derivado del ledger (exacto, en divisa base) ---
     quantity: Decimal

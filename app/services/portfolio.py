@@ -19,6 +19,7 @@ from app.models import Asset, Portfolio
 from app.repositories import market as market_repo
 from app.repositories import portfolio as portfolio_repo
 from app.schemas.position import PortfolioSummary, PositionRead
+from app.services import asset_class as asset_class_service
 from app.services import correlation
 from app.services import exposure as exposure_service
 from app.services.metrics import (
@@ -140,6 +141,7 @@ def build_positions(
                     currency=asset.currency,
                     sector=asset.sector,
                     exposure_bucket=exposure_service.exposure_bucket(asset),
+                    asset_class=asset_class_service.classify(asset).asset_class.value,
                     quantity=position.quantity,
                     average_cost=position.average_cost,
                     cost_basis=position.total_cost,

@@ -20,6 +20,7 @@ from app.core.config import settings
 from app.core.exceptions import (
     DuplicateError,
     InsufficientUniverse,
+    InvalidAllocationPlan,
     InvalidJournalEntry,
     InvalidLedgerOperation,
     NotFoundError,
@@ -28,6 +29,8 @@ from app.core.exceptions import (
 )
 from app.db import registry  # noqa: F401  -- registra los modelos
 from app.routers import (
+    allocation,
+    fixed_income,
     journal,
     market,
     market_data,
@@ -103,6 +106,7 @@ _STATUS_BY_EXCEPTION: list[tuple[type[Exception], int]] = [
     (NotFoundError, 404),
     (DuplicateError, 409),
     (InvalidLedgerOperation, 422),
+    (InvalidAllocationPlan, 422),
     (InvalidJournalEntry, 422),
     (InsufficientUniverse, 422),
     (SymbolNotFound, 422),
@@ -180,6 +184,8 @@ app.include_router(portfolios.router)
 app.include_router(transactions.router)
 app.include_router(opportunities.router)
 app.include_router(journal.router)
+app.include_router(allocation.router)
+app.include_router(fixed_income.router)
 app.include_router(performance.router)
 app.include_router(market.router)
 app.include_router(market_data.router)

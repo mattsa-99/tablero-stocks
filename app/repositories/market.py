@@ -176,6 +176,38 @@ def get_last_bar_dates(db: Session, asset_ids: list[int]) -> dict[int, dt.date]:
     return {asset_id: last for asset_id, last in rows if last is not None}
 
 
+def get_bar_date_ranges(
+    db: Session, asset_ids: list[int]
+) -> dict[int, tuple[dt.date, dt.date]]:
+    """Primera y última barra de cada activo, en una sola consulta.
+
+    El refresco diario solo necesita la última -pide lo nuevo y ya-, pero eso
+    solo sabe AVANZAR. Con la primera se puede además responder "¿mi serie
+    llega tan atrás como quiero?", que es lo que hace falta para rellenar hacia
+    atrás.
+
+    Es exactamente la corrección que ya se hizo en `get_fx_date_range`: mirando
+    solo el máximo, el relleno de tipos de cambio traía 2 filas y dejaba
+    intactos tres años de hueco anterior.
+    """
+    if not asset_ids:
+        return {}
+    rows = db.execute(
+        select(
+            PriceHistory.asset_id,
+            func.min(PriceHistory.date),
+            func.max(PriceHistory.date),
+        )
+        .where(PriceHistory.asset_id.in_(asset_ids))
+        .group_by(PriceHistory.asset_id)
+    ).all()
+    return {
+        asset_id: (first, last)
+        for asset_id, first, last in rows
+        if first is not None and last is not None
+    }
+
+
 def get_last_bar_date(db: Session, asset_id: int) -> dt.date | None:
     return db.scalar(
         select(func.max(PriceHistory.date)).where(PriceHistory.asset_id == asset_id)

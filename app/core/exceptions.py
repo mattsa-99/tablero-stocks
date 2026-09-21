@@ -31,6 +31,10 @@ class InvalidJournalEntry(TableroError):
     """La entrada del diario no cumple las reglas (fecha pasada, sin razón...). -> 422"""
 
 
+class InvalidAllocationPlan(TableroError):
+    """El plan de asignación no es coherente (suma > 100, clase no válida). -> 422"""
+
+
 class InsufficientUniverse(TableroError):
     """No hay candidatos suficientes para un ranking con sentido. -> 422
 

@@ -67,6 +67,10 @@ const api = {
     return this.request(path, { method: "PATCH", body: JSON.stringify(payload) });
   },
 
+  put(path, payload) {
+    return this.request(path, { method: "PUT", body: JSON.stringify(payload) });
+  },
+
   delete(path) {
     return this.request(path, { method: "DELETE" });
   },

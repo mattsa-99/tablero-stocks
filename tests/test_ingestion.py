@@ -375,3 +375,33 @@ def test_prune_endpoint_refuses_a_reckless_retention(client):
 @pytest.mark.parametrize("path", ["/api/market-data/sync", "/api/market-data/status"])
 def test_endpoints_are_in_the_schema(client, path):
     assert path in client.get("/openapi.json").json()["paths"]
+
+
+def test_the_sync_never_reaches_banrep_in_tests(db, monkeypatch):
+    """Banrep es una fuente de red DISTINTA de Yahoo y `FakeProvider` no la cubre.
+
+    Sin el interruptor, `run_sync` salía a internet de verdad y la suite se
+    colgaba. El test no comprueba la configuración: comprueba que el gancho la
+    respeta, que es lo que evita que vuelva a pasar si alguien cambia el
+    defecto.
+    """
+    from app.core.config import settings
+    from app.services import reference_rates as rates_service
+
+    llamadas = []
+
+    def espia(*args, **kwargs):
+        llamadas.append(1)
+        raise AssertionError("Ningún test puede salir a Banrep")
+
+    monkeypatch.setattr(rates_service, "refresh", espia)
+
+    monkeypatch.setattr(settings, "enable_reference_rates", False)
+    ingestion.run_sync(db, FakeProvider(), force=True)
+    assert llamadas == []
+
+    # Y con el interruptor puesto SÍ se llama: si no, el test anterior pasaría
+    # aunque el gancho no existiera.
+    monkeypatch.setattr(settings, "enable_reference_rates", True)
+    with pytest.raises(AssertionError, match="Banrep"):
+        rates_service.refresh(db)

@@ -125,7 +125,7 @@ def test_the_valuation_flag_names_its_reference():
 
     assert "Financial Services" in flag.title
     assert flag.evidence["pe_vs_reference"] == 2.0
-    assert "mercado" in next(
+    assert "grupo de referencia" in next(
         f for f in build(_with_valuation(2.0)) if f.code == "valuation_very_expensive"
     ).title
 
@@ -357,3 +357,80 @@ def test_counts_add_up():
     verdict = summarize(flags)
 
     assert verdict.red + verdict.yellow + verdict.green + verdict.info == len(flags)
+
+
+# ----------------------------------------------------------------------
+# «Diversificado» no es un sector
+# ----------------------------------------------------------------------
+
+
+def test_a_broad_world_fund_core_raises_no_concentration_flag():
+    """Quien arma el núcleo con un fondo mundial tendrá siempre >30% ahí.
+
+    Es lo que se pretende. Con la regla general, cada ficha traía una bandera
+    amarilla por hacer exactamente lo recomendado. «Si el sector cae, cae todo
+    junto» es cierto de Tecnología y falso de un índice mundial.
+    """
+    nucleo = op(
+        exposure_bucket="Diversificado",
+        sector_weight_pct=80.0,
+        market_region="GLOBAL",
+    )
+    assert "sector_concentration" not in codes(build(nucleo, portfolio_position_count=3))
+
+
+def test_a_broad_fund_of_a_single_market_still_gets_a_note():
+    """Un S&P 500 diversifica por sector y no por país ni por divisa."""
+    nucleo = op(
+        exposure_bucket="Diversificado",
+        sector_weight_pct=80.0,
+        market_region="US",
+    )
+    banderas = build(nucleo, portfolio_position_count=3)
+    assert "sector_concentration" not in codes(banderas)
+    aviso = next(f for f in banderas if f.code == "broad_fund_single_market")
+    assert aviso.level == "info", "Es una advertencia, no un problema"
+    assert "US" in aviso.title
+
+
+def test_a_real_sector_still_raises_the_flag():
+    """La excepción es para «Diversificado», no para todo."""
+    concentrado = op(
+        exposure_bucket="Technology",
+        sector_weight_pct=45.0,
+        market_region="US",
+    )
+    assert "sector_concentration" in codes(build(concentrado, portfolio_position_count=3))
+
+
+# ----------------------------------------------------------------------
+# Fiscalidad: la pregunta, nunca la respuesta
+# ----------------------------------------------------------------------
+
+
+def test_the_tax_note_asks_instead_of_answering():
+    """Una cifra fiscal en la interfaz se lee como un cálculo.
+
+    El tratamiento colombiano de un dividendo extranjero o de una cripto
+    depende de la residencia, del monto, de la frecuencia y de convenios que
+    cambian. Lo que el tablero sí puede hacer es recordar QUÉ preguntar: el
+    error caro no es equivocarse en el tipo, es no saber que esa clase tributa
+    distinto.
+    """
+    import re
+
+    for clase in ("accion", "fondo_acciones", "renta_fija", "cripto", "materias_primas"):
+        banderas = build(op(asset_class=clase))
+        nota = next(f for f in banderas if f.code == "tax_treatment")
+        assert nota.level == "info", "Es un recordatorio, no un problema"
+        assert "contador" in nota.detail
+        assert "NO calcula impuestos" in nota.detail
+        assert not re.search(r"\d+\s*%", nota.title + nota.detail), (
+            f"«{clase}»: no puede aparecer ningún tipo impositivo concreto"
+        )
+
+
+def test_the_tax_note_is_never_a_warning():
+    """Pagar impuestos no es una bandera roja: es la consecuencia de ganar."""
+    banderas = build(op(asset_class="cripto"))
+    assert all(f.level == "info" for f in banderas if f.code == "tax_treatment")

@@ -17,9 +17,19 @@
 const FACTOR_META = [
   { key: "value", label: "Valoración", color: "var(--series-1)" },
   { key: "momentum", label: "Momentum", color: "var(--series-2)" },
-  { key: "diversification", label: "Diversificación", color: "var(--series-3)" },
   { key: "risk", label: "Riesgo", color: "var(--series-7)" },
 ];
+
+/* La diversificación ya NO es un factor del score: es el ENCAJE con tu
+ * cartera, y se muestra aparte.
+ *
+ * Mezclarla con los tres que sí suman era el problema de fondo: hacía que el
+ * número que se lee como «qué tan buena es esta oportunidad» dependiera de lo
+ * que uno tuviera comprado. Medido, 483 de 490 símbolos cambiaban de puesto
+ * al mirar el mismo universo desde otra cartera. Se sigue enseñando porque
+ * dice algo útil -cuánto pesa ya ese cubo en lo que tienes-, pero con su
+ * propia etiqueta y sin barra de puntos, para que no se lea como que suma. */
+const FIT_META = { key: "diversification", label: "Encaje con tu cartera", color: "var(--series-3)" };
 
 const CONFIDENCE_LABEL = { high: "alta", medium: "media", low: "baja" };
 
@@ -43,7 +53,8 @@ const GRADE_STYLE = {
 
 const GRADE_ORDER = ["A", "B", "C", "D", "E", "SIN_CALIFICAR"];
 const GRADE_LABEL = {
-  A: "Muy buena", B: "Buena", C: "Normal", D: "Mala", E: "Muy mala",
+  A: "Muy favorables", B: "Favorables", C: "Mixtas",
+  D: "Desfavorables", E: "Muy desfavorables",
   SIN_CALIFICAR: "Sin calificar",
 };
 
@@ -90,6 +101,28 @@ const REGION_ORDER = ["US", "COL", "LATAM", "EU", "ASIA", "GLOBAL"];
 const REGION_LABEL = {
   US: "EE.UU.", COL: "Colombia", LATAM: "LatAm", EU: "Europa",
   ASIA: "Asia", GLOBAL: "Global/ETFs",
+};
+
+/* Clases de activo. Debe coincidir con `asset_class.AssetClass` del backend;
+ * `test_the_frontend_knows_every_asset_class` compara las dos tablas, porque
+ * no hay build que genere esta y una clase nueva solo en Python se quedaría
+ * sin chip y sin ningún error visible.
+ *
+ * El orden es el de la decisión: primero lo que forma el núcleo de una
+ * cartera, al final lo que no debería. `derivado` y `desconocido` no llevan
+ * chip porque no entran al ranking -ver `opportunities._score_universe`- y un
+ * chip que siempre marca cero es ruido. */
+const CLASS_ORDER = [
+  "fondo_acciones", "accion", "renta_fija", "materias_primas", "cripto",
+];
+const CLASS_LABEL = {
+  fondo_acciones: "Fondos de acciones",
+  accion: "Acciones",
+  renta_fija: "Renta fija",
+  materias_primas: "Materias primas",
+  cripto: "Cripto",
+  derivado: "Derivados",
+  desconocido: "Sin clasificar",
 };
 
 /* Estado visual de un chip filtro.
@@ -173,6 +206,7 @@ document.addEventListener("alpine:init", () => {
      * el universo completo, no una lista vacía. */
     activeTiers: [],
     activeRegions: [],
+    activeClasses: [],
 
     /* Los filtros de calidad son los de PRIMERA VISITA, no una elección. */
     defaultTiers: false,
@@ -197,7 +231,9 @@ document.addEventListener("alpine:init", () => {
     pollsLeft: 0,
 
     factors: FACTOR_META,
+    fit: FIT_META,
     regionOrder: REGION_ORDER,
+    classOrder: CLASS_ORDER,
 
     get results() {
       return this.data?.opportunities ?? [];
@@ -254,6 +290,9 @@ document.addEventListener("alpine:init", () => {
         params.set("quality_tiers", this.activeTiers.map((g) => GRADE_SLUG[g]).join(","));
       }
       if (this.activeRegions.length) params.set("regions", this.activeRegions.join(","));
+      if (this.activeClasses.length) {
+        params.set("asset_classes", this.activeClasses.join(","));
+      }
 
       try {
         this.data = await window.api.get(`/api/opportunities?${params}`);
@@ -342,6 +381,11 @@ document.addEventListener("alpine:init", () => {
         ? regions.split(",").map((r) => r.trim().toUpperCase()).filter((r) => REGION_ORDER.includes(r))
         : this.readStoredList("tablero:regions");
 
+      const classes = url.get("asset_classes");
+      this.activeClasses = classes
+        ? classes.split(",").map((c) => c.trim().toLowerCase()).filter((c) => CLASS_ORDER.includes(c))
+        : this.readStoredList("tablero:classes");
+
       const limit = Number.parseInt(url.get("limit") ?? localStorage.getItem("tablero:limit"), 10);
       if (LIMIT_OPTIONS.includes(limit)) this.limit = limit;
     },
@@ -365,6 +409,9 @@ document.addEventListener("alpine:init", () => {
         params.set("quality_tiers", this.activeTiers.map((g) => GRADE_SLUG[g]).join(","));
       }
       if (this.activeRegions.length) params.set("regions", this.activeRegions.join(","));
+      if (this.activeClasses.length) {
+        params.set("asset_classes", this.activeClasses.join(","));
+      }
       if (this.limit !== DEFAULT_LIMIT) params.set("limit", String(this.limit));
 
       const query = params.toString();
@@ -412,14 +459,49 @@ document.addEventListener("alpine:init", () => {
       this.load({ triggerRefresh: false });
     },
 
+    toggleClass(assetClass) {
+      this.activeClasses = this.activeClasses.includes(assetClass)
+        ? this.activeClasses.filter((c) => c !== assetClass)
+        : [...this.activeClasses, assetClass];
+      localStorage.setItem("tablero:classes", JSON.stringify(this.activeClasses));
+      this.load({ triggerRefresh: false });
+    },
+
+    /* Cuando el filtro de clase deja la vista VACÍA, decir por qué.
+     *
+     * No es un caso raro: renta fija, materias primas y cripto no pueden sacar
+     * «Muy favorables» ni «Favorables» por construcción, porque solo tienen 2
+     * o 3 señales con datos y la nota alta exige 3 (ver `grading.py`). Con el
+     * filtro de calidad por defecto puesto, pulsar «Renta fija» devuelve cero
+     * tarjetas y el aviso genérico -«otras 468 siguen en el universo»- deja
+     * creer que el tablero no tiene renta fija. Tiene 31. */
+    get emptyBecauseOfQuality() {
+      if (!this.data || this.matchedCount > 0) return null;
+      if (!this.activeClasses.length || !this.activeTiers.length) return null;
+      const counts = this.data.class_counts ?? {};
+      const total = this.activeClasses.reduce((sum, c) => sum + (counts[c] ?? 0), 0);
+      if (!total) return null;
+      return {
+        total,
+        classes: this.activeClasses.map((c) => CLASS_LABEL[c] ?? c).join(" y "),
+        tiers: this.activeTiers.map((g) => GRADE_LABEL[g]).join(" y "),
+      };
+    },
+
     get hasFilters() {
-      return this.activeTiers.length > 0 || this.activeRegions.length > 0;
+      return (
+        this.activeTiers.length > 0
+        || this.activeRegions.length > 0
+        || this.activeClasses.length > 0
+      );
     },
 
     clearFilters() {
       this.showAll();
       this.activeRegions = [];
+      this.activeClasses = [];
       localStorage.removeItem("tablero:regions");
+      localStorage.removeItem("tablero:classes");
       this.load({ triggerRefresh: false });
     },
 
@@ -487,6 +569,28 @@ document.addEventListener("alpine:init", () => {
       return this.activeRegions.includes(region)
         ? "border-s1 bg-s1/10 text-s1 ring-1 ring-inset ring-s1/30"
         : CHIP_INACTIVE;
+    },
+
+    classLabel(assetClass) {
+      return CLASS_LABEL[assetClass] ?? assetClass;
+    },
+
+    classChipClass(assetClass) {
+      return this.activeClasses.includes(assetClass)
+        ? "border-s1 bg-s1/10 text-s1 ring-1 ring-inset ring-s1/30"
+        : CHIP_INACTIVE;
+    },
+
+    /* Clases con su recuento. Mismo criterio que las regiones: orden fijo y
+     * sin ocultar las de cero, porque un chip que desaparece al filtrar deja
+     * al usuario sin forma de volver. */
+    get classSummary() {
+      const counts = this.data?.class_counts ?? {};
+      return CLASS_ORDER.map((c) => ({
+        assetClass: c,
+        label: CLASS_LABEL[c],
+        count: counts[c] ?? 0,
+      }));
     },
 
     /* Regiones con su recuento, para los chips.

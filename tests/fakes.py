@@ -20,6 +20,7 @@ from app.providers.base import (
     AssetMetadata,
     BarData,
     FundamentalData,
+    FundProfile,
     QuoteData,
     SearchHit,
 )
@@ -71,6 +72,7 @@ class FakeProvider:
         history: dict[str, list[BarData]] | None = None,
         metadata: dict[str, AssetMetadata] | None = None,
         fundamentals: dict[str, FundamentalData] | None = None,
+        fund_profiles: dict[str, FundProfile] | None = None,
         fx: dict[tuple[str, str], float] | None = None,
         fx_history: dict[tuple[str, str], list[tuple[dt.date, float]]] | None = None,
         search: list[SearchHit] | None = None,
@@ -80,6 +82,7 @@ class FakeProvider:
         self.history = history or {}
         self.metadata = metadata or {}
         self.fundamentals = fundamentals or {}
+        self.fund_profiles = fund_profiles or {}
         self.fx = fx or {}
         self.fx_history = fx_history or {}
         self.search = search or []
@@ -115,6 +118,10 @@ class FakeProvider:
     def fetch_fundamentals(self, symbols: list[str]) -> dict[str, FundamentalData]:
         self._record("fetch_fundamentals", tuple(symbols))
         return {s: self.fundamentals[s] for s in symbols if s in self.fundamentals}
+
+    def fetch_fund_profiles(self, symbols: list[str]) -> dict[str, FundProfile]:
+        self._record("fetch_fund_profiles", tuple(symbols))
+        return {s: self.fund_profiles[s] for s in symbols if s in self.fund_profiles}
 
     def fetch_fx_rates(self, pairs: list[tuple[str, str]]) -> dict[tuple[str, str], float]:
         self._record("fetch_fx_rates", tuple(pairs))

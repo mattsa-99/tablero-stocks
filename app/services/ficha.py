@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.exceptions import NotFoundError
-from app.models import Asset, AssetType, Portfolio
+from app.models import Asset, Portfolio
 from app.repositories import market as market_repo
 from app.repositories import portfolio as portfolio_repo
 from app.schemas.ficha import (
@@ -27,6 +27,7 @@ from app.schemas.ficha import (
     FichaResponse,
     Flag,
     Freshness,
+    FundProfileRead,
     HealthRead,
     HoldingRead,
     PeerRead,
@@ -34,6 +35,8 @@ from app.schemas.ficha import (
     SizingRead,
 )
 from app.schemas.opportunity import OpportunityRead, OpportunityResponse
+from app.services import asset_class as asset_class_service
+from app.services import exposure as exposure_service
 from app.services import opportunities as opportunity_service
 from app.services import universe as universe_service
 from app.services.exposure import exposure_bucket
@@ -195,7 +198,7 @@ def compute_sizing(
 
     result = size_position(
         max_drawdown=row.risk.inputs.get("max_drawdown"),
-        is_fund=asset.asset_type in (AssetType.ETF, AssetType.FUND),
+        asset_class=asset_class_service.classify(asset).asset_class,
         risk_budget_pct=(
             risk_budget_pct if risk_budget_pct is not None else settings.position_risk_budget_pct
         ),
@@ -207,8 +210,93 @@ def compute_sizing(
         current_weight_pct=current_pct,
         capital=effective_capital,
         currency_differs=asset.currency.upper() != state.context.base_currency.upper(),
+        is_diversified=_is_core_material(asset),
     )
     return SizingRead(**vars(result), base_currency=state.context.base_currency)
+
+
+# Calificaciones que cuentan como GRADO DE INVERSIÓN. La frontera está entre
+# BBB y BB y no es una convención más: por debajo de ella hay fondos de
+# pensiones y mandatos institucionales que no pueden comprar, así que en una
+# crisis el comprador marginal desaparece justo cuando hace falta. Es la
+# diferencia entre «paga más» y «paga más por una razón».
+#
+# `us_government` NO está, y dejarlo fuera es el punto. No es una calificación
+# más: es una etiqueta que SE SOLAPA con las otras, y sumarla las contaría dos
+# veces. Comprobado sobre los cuatro fondos de bonos del universo, sin ella
+# cada reparto suma exactamente 1,00:
+#
+#     TLT  aa 1,0000                                   + us_government 0,996
+#     TIP  aa 0,9994                                   + us_government 0,9994
+#     AGG  aa 0,7425 + aaa 0,0221 + a 0,1191 + bbb 0,1162 + bb 0,0001 = 1,00
+_INVESTMENT_GRADE = ("aaa", "aa", "a", "bbb")
+
+
+def _is_core_material(asset: Asset) -> bool:
+    """¿Es un instrumento con el que alguien armaría el NÚCLEO de su cartera?
+
+    Un fondo diversificado -de acciones o de bonos- lo es; una acción suelta y
+    un fondo sectorial, no. La distinción importa porque el presupuesto de
+    riesgo reparte entre APUESTAS, y un núcleo no es una apuesta.
+
+    Se decide por el CUBO DE EXPOSICIÓN y no por la clase: un ETF sectorial es
+    `fondo_acciones` igual que VT, pero XLE concentra en energía y sí es una
+    apuesta. El cubo ya distingue las dos cosas, y reusarlo evita que esta
+    respuesta y la de la diversificación se separen.
+    """
+    from app.services.asset_class import AssetClass
+
+    clase = asset_class_service.classify(asset).asset_class
+    if clase not in (AssetClass.FONDO_ACCIONES, AssetClass.RENTA_FIJA):
+        return False
+    return exposure_bucket(asset) in (
+        exposure_service.BROAD_EQUITY,
+        exposure_service.FIXED_INCOME,
+    )
+
+
+def _fund_profile(asset: Asset, sizing: SizingRead | None) -> FundProfileRead | None:
+    """Composición, coste y calidad crediticia. None si no es un fondo."""
+    perfil = asset.fund_profile
+    if perfil is None:
+        return None
+
+    ratings = perfil.credit_ratings or None
+    grado = None
+    if ratings:
+        grado = min(100.0, sum(ratings.get(k, 0.0) for k in _INVESTMENT_GRADE) * 100)
+
+    # El coste EN DINERO sobre la posición que el sizing sugiere. Un 0,75%
+    # anual no se siente; «US$ 7,50 al año sobre los US$ 1.000 que te propone
+    # esta misma ficha» sí, y es la misma cifra.
+    importe = None
+    if (
+        sizing is not None
+        and sizing.target_amount is not None
+        and perfil.expense_ratio is not None
+    ):
+        importe = (
+            sizing.target_amount * Decimal(str(perfil.expense_ratio))
+        ).quantize(Decimal("0.01"))
+
+    return FundProfileRead(
+        category=perfil.category,
+        legal_type=perfil.legal_type,
+        stock_position=perfil.stock_position,
+        bond_position=perfil.bond_position,
+        cash_position=perfil.cash_position,
+        other_position=perfil.other_position,
+        # Se redondea AQUÍ, en presentación, no en el dato: Yahoo devuelve
+        # 0.00029999999 para el 0,03% de IVV y sin esto la ficha enseñaría
+        # «0,029999999%». Misma regla que con el P&L que redondea a cero.
+        expense_ratio_pct=(
+            None if perfil.expense_ratio_pct is None
+            else round(perfil.expense_ratio_pct, 3)
+        ),
+        expense_amount=importe,
+        credit_ratings=ratings,
+        investment_grade_pct=None if grado is None else round(grado, 1),
+    )
 
 
 def _freshness(
@@ -372,6 +460,7 @@ def build_ficha(db: Session, portfolio: Portfolio, symbol: str) -> FichaResponse
         sector_rank=sector_rank,
         sector_size=sector_size,
         portfolio=state.context,
+        fund=_fund_profile(asset, sizing),
         sizing=sizing,
         freshness=_freshness(db, asset, snapshot, today),
         warnings=warnings,

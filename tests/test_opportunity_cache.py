@@ -182,7 +182,15 @@ def test_changing_the_weights_invalidates_the_cache(db, universe, monkeypatch):
     second = run(db, universe).opportunities[0].value.weight
 
     assert first != second
-    assert second == 0.60
+    # El peso que viaja en la respuesta es el EFECTIVO, ya reescalado a
+    # [0, 100]: 0,60 sobre una suma de pesos de 1,10 es 0,5455. Comprobar el
+    # valor crudo dejaría pasar un reescalado roto.
+    esperado = 0.60 / (
+        0.60
+        + settings.opportunity_weight_momentum
+        + settings.opportunity_weight_risk
+    )
+    assert second == pytest.approx(esperado, abs=1e-4)
 
 
 def test_a_different_universe_is_a_different_entry(db, universe, counting):
@@ -199,3 +207,98 @@ def test_a_different_universe_is_a_different_entry(db, universe, counting):
         db, portfolio, assets=[*assets, extra], limit=50
     )
     assert len(counting) == 2
+
+
+# ----------------------------------------------------------------------
+# El score ya no depende de la cartera
+# ----------------------------------------------------------------------
+
+
+def test_the_score_no_longer_depends_on_the_portfolio(db, universe):
+    """LA propiedad del cambio: dos carteras, el mismo ranking.
+
+    Antes el score incluía `+ 0.15*D`, donde D medía cuánto pesaba en TU
+    cartera el cubo del candidato. Medido sobre el universo real evaluado
+    desde dos carteras distintas:
+
+        símbolos que cambian de puesto:  483 de 490  (98,6%)
+        IVV: #220 (57,79) -> #113 (61,37)
+
+    Es decir: el número que se lee como «qué tan buena es esta oportunidad»
+    cambiaba con lo que uno tuviera comprado, y el 98,6% de los puestos con él.
+    """
+    portfolio, assets = universe
+
+    otra = Portfolio(name="Con posiciones", base_currency="USD")
+    db.add(otra)
+    db.commit()
+    db.add(buy(otra, assets[0], dt.datetime.now(dt.UTC) - dt.timedelta(days=5), fx="1"))
+    db.commit()
+
+    opportunity_service.clear_cache()
+    vacia = {
+        row.symbol: (row.rank, row.score)
+        for row in opportunity_service.compute_opportunities(
+            db, portfolio, assets=assets, limit=50
+        ).opportunities
+    }
+    opportunity_service.clear_cache()
+    con_posiciones = {
+        row.symbol: (row.rank, row.score)
+        for row in opportunity_service.compute_opportunities(
+            db, otra, assets=assets, limit=50
+        ).opportunities
+    }
+
+    assert vacia == con_posiciones, (
+        "El score y el puesto tienen que ser idénticos desde cualquier cartera"
+    )
+
+
+def test_the_fit_with_the_portfolio_is_still_reported_but_adds_nothing(db, universe):
+    """La diversificación no desaparece: deja de sumar.
+
+    Sigue diciendo cuánto pesa ya ese cubo en lo que tienes, que es útil. Lo
+    que no hace es mover el ranking, y el peso cero lo declara en la propia
+    respuesta en vez de dejarlo como un detalle de implementación.
+    """
+    portfolio, assets = universe
+    db.add(buy(portfolio, assets[0], dt.datetime.now(dt.UTC) - dt.timedelta(days=5), fx="1"))
+    # Sin cotización no hay posición valorada, y sin posición valorada el
+    # encaje no se puede medir para nadie.
+    db.add(AssetQuote(
+        asset_id=assets[0].id, price=150.0, currency="USD",
+        fetched_at=dt.datetime.now(dt.UTC), is_stale=False, source="test",
+    ))
+    db.commit()
+
+    opportunity_service.clear_cache()
+    respuesta = opportunity_service.compute_opportunities(
+        db, portfolio, assets=assets, limit=50
+    )
+
+    assert respuesta.weights["diversification"] == 0.0
+    for fila in respuesta.opportunities:
+        assert fila.diversification.weight == 0.0
+        assert fila.diversification.contribution == 0.0
+    # Y la medición sigue ahí: el cubo que se posee pesa distinto de cero.
+    medidos = [f for f in respuesta.opportunities if f.diversification.available]
+    assert medidos, "Con una posición abierta, el encaje SÍ se puede medir"
+    assert any(f.diversification.score < 100.0 for f in medidos)
+
+
+def test_the_score_still_spans_the_full_scale(db, universe):
+    """Quitar un factor no puede dejar el máximo alcanzable en 85.
+
+    La división por la suma de pesos es una constante positiva: no cambia
+    ningún puesto, solo la escala en que se lee el número.
+    """
+    portfolio, assets = universe
+    opportunity_service.clear_cache()
+    respuesta = opportunity_service.compute_opportunities(
+        db, portfolio, assets=assets, limit=50
+    )
+    pesos = respuesta.weights
+    maximo = (pesos["value"] + pesos["momentum"]) * 100 + pesos["baseline"]
+    assert maximo == pytest.approx(100.0, abs=0.05)
+    assert pesos["baseline"] + pesos["risk"] * 100 == pytest.approx(0.0, abs=0.05)

@@ -197,29 +197,79 @@ def test_the_glossary_is_valid_javascript_data():
 def test_the_examples_are_consistent_with_the_scoring_formula():
     """El ejemplo del score debe cuadrar con la fórmula real.
 
-    20 de base + 33,0 + 28,9 + 15,0 − 10,6 = 86,3. Si alguien retoca los
+    23,53 de base + 35,65 + 33,97 − 11,88 = 81,27. Si alguien retoca los
     pesos y no el ejemplo, el glosario enseña una aritmética que no sale.
     """
     from app.core.config import settings
 
     source = GLOSSARY_JS.read_text(encoding="utf-8")
-    assert "86,3" in source
-    # 20 de base + los cuatro aportes de la ficha real de CIB.
-    assert round(sum([20.0, 33.0, 28.9, 15.0, -10.6]), 1) == 86.3
+    assert "81,27" in source
+    assert round(sum([23.53, 35.65, 33.97, -11.88]), 2) == 81.27
 
-    # La base del ejemplo es la que calcula el motor: w_risk x 100. Si alguien
-    # cambia el peso del riesgo, el "+20" del glosario deja de ser cierto.
-    assert settings.opportunity_weight_risk * 100.0 == 20.0
+    # Los PESOS EFECTIVOS, ya reescalados a [0,100]. El glosario anuncia los
+    # que el usuario ve en la tarjeta, no los crudos de la configuración: son
+    # distintos desde que la fórmula se divide por la suma de pesos.
+    escala = 1.0 / (
+        settings.opportunity_weight_value
+        + settings.opportunity_weight_momentum
+        + settings.opportunity_weight_risk
+    )
+    # La base es w_risk x 100 reescalada: si cambia el peso del riesgo, el
+    # "23,53" del glosario deja de ser cierto.
+    assert round(escala * settings.opportunity_weight_risk * 100, 2) == 23.53
 
-    # Y los porcentajes que anuncia cada pilar son los pesos configurados.
     for label, weight in (
-        ("35%", settings.opportunity_weight_value),
-        ("30%", settings.opportunity_weight_momentum),
-        ("15%", settings.opportunity_weight_diversification),
-        ("20%", settings.opportunity_weight_risk),
+        ("41%", settings.opportunity_weight_value),
+        ("35%", settings.opportunity_weight_momentum),
+        ("24%", settings.opportunity_weight_risk),
     ):
         assert label in source, f"El glosario no menciona el peso {label}"
-        assert round(weight * 100) == int(label.rstrip("%"))
+        assert round(escala * weight * 100) == int(label.rstrip("%"))
+
+
+def test_the_glossary_never_uses_a_grade_label_that_no_longer_exists():
+    """LA GUARDA QUE FALTABA, y que se escribe por haber fallado sin ella.
+
+    Al renombrar las calificaciones de «Muy buena / Buena / Normal / Mala /
+    Muy mala» a «Muy favorables / … / Muy desfavorables», el glosario se
+    quedó enseñando las viejas: el centro de ayuda pasó a contradecir a la
+    pantalla y ningún test lo vio. Un ejemplo con etiquetas que no existen es
+    peor que ninguno, porque el usuario busca en la interfaz algo que ya no
+    está.
+    """
+    from app.services.grading import GRADE_LABEL
+
+    source = GLOSSARY_JS.read_text(encoding="utf-8")
+    vigentes = set(GRADE_LABEL.values())
+    retiradas = {"Muy buena", "Buena", "Normal", "Mala", "Muy mala"} - vigentes
+
+    for etiqueta in retiradas:
+        assert f"«{etiqueta}»" not in source, (
+            f"El glosario sigue usando «{etiqueta}», que ya no es una "
+            f"calificación. Vigentes: {sorted(vigentes)}"
+        )
+
+    # Y al menos una de las vigentes tiene que aparecer: si no, la guarda
+    # pasaría con un glosario que no menciona ninguna calificación.
+    assert any(f"«{v}»" in source for v in vigentes)
+
+
+def test_the_glossary_explains_the_class_and_the_coverage():
+    """Dos conceptos nuevos que la tarjeta enseña y sin los cuales no se lee.
+
+    «#7 de 31» y «2/4 señales» aparecen en cada tarjeta. Sin explicarlos, el
+    usuario los lee como decoración: el primero es lo que impide confundir
+    «el mejor de su clase» con «el mejor de todo», y el segundo es lo que
+    distingue una nota con base de una sin ella.
+    """
+    source = GLOSSARY_JS.read_text(encoding="utf-8")
+
+    for concepto in ("Clase de activo", "de 31", "señales", "Cobertura"):
+        assert concepto in source, f"El glosario no explica «{concepto}»"
+
+    # El ejemplo del puesto tiene que mostrar el caso incómodo: un primero de
+    # su clase con mala calificación. Es la razón de ser del «de N».
+    assert "BTC-USD es #1 de 25" in source
 
 
 def test_the_glossary_scope_matches_what_the_ui_actually_renders():
@@ -244,3 +294,30 @@ def test_the_glossary_scope_matches_what_the_ui_actually_renders():
         "Se están pintando los `inputs` de las señales: amplía "
         "test_every_factor_input_shown_in_the_ui_is_explained a grading.py"
     )
+
+
+def test_the_glossary_explains_how_much_to_trust_the_whole_thing():
+    """La advertencia más importante del sistema, y la más fácil de perder.
+
+    Estaba repartida en `caveat`s sueltos de cada métrica: se podía leer el
+    glosario entero aprendiendo a interpretar cada cifra y sin enterarse nunca
+    de que la fórmula no está validada contra nada.
+
+    Se comprueba que estén los cuatro conceptos, no una frase literal: lo que
+    no puede perderse es la EXPLICACIÓN, no una redacción concreta.
+    """
+    source = GLOSSARY_JS.read_text(encoding="utf-8")
+    seccion = source.split("Qué confianza merece esto")[1].split("La nota global")[0]
+
+    for concepto in ("Heurística", "Backtest", "sobreajuste", "diario"):
+        assert concepto in seccion, f"falta explicar «{concepto}»"
+
+
+def test_the_glossary_says_a_bad_backtest_is_worse_than_none():
+    """Es el matiz que casi nadie cuenta y el que más protege al principiante.
+
+    Sin él, «sin backtest» se lee como un defecto a corregir, y la conclusión
+    natural sería fiarse MÁS de cualquier producto que sí enseñe uno.
+    """
+    source = GLOSSARY_JS.read_text(encoding="utf-8")
+    assert "PEOR que ninguno" in source

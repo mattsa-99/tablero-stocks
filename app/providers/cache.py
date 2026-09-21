@@ -35,6 +35,23 @@ class ResourceType:
     # El HISTÓRICO de un par, distinto del tipo del día: su TTL se mide en
     # días, no en minutos, porque son cierres ya cerrados.
     FX_HISTORY = "fx_history"
+    # El RELLENO HACIA ATRÁS del histórico, distinto del refresco diario.
+    #
+    # Existe por la misma razón que `FX_HISTORY`: pregunta otra cosa. El
+    # refresco diario pregunta "¿qué barras nuevas hay?" y se contesta mirando
+    # la ÚLTIMA almacenada; el relleno pregunta "¿llega mi serie tan atrás como
+    # quiero?" y se contesta mirando la PRIMERA.
+    #
+    # Necesita su propio TTL, medido en días, porque un símbolo joven -una
+    # salida a bolsa de hace seis meses, un ETF recién creado- nunca va a
+    # alcanzar la profundidad pedida por mucho que se pregunte. Sin este
+    # registro, "¿me falta pasado?" sería siempre que sí y se redescargarían
+    # cinco años en cada sincronización.
+    PRICE_HISTORY_BACKFILL = "price_history_backfill"
+    # El PERFIL de un fondo: composición, coste y calidad crediticia. TTL
+    # largo porque cambia cuando el gestor cambia el mandato, o sea casi
+    # nunca, y cuesta una llamada por fondo.
+    FUND_PROFILE = "fund_profile"
     # El proveedor COMO UN TODO, no un símbolo. Un 429 no dice nada sobre el
     # activo que se pidió: dice que hay que parar de pedir.
     PROVIDER = "provider"

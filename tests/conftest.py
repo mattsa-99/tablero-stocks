@@ -28,6 +28,12 @@ os.environ["TABLERO_ENABLE_BACKGROUND_REFRESH"] = "false"
 # valor de producción para que la suite pruebe la configuración real.
 os.environ["TABLERO_DEFAULT_BASE_CURRENCY"] = "USD"
 
+# Y por el mismo motivo que el planificador: `run_sync` pide las tasas de
+# referencia a Banrep, que es una fuente de red DISTINTA de Yahoo y por tanto
+# no la cubre `FakeProvider`. Sin esto la suite salía a internet de verdad y se
+# colgaba en los tests de sincronización.
+os.environ["TABLERO_ENABLE_REFERENCE_RATES"] = "false"
+
 from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 

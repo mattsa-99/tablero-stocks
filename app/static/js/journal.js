@@ -22,7 +22,8 @@ const ALERT_STYLE = {
 };
 
 const GRADE_LABEL_ES = {
-  A: "Muy buena", B: "Buena", C: "Normal", D: "Mala", E: "Muy mala",
+  A: "Muy favorables", B: "Favorables", C: "Mixtas",
+  D: "Desfavorables", E: "Muy desfavorables",
 };
 
 function emptyForm() {

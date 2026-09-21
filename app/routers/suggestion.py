@@ -161,7 +161,7 @@ def suggested_stock(
         runners_up=[_to_read(c) for c in evaluated[1:4]],
         candidates_evaluated=len(evaluated),
         assumed_weight_pct=round(weight * 100, 2),
-        concentration_threshold_pct=suggestion_service.CONCENTRATION_THRESHOLD * 100,
+        concentration_threshold_pct=suggestion_service.concentration_threshold() * 100,
         warnings=warnings,
         no_suggestion_reason=reason,
     )
