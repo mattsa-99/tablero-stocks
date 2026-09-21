@@ -687,6 +687,14 @@
               corrompería tu coste medio. Se revisa todo antes de escribir, y si una sola fila falla
               <strong>no se importa ninguna</strong>.
             </p>
+            {# Faltaba lo más básico: para QUÉ sirve. El modal explicaba muy bien
+               cómo funciona y nada sobre cuándo usarlo. #}
+            <p class="mt-2 text-xs text-ink-mute">
+              Úsalo para cargar de golpe el histórico de tu bróker o varias
+              operaciones a la vez. Para una sola, es más rápido
+              «Nueva transacción». La columna del tipo de cambio puedes dejarla
+              vacía: se resuelve sola.
+            </p>
           </div>
           <button @click="close()" class="text-ink-mute transition-colors hover:text-ink" aria-label="Cerrar">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -697,7 +705,10 @@
 
         <div class="space-y-4 px-5 py-5">
           <div class="flex flex-wrap items-center gap-3">
-            <a href="/api/transactions/import/template" download
+            {# La plantilla se pide CON el portafolio: se genera en su divisa base.
+               Sin el parámetro saldría en la divisa por defecto, que puede no ser
+               la tuya, y copiarla tal cual montaría el ledger al revés. #}
+            <a :href="`/api/transactions/import/template?portfolio_id=${$store.app.selectedId}`" download
                class="rounded-lg border border-line px-3 py-2 text-xs text-ink-soft transition-colors hover:border-line-strong hover:text-ink">
               Descargar plantilla
             </a>

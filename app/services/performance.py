@@ -321,10 +321,29 @@ def compute_series(
 
     calendar = _trading_calendar(prices, start, today)
     if not calendar:
-        result.warnings.append(
-            "No hay barras de precio en el rango pedido: ejecuta una "
-            "sincronización para poblar el histórico."
+        # Distinguir las dos causas importa, porque llevan a acciones opuestas.
+        #
+        # Decir «ejecuta una sincronización» cuando el histórico está completo
+        # manda al usuario a hacer algo que no arregla nada. Pasó de verdad:
+        # con 288 barras por activo desde 2025 y la primera compra HOY, el
+        # aviso culpaba a los datos cuando lo único que falta es que pase un
+        # día de mercado.
+        ultima = max(
+            (dia for serie in prices.values() for dia, _ in serie), default=None
         )
+        if ultima is None:
+            result.warnings.append(
+                "No hay ninguna barra de precio guardada para estos activos: "
+                "ejecuta una sincronización para poblar el histórico."
+            )
+        else:
+            result.warnings.append(
+                f"Tu primera operación es del {first_day.isoformat()} y la última "
+                f"sesión con precio es del {ultima.isoformat()}: todavía no hay "
+                "ningún día de mercado posterior a la compra que dibujar. La "
+                "curva aparecerá sola tras la próxima sesión; no hace falta "
+                "sincronizar nada."
+            )
         return result
 
     flows, assumed = _external_flows(transactions)

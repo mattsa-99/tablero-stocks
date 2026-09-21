@@ -38,6 +38,60 @@ Chart.js se cargan por CDN y las plantillas las sirve FastAPI.
 | `/oportunidades` | Ranking de oportunidades |
 | `/docs` | Documentación interactiva de la API |
 
+---
+
+## Asesor en Claude Desktop (opcional)
+
+El tablero expone sus datos y cálculos por **MCP**, así que Claude Desktop
+puede leerlos y aconsejar sobre ellos. Es una capa **desmontable**: el tablero
+funciona entero sin esto.
+
+```bash
+pip install -e ".[mcp]"
+```
+
+Añade el servidor a `~/Library/Application Support/Claude/claude_desktop_config.json`
+(en Windows, `%APPDATA%\Claude\claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "tablero-stocks": {
+      "command": "/RUTA/A/Tablero Stocks/.venv/bin/python",
+      "args": ["-m", "mcp_server"],
+      "cwd": "/RUTA/A/Tablero Stocks"
+    }
+  }
+}
+```
+
+Usa la ruta **absoluta al python del entorno virtual**, no `python` a secas:
+Claude Desktop no hereda tu `PATH` ni el entorno activado. Reinicia Claude
+Desktop del todo (⌘Q) después de editarlo.
+
+`cwd` va por si acaso, pero **no te fíes de él**: Claude Desktop lo ignora y
+lanza el servidor desde otro directorio. Como la ruta por defecto de la base
+(`sqlite:///./tablero.db`) y el `.env` son relativos, el asesor respondía
+«unable to open database file». El servidor se sitúa solo en la raíz del
+proyecto al arrancar (`mcp_server/bootstrap.py`), así que funciona desde
+cualquier parte.
+
+Por último, pega [`docs/ASESOR.md`](docs/ASESOR.md) en las instrucciones de un
+Proyecto. Sin esa guía tienes herramientas sueltas; con ella, un asesor que da
+veredictos con tamaño e invalidación, discute tus decisiones y revisa tu diario.
+
+| Herramienta | Qué devuelve |
+|---|---|
+| `brief` | Cartera, riesgo, alertas del diario, candidatos y frescura, en una llamada |
+| `ficha` | Score, veredicto, banderas, salud, pares y sizing de un símbolo |
+| `opportunities` | Ranking con filtros de región y calificación |
+| `journal` | Tesis con alertas y el marcador del asesor |
+| `journal_write` | **Única de escritura.** Exige confirmación explícita |
+| `whatif` | Antes y después de una compra hipotética |
+| `performance` | Curva de valor, índice y XIRR |
+
+Todas leen lo ya guardado y **ninguna llama a Yahoo ni ejecuta órdenes**.
+
 ### Primeros pasos en la interfaz
 
 1. **Crear un portafolio** con el botón `+` de la cabecera. La divisa base no

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import datetime as dt
+from decimal import Decimal
+
 import pytest
 
-from app.models import Asset, Transaction
-from app.services.importer import COLUMNS, TEMPLATE
+from app.models import Asset, FxRateDaily, Transaction
+from app.services.importer import COLUMNS, template_for
 
 HEADER = ",".join(COLUMNS)
 
@@ -33,12 +36,27 @@ DIVIDEND = "2026-03-15,DIVIDEND,KO,,,3.20,0.50,USD,4050.00,,"
 
 
 def test_template_is_served_and_passes_its_own_dry_run(client, portfolio_id, db_of):
-    served = client.get("/api/transactions/import/template")
+    """La plantilla tiene que ser importable TAL CUAL.
+
+    Es la primera cosa que alguien prueba, y una plantilla que su propio
+    validador rechaza destruye la confianza en el importador entero.
+    """
+    base = client.get(f"/api/portfolios/{portfolio_id}").json()["base_currency"]
+    # La cartera de prueba va en pesos y los activos del ejemplo cotizan en
+    # dólares: sin tipo guardado la plantilla no puede traer uno y el ejemplo
+    # no sería importable. Es el caso normal de cualquier cartera en COP.
+    db_of.add(FxRateDaily(
+        base_currency="USD", quote_currency=base, date=dt.date(2026, 1, 20),
+        rate=Decimal("4150.25"), source="test", fetched_at=dt.datetime.now(dt.UTC),
+    ))
+    db_of.commit()
+
+    served = client.get(f"/api/transactions/import/template?portfolio_id={portfolio_id}")
     assert served.status_code == 200
     assert served.headers["content-type"].startswith("text/csv")
-    assert served.text == TEMPLATE
+    assert served.text == template_for(base, Decimal("4150.25"))
 
-    report = post(client, portfolio_id, TEMPLATE).json()
+    report = post(client, portfolio_id, served.text).json()
     assert report["errors"] == []
     assert report["dry_run"] is True and report["applied"] is False
     assert report["new_rows"] == 4
@@ -209,3 +227,54 @@ def test_ledger_error_names_the_symbol_not_an_internal_id(client, portfolio_id):
     message = post(client, portfolio_id, text).json()["errors"][0]["message"]
     assert "AAPL" in message
     assert "activo " not in message
+
+
+def test_the_template_uses_the_portfolios_own_base_currency(client, db_of):
+    """Una plantilla fija enseña a montar el ledger al revés.
+
+    Depositaba 5.000.000 COP con tipos de cambio de 4.150 en cada compra. En
+    una cartera en dólares eso es exactamente lo contrario de lo que hay que
+    escribir, y quien la copia tal cual congela costes equivocados.
+    """
+    cop = client.post("/api/portfolios", json={"name": "En pesos", "base_currency": "COP"})
+    assert cop.status_code == 201
+
+    served = client.get(
+        f"/api/transactions/import/template?portfolio_id={cop.json()['id']}"
+    ).text
+    deposito = [line for line in served.splitlines() if "DEPOSIT" in line][0]
+    assert ",COP," in deposito, "el depósito va en la divisa de la cartera"
+    # La compra sigue en USD: es la divisa del ACTIVO, no de la cartera.
+    compra = [line for line in served.splitlines() if "BUY" in line][0]
+    assert ",USD," in compra
+
+
+def test_the_template_leaves_the_exchange_rate_blank(client, portfolio_id):
+    """Es la columna que hace abandonar el importador, y ya es opcional.
+
+    Con la plantilla rellenándola en las cuatro filas, nadie descubre que se
+    resuelve sola contra `fx_rates`.
+    """
+    served = client.get(
+        f"/api/transactions/import/template?portfolio_id={portfolio_id}"
+    ).text
+    compra = [line for line in served.splitlines() if "BUY" in line][0]
+    campos = compra.split(",")
+    assert campos[8] == "", "fx_rate_to_base debe ir vacío en el ejemplo"
+
+
+def test_without_a_stored_rate_the_template_says_so_instead_of_inventing_one(client, db_of):
+    """Poner un 1 en USD->COP erraría por un factor de ~3.000.
+
+    Sin tipo guardado la columna queda vacía y el aviso de la fila pide el
+    dato, que es preferible a un número inventado que se congelaría en el
+    coste medio para siempre.
+    """
+    cop = client.post("/api/portfolios", json={"name": "Sin tipos", "base_currency": "COP"})
+    served = client.get(
+        f"/api/transactions/import/template?portfolio_id={cop.json()['id']}"
+    ).text
+
+    compra = [line for line in served.splitlines() if "BUY" in line][0]
+    assert compra.split(",")[8] == "", "sin tipo guardado no se inventa uno"
+    assert "USD->COP" in compra

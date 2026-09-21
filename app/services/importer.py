@@ -56,13 +56,44 @@ COLUMNS = (
 )
 REQUIRED = ("date", "type")
 
-TEMPLATE = (
-    ",".join(COLUMNS) + "\n"
-    "2026-01-15,DEPOSIT,,,,5000000,0,COP,1,Depósito inicial (borra estas filas de ejemplo),\n"
-    "2026-01-20,BUY,AAPL,2,185.50,,1.00,USD,4150.25,,\n"
-    "2026-02-10,SELL,AAPL,1,200.10,,1.00,USD,4100.00,,\n"
-    "2026-03-15,DIVIDEND,KO,,,3.20,0.50,USD,4050.00,,\n"
-)
+def template_for(base_currency: str, usd_rate: Decimal | None = None) -> str:
+    """La plantilla de ejemplo, en la divisa base de TU cartera.
+
+    Era un texto fijo que daba por hecho una cartera en pesos: depositaba
+    5.000.000 COP y ponía tipos de cambio de 4.150 en cada compra. Con la
+    divisa base en dólares eso enseña exactamente lo contrario de lo que hay
+    que hacer, y quien copia la plantilla tal cual monta un ledger equivocado.
+
+    Las compras van en USD porque AAPL y KO cotizan en USD: eso es un hecho del
+    activo, no de tu cartera, y el importador rechaza una divisa que no case
+    con la del activo ya verificado.
+
+    `fx_rate_to_base` va VACÍO cuando la divisa coincide con la base, porque se
+    resuelve solo y es la forma de enseñar que no hay que buscar el tipo de
+    cada día a mano — justo la columna que hace abandonar el importador.
+
+    Cuando NO coincide se rellena con el tipo real (`usd_rate`), no se deja en
+    blanco. La plantilla tiene que poder importarse TAL CUAL: es lo primero que
+    alguien prueba, y una plantilla que su propio validador rechaza destruye la
+    confianza en el importador entero. Si no hay tipo guardado queda vacía y el
+    aviso de la fila lo dice, que es preferible a inventarse un número: poner
+    un 1 en USD->COP erraría por un factor de ~3.000.
+    """
+    base = base_currency.upper()
+    if base == "USD":
+        fx, hint = "", "Deja fx_rate_to_base vacío y se resuelve solo"
+    elif usd_rate is not None:
+        fx, hint = f"{usd_rate}", "Tipo de cambio del día de la operación"
+    else:
+        fx, hint = "", f"Pon aquí el tipo USD->{base} de ese día"
+    return (
+        ",".join(COLUMNS) + "\n"
+        f"2026-01-15,DEPOSIT,,,,5000,0,{base},1,"
+        "Depósito inicial (borra estas filas de ejemplo),\n"
+        f"2026-01-20,BUY,AAPL,2,185.50,,1.00,USD,{fx},{hint},\n"
+        f"2026-02-10,SELL,AAPL,1,200.10,,1.00,USD,{fx},,\n"
+        f"2026-03-15,DIVIDEND,KO,,,3.20,0.50,USD,{fx},,\n"
+    )
 
 # Una fecha sin hora es el mediodía de Bogotá: lejos de cualquier cambio de día
 # en UTC, así que la fecha que escribes es la fecha que se guarda.

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query, Response, status
 
+from app.core.config import settings
+from app.repositories import market as market_repo
 from app.repositories import portfolio as portfolio_repo
 from app.routers.dependencies import DbSession
 from app.schemas.importing import ImportReport, ImportRequest
@@ -30,10 +32,30 @@ def create_transaction(
 
 
 @router.get("/import/template")
-def import_template():
-    """Plantilla CSV. Es el ÚNICO formato aceptado: no se adivinan los de broker."""
+def import_template(
+    db: DbSession,
+    portfolio_id: int | None = Query(
+        None,
+        description=(
+            "Portafolio cuya divisa base usar en el ejemplo. Sin él se usa la "
+            "divisa por defecto, que puede no ser la tuya"
+        ),
+    ),
+):
+    """Plantilla CSV. Es el ÚNICO formato aceptado: no se adivinan los de broker.
+
+    Se genera con la divisa base del portafolio y no con un texto fijo: una
+    plantilla que deposita pesos en una cartera en dólares enseña a montar el
+    ledger al revés.
+    """
+    base = settings.default_base_currency
+    if portfolio_id is not None:
+        base = portfolio_repo.get_portfolio(db, portfolio_id).base_currency
+    # El tipo del día, para que el ejemplo sea importable tal cual y además
+    # muestre una cifra plausible en vez de una inventada.
+    usd_rate = market_repo.get_fx_rate(db, "USD", base) if base.upper() != "USD" else None
     return Response(
-        content=importer_service.TEMPLATE,
+        content=importer_service.template_for(base, usd_rate),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="plantilla-operaciones.csv"'},
     )

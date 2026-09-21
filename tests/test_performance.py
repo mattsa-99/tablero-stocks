@@ -241,3 +241,37 @@ def test_the_benchmark_receives_the_same_money_on_the_same_day(db, cartera_usd):
     assert serie.points[-1].benchmark_value == Decimal("3000")
     # Y la cartera, plana, se queda en 1.000: el índice ganó.
     assert serie.points[-1].market_value == Decimal("1000")
+
+
+def test_buying_today_says_to_wait_not_to_sync(db, cartera_usd):
+    """Dos causas distintas llevan a acciones OPUESTAS, y confundirlas manda al
+    usuario a hacer algo inútil.
+
+    Pasó de verdad a través del asesor: con 288 barras por activo desde 2025 y
+    la primera compra hecha hoy, el aviso decía «ejecuta una sincronización».
+    Sincronizar no habría arreglado nada: lo único que falta es que pase una
+    sesión de mercado.
+    """
+    inicio = HOY - dt.timedelta(days=30)
+    # Histórico completo, pero que TERMINA antes de la compra.
+    activo = crear_activo(db, "HHH", precios=[100.0] * 25, desde=inicio)
+    comprar(db, cartera_usd, activo, HOY, qty="1", precio="100")
+    db.commit()
+
+    serie = performance.compute_series(db, cartera_usd, days=60)
+
+    assert serie.points == []
+    aviso = " ".join(serie.warnings)
+    assert "no hace falta sincronizar" in aviso
+    assert HOY.isoformat() in aviso, "dice cuándo compraste"
+
+
+def test_no_bars_at_all_does_ask_for_a_sync(db, cartera_usd):
+    """El otro caso sí se arregla sincronizando, y tiene que decirlo."""
+    activo = crear_activo(db, "III", precios=[])  # sin ninguna barra
+    comprar(db, cartera_usd, activo, HOY - dt.timedelta(days=5), qty="1", precio="100")
+    db.commit()
+
+    serie = performance.compute_series(db, cartera_usd, days=60)
+
+    assert "ejecuta una sincronización" in " ".join(serie.warnings)
