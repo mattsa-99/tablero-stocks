@@ -45,6 +45,17 @@ class RateReading:
     value: float
     as_of: dt.date
     unit: str
+    # Qué representa. Decide si tiene sentido descontarle la inflación; ver
+    # `providers/banrep.py::RateSeries`.
+    nature: str = "nominal"
+
+    @property
+    def is_nominal_rate(self) -> bool:
+        return self.nature == "nominal"
+
+    @property
+    def is_already_real(self) -> bool:
+        return self.nature == "real"
 
     @property
     def is_stale_monthly(self) -> bool:
@@ -137,6 +148,7 @@ def latest(db: Session, keys: list[str] | None = None) -> dict[str, RateReading]
             value=fila.value,
             as_of=fila.as_of,
             unit=fila.unit,
+            nature=BY_KEY[fila.series].nature if fila.series in BY_KEY else "nominal",
         )
         for fila in filas
     }

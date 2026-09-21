@@ -257,3 +257,64 @@ def test_channels_are_not_terms():
     assert "CAPTACIONES A TRAVES DE CDT POR RED DE OFICINAS" not in PLAZOS
     assert "CAPTACIONES A TRAVES DE CDT POR TESORERIA" not in PLAZOS
     assert all(lo <= hi for lo, hi in PLAZOS.values())
+
+
+# ----------------------------------------------------------------------
+# No se le descuenta la inflación a lo que ya es real
+# ----------------------------------------------------------------------
+
+
+def test_a_uvr_rate_is_already_real_and_is_not_discounted_again(db):
+    """El doble conteo que el propio CLAUDE.md prohíbe, por otra puerta.
+
+    La UVR ajusta el CAPITAL con la inflación, así que la tasa pactada ya es
+    lo que se gana POR ENCIMA de ella. Restándosela otra vez, los TES en UVR
+    salían con 0,0%, −0,9% y −0,05% cuando son 6,24%, 5,28% y 6,19%.
+
+    El fallo estaba a la vista en la respuesta del asesor y venía de decidir
+    la naturaleza de la serie con un `if unit == "%"`.
+    """
+    rr.refresh(db, ClienteFalso({
+        "inflacion_anual": serie(6.24),
+        "tes_uvr_10y": serie(6.24),
+        "tes_cop_10y": serie(12.66),
+    }))
+    lecturas = rr.latest(db)
+
+    assert lecturas["tes_uvr_10y"].is_already_real is True
+    assert lecturas["tes_uvr_10y"].is_nominal_rate is False
+    assert lecturas["tes_cop_10y"].is_nominal_rate is True
+
+    # Y la comprobación cruzada que valida las dos: el TES en pesos a 10 años
+    # descontado da 6,04% y el de UVR -que es real de mercado- marca 6,24%.
+    # Dos medidas independientes a 20 puntos básicos.
+    calculada = rr.real_rate(lecturas["tes_cop_10y"].value, 6.24)
+    assert calculada == pytest.approx(6.04, abs=0.01)
+    assert abs(calculada - lecturas["tes_uvr_10y"].value) < 0.3
+
+
+def test_an_inflation_target_is_not_a_rate_anybody_earns(db):
+    """Su «tasa real» es la distancia entre dos medidas de inflación."""
+    rr.refresh(db, ClienteFalso({
+        "inflacion_anual": serie(6.24),
+        "meta_inflacion": serie(3.0),
+        "uvr": serie(419.6686),
+    }))
+    lecturas = rr.latest(db)
+
+    assert lecturas["meta_inflacion"].is_nominal_rate is False
+    assert lecturas["uvr"].is_nominal_rate is False
+
+
+def test_every_series_declares_what_it_represents():
+    """Sin el campo, el consumidor acaba decidiéndolo con `unit == '%'`."""
+    from app.providers.banrep import SERIES
+
+    validas = {"nominal", "real", "inflation", "target", "index"}
+    for s in SERIES:
+        assert s.nature in validas, f"{s.key}: naturaleza «{s.nature}» desconocida"
+        if s.unit != "%":
+            assert not s.is_nominal_rate, f"{s.key} no es una tasa"
+    # Las de UVR son las únicas ya reales, y tienen que estar las tres.
+    reales = {s.key for s in SERIES if s.nature == "real"}
+    assert reales == {"tes_uvr_1y", "tes_uvr_5y", "tes_uvr_10y"}

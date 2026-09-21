@@ -272,6 +272,12 @@ def _top_candidates(db: Session, portfolio: Portfolio, top: int) -> dict[str, An
         "top": [
             {
                 "rank": r.rank,
+                # LA CLASE Y EL TAMAÑO VAN CON EL PUESTO, siempre. El puesto
+                # es dentro de la clase, así que un «#6» de renta fija y un
+                # «#12» de acciones no son comparables: sin estos dos campos
+                # el asesor los ordena como si lo fueran.
+                "asset_class": r.asset_class,
+                "class_size": r.class_size,
                 "symbol": r.symbol,
                 "name": r.name,
                 "score": r.score,
@@ -397,6 +403,10 @@ def opportunities(
             "formula": response.formula,
             "benchmark": {"symbol": response.benchmark_symbol, "pe": response.benchmark_pe},
             "grade_counts": response.grade_counts,
+            # Cuántos hay EN CADA CLASE. Sin esto, un «#6 de 31» no se puede
+            # situar: el asesor no sabe si 31 son muchos o si esa clase apenas
+            # tiene candidatos y el puesto discrimina poco.
+            "class_counts": response.class_counts,
             "region_counts": response.region_counts,
             "quality_warning": response.universe_quality_warning,
             "freshness": response.freshness.model_dump(mode="json")
@@ -404,6 +414,8 @@ def opportunities(
             "rows": [
                 {
                     "rank": r.rank,
+                    "asset_class": r.asset_class,
+                    "class_size": r.class_size,
                     "symbol": r.symbol,
                     "name": r.name,
                     "sector": r.sector,
@@ -847,6 +859,7 @@ def rates(term_days: int | None = None, issuer: str | None = None) -> dict[str, 
                     "value": round(lectura.value, 4),
                     "unit": lectura.unit,
                     "as_of": lectura.as_of,
+                    "nature": lectura.nature,
                     "stale": lectura.is_stale_monthly,
                 })
                 for clave, lectura in sorted(lecturas.items())
@@ -860,18 +873,37 @@ def rates(term_days: int | None = None, issuer: str | None = None) -> dict[str, 
             "limits": LIMITS,
         }
 
+        # SOLO a las NOMINALES. Antes se descontaba la inflación a todo lo que
+        # llevara «%», y eso incluía las de UVR, que YA son reales porque el
+        # capital se indexa: los TES en UVR salían con 0,0%, −0,9% y −0,05%
+        # cuando son 6,24%, 5,28% y 6,19%. Es el doble conteo que el propio
+        # CLAUDE.md prohíbe, y estaba a la vista en la respuesta del asesor.
+        #
+        # También se colaba la META de inflación, cuya «tasa real» no es nada:
+        # es la distancia entre dos medidas de inflación.
         if inflacion is not None:
             payload["real_rates_pct"] = {
                 clave: round(
                     rates_service.real_rate(lectura.value, inflacion.value), 2
                 )
                 for clave, lectura in sorted(lecturas.items())
-                if lectura.unit == "%" and clave != "inflacion_anual"
+                if lectura.is_nominal_rate
+            }
+            # Las que ya son reales se dan TAL CUAL y se dice por qué, en vez
+            # de omitirlas: quien busca la tasa real a 10 años tiene que
+            # encontrarla, y la de UVR es justo esa.
+            payload["already_real_pct"] = {
+                clave: round(lectura.value, 2)
+                for clave, lectura in sorted(lecturas.items())
+                if lectura.is_already_real
             }
             payload["real_rate_note"] = (
-                f"Tasa real por Fisher exacto contra la inflación del "
+                f"`real_rates_pct` descuenta por Fisher exacto la inflación del "
                 f"{inflacion.as_of.isoformat()} ({inflacion.value}%), no por "
-                f"resta: con tasas de dos dígitos la resta se queda corta."
+                f"resta: con tasas de dos dígitos la resta se queda corta. "
+                f"`already_real_pct` son las de UVR, que YA son reales porque "
+                f"el capital se indexa con la inflación: restársela otra vez la "
+                f"contaría dos veces."
             )
 
         if term_days:

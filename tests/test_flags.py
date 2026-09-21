@@ -434,3 +434,33 @@ def test_the_tax_note_is_never_a_warning():
     """Pagar impuestos no es una bandera roja: es la consecuencia de ganar."""
     banderas = build(op(asset_class="cripto"))
     assert all(f.level == "info" for f in banderas if f.code == "tax_treatment")
+
+
+def test_no_flag_title_hardcodes_a_grade_label():
+    """`grade_mediocre` se quedó con «Normal» al renombrar las calificaciones.
+
+    Sus dos hermanas ya usaban `a.label`; esa no, así que la ficha decía una
+    cosa y el resto de la pantalla otra. El mismo fallo que el glosario.
+    """
+    import re
+    from pathlib import Path
+
+    from app.services.grading import GRADE_LABEL
+
+    crudo = Path("app/services/flags.py").read_text(encoding="utf-8")
+    # Se miran solo las líneas de CÓDIGO. Un comentario que explique de dónde
+    # venía la etiqueta vieja es información útil, no una regresión, y un test
+    # que no distinga las dos cosas acaba dando falsas alarmas.
+    codigo = "\n".join(
+        linea for linea in crudo.splitlines() if not linea.lstrip().startswith("#")
+    )
+
+    retiradas = {"Normal", "Muy buena", "Buena", "Mala", "Muy mala"} - set(
+        GRADE_LABEL.values()
+    )
+    for etiqueta in retiradas:
+        assert f"«{etiqueta}»" not in codigo, (
+            f"flags.py sigue escribiendo «{etiqueta}», que ya no es una "
+            f"calificación. Usa `a.label`."
+        )
+    assert re.search(r"title=f\"Calificación absoluta «\{a\.label\}»\"", codigo)

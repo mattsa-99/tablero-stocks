@@ -62,13 +62,29 @@ _INTERMEDIATE = _CERT_DIR / "banrep-intermediate.pem"
 
 @dataclass(frozen=True)
 class RateSeries:
-    """Una serie de referencia: cómo se pide y cómo se llama aquí."""
+    """Una serie de referencia: cómo se pide, cómo se llama y QUÉ ES."""
 
     key: str
     menu_id: int
     series_id: int
     label: str
     unit: str
+    # QUÉ REPRESENTA, y no es un adorno: decide si tiene sentido descontarle
+    # la inflación. Sin este campo, el consumidor acaba decidiéndolo con un
+    # `if unit == "%"` que trata igual a cosas que no lo son.
+    #
+    #   nominal    una tasa que se gana, antes de inflación -> tasa real = sí
+    #   real       YA descuenta la inflación (las de UVR)   -> restarla otra
+    #              vez la contaría dos veces
+    #   inflation  la inflación misma
+    #   target     un objetivo de política, no algo que nadie cobre
+    #   index      un valor, no una tasa
+    nature: str = "nominal"
+
+    @property
+    def is_nominal_rate(self) -> bool:
+        """True si preguntarle «¿y en términos reales?» significa algo."""
+        return self.nature == "nominal"
 
 
 # Las series que el tablero usa. El `menu_id` agrupa varias en una sola
@@ -78,9 +94,15 @@ SERIES: tuple[RateSeries, ...] = (
     RateSeries("tes_cop_1y", 220002, 15272, "TES en pesos a 1 año", "%"),
     RateSeries("tes_cop_5y", 220002, 15273, "TES en pesos a 5 años", "%"),
     RateSeries("tes_cop_10y", 220002, 15274, "TES en pesos a 10 años", "%"),
-    RateSeries("tes_uvr_1y", 220002, 15275, "TES en UVR a 1 año (tasa real)", "%"),
-    RateSeries("tes_uvr_5y", 220002, 15276, "TES en UVR a 5 años (tasa real)", "%"),
-    RateSeries("tes_uvr_10y", 220002, 15277, "TES en UVR a 10 años (tasa real)", "%"),
+    # Los de UVR son REALES por construcción: el capital se indexa con la
+    # inflación, así que la tasa pactada ya es lo que se gana por encima de
+    # ella. Restársela otra vez la cuenta dos veces.
+    RateSeries("tes_uvr_1y", 220002, 15275, "TES en UVR a 1 año (tasa real)", "%",
+               nature="real"),
+    RateSeries("tes_uvr_5y", 220002, 15276, "TES en UVR a 5 años (tasa real)", "%",
+               nature="real"),
+    RateSeries("tes_uvr_10y", 220002, 15277, "TES en UVR a 10 años (tasa real)", "%",
+               nature="real"),
     RateSeries("dtf_90d", 220003, 65, "DTF a 90 días", "%"),
     RateSeries("cdt_180d", 220003, 67, "CDT a 180 días (mercado)", "%"),
     RateSeries("cdt_360d", 220003, 68, "CDT a 360 días (mercado)", "%"),
@@ -90,9 +112,14 @@ SERIES: tuple[RateSeries, ...] = (
     RateSeries("ibr_6m", 241, 16560, "IBR a 6 meses", "%"),
     RateSeries("ibr_12m", 241, 16562, "IBR a 12 meses", "%"),
     RateSeries("politica_monetaria", 59, 59, "Tasa de política del Banrep", "%"),
-    RateSeries("inflacion_anual", 100001, 15270, "Inflación total anual", "%"),
-    RateSeries("meta_inflacion", 100001, 853, "Meta de inflación", "%"),
-    RateSeries("uvr", 100005, 850, "Unidad de Valor Real (UVR)", "COP"),
+    RateSeries("inflacion_anual", 100001, 15270, "Inflación total anual", "%",
+               nature="inflation"),
+    # Un OBJETIVO del banco central, no algo que nadie cobre. Su «tasa real»
+    # no significa nada: es la distancia entre dos medidas de inflación.
+    RateSeries("meta_inflacion", 100001, 853, "Meta de inflación", "%",
+               nature="target"),
+    RateSeries("uvr", 100005, 850, "Unidad de Valor Real (UVR)", "COP",
+               nature="index"),
 )
 
 BY_KEY: dict[str, RateSeries] = {s.key: s for s in SERIES}

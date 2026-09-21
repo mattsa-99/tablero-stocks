@@ -83,7 +83,7 @@ const DEFAULT_LIMIT = 10;
  *
  * Sin esto, el ranking abre con todo el universo y un principiante ve arriba
  * empresas «Malas» que solo son las menos malas de un grupo flojo (ETB.CL fue
- * la #2 con calificación «Mala»). El filtro es de VISTA -el score no cambia- y
+ * la #4 con señales «Desfavorables»). El filtro es de VISTA -el score no cambia- y
  * se anuncia con un aviso y un botón «Ver todos». Solo se aplica si el usuario
  * nunca ha elegido: cualquier elección suya, incluida «ver todos», se recuerda
  * y manda sobre este valor. */

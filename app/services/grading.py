@@ -104,7 +104,7 @@ def parse_quality_tiers(raw: str | None) -> set[Grade] | None:
 
 
 # Hacen falta al menos 2 de las 4 señales con datos. Con una sola, la suma
-# tiende al centro y todo saldría "Normal", que es afirmar algo sin base.
+# tiende al centro y todo saldría "Mixtas", que es afirmar algo sin base.
 MIN_SIGNALS_FOR_GRADE = 2
 
 # Y hacen falta 3 para poder sacar "Muy favorables" o "Favorables".
@@ -125,7 +125,7 @@ MIN_SIGNALS_FOR_GRADE = 2
 # de datos. 43 de los 263 A/B del ranking (16%) descansaban sobre 2 señales,
 # incluidos 7 contratos de futuros con A.
 #
-# El tope no baja la nota a "Mala": la deja en "Normal", que es lo que
+# El tope no baja la nota a "Desfavorables": la deja en "Mixtas", que es lo que
 # significa no tener base para afirmar más.
 MIN_SIGNALS_FOR_TOP_GRADES = 3
 
@@ -445,7 +445,7 @@ def _grade_from_points(points: int, max_points: int) -> Grade:
         D  >= -0.50     claramente negativo
         E  <  -0.50     malo en casi todo
 
-    La banda "Normal" absorbe los positivos leves a propósito. Las señales
+    La banda "Mixtas" absorbe los positivos leves a propósito. Las señales
     están construidas para que CUMPLIR la convención puntúe 0 y solo
     SUPERARLA sume, así que una empresa decente cae de forma natural algo por
     encima de cero; si eso bastara para "Favorables", la escala dejaría de

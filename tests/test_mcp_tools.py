@@ -367,3 +367,55 @@ def test_every_new_tool_is_read_only():
         bloque = fuente[fuente.index(f'name="{nombre}"'):]
         bloque = bloque[: bloque.index(") -> dict")]
         assert "annotations=SOLO_LECTURA" in bloque, nombre
+
+
+def test_the_rates_tool_separates_real_from_already_real(db):
+    """`real_rates_pct` calcula; `already_real_pct` no toca nada.
+
+    Las de UVR se dan TAL CUAL en vez de omitirlas: quien busca la tasa real
+    a 10 años tiene que encontrarla, y la de UVR es justo esa.
+    """
+    import datetime as dt
+
+    from app.models import ReferenceRate
+
+    hoy = dt.date.today()
+    for serie, valor in (
+        ("inflacion_anual", 6.24), ("tes_uvr_10y", 6.24),
+        ("tes_cop_10y", 12.66), ("meta_inflacion", 3.0),
+    ):
+        db.add(ReferenceRate(
+            series=serie, as_of=hoy, value=valor, unit="%",
+            source="test", fetched_at=dt.datetime.now(dt.UTC),
+        ))
+    db.commit()
+
+    respuesta = tools.TOOLS["rates"]()
+
+    assert respuesta["already_real_pct"] == {"tes_uvr_10y": 6.24}
+    assert respuesta["real_rates_pct"] == {"tes_cop_10y": 6.04}
+    assert "meta_inflacion" not in respuesta["real_rates_pct"], (
+        "Una meta de política no es una tasa que nadie cobre"
+    )
+    assert "contaría dos veces" in respuesta["real_rate_note"]
+
+
+def test_every_ranked_row_carries_its_class(db, cartera_con_posicion):
+    """El puesto es DENTRO de la clase: sin ella no se pueden comparar.
+
+    Un ETF de bonos en el #6 y una acción en el #12 parecen ordenables y no
+    lo son.
+    """
+    for herramienta, extraer in (
+        ("opportunities", lambda r: r["rows"]),
+        ("brief", lambda r: r["candidates"]["top"]),
+    ):
+        respuesta = tools.TOOLS[herramienta]()
+        filas = extraer(respuesta)
+        assert filas, herramienta
+        for fila in filas:
+            assert "asset_class" in fila, herramienta
+            assert fila["class_size"] >= fila["rank"], herramienta
+
+    # Y el recuento por clase, para poder situar un «#6 de 31».
+    assert tools.TOOLS["opportunities"]()["class_counts"]

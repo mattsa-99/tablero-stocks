@@ -165,7 +165,10 @@ def _quality_flags(op: OpportunityRead, universe_size: int | None) -> list[Flag]
     elif a.grade == "C":
         flags.append(Flag(
             code="grade_mediocre", level="yellow",
-            title="Calificación absoluta «Normal»",
+            # `a.label`, no una cadena fija: sus dos hermanas ya lo hacían y
+            # esta se quedó con «Normal» al renombrar las calificaciones, así
+            # que la ficha decía una cosa y el resto de la pantalla otra.
+            title=f"Calificación absoluta «{a.label}»",
             detail=(
                 f"{a.points} de {a.max_points} puntos: cumple lo convencional pero "
                 "no destaca. No hay una razón objetiva para preferirla a otras."
