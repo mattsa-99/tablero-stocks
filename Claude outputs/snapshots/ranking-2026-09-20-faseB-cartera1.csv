@@ -1,0 +1,469 @@
+rank,rank_in_grade,asset_class,class_size,symbol,asset_type,score,grade,grade_label,signals_available,value,value_available,momentum,momentum_available,diversification,diversification_available,risk,exposure_bucket,exposure_is_assumed,market_region,confidence,current_price
+1,1,accion,268,PBR,STOCK,82.29,A,Muy buena,4,89.25,True,82.52,True,93.24,True,30.26,Energy,False,LATAM,high,20.799999237060547
+2,2,accion,268,CIB,STOCK,81.29,A,Muy buena,4,86.58,True,96.24,True,100.0,True,50.4,Financial Services,False,COL,high,96.62999725341797
+3,1,fondo_acciones,124,DVY,ETF,75.51,A,Muy buena,3,76.02,True,62.1,True,26.08,True,5.24,Diversificado,False,GLOBAL,high,158.24000549316406
+10,3,accion,268,BVC.CL,STOCK,73.62,A,Muy buena,4,78.01,True,66.73,True,100.0,True,23.72,Financial Services,False,COL,high,16960.0
+5,2,fondo_acciones,124,COWZ,ETF,73.15,A,Muy buena,3,63.82,True,73.39,True,26.08,True,10.89,Diversificado,False,GLOBAL,high,69.0
+7,3,fondo_acciones,124,SCHD,ETF,71.53,A,Muy buena,3,47.56,True,82.66,True,26.08,True,3.23,Diversificado,False,GLOBAL,high,33.68000030517578
+17,4,accion,268,RIO,STOCK,71.34,A,Muy buena,4,75.62,True,74.06,True,100.0,True,40.23,Basic Materials,False,EU,high,97.37000274658203
+18,5,accion,268,BCS,STOCK,71.3,A,Muy buena,4,89.02,True,68.98,True,100.0,True,56.25,Financial Services,False,EU,high,24.8700008392334
+20,6,accion,268,TERPEL.CL,STOCK,70.96,A,Muy buena,4,94.99,True,54.89,True,93.24,True,46.99,Energy,False,COL,high,19500.0
+11,4,fondo_acciones,124,EWP,ETF,69.33,A,Muy buena,3,71.14,True,82.26,True,26.08,True,53.23,Diversificado,False,EU,high,60.58000183105469
+27,7,accion,268,CB,STOCK,68.78,A,Muy buena,4,65.34,True,59.77,True,100.0,True,11.68,Financial Services,False,EU,high,340.6400146484375
+31,8,accion,268,ABEV,STOCK,67.27,A,Muy buena,4,83.85,True,48.87,True,100.0,True,34.13,Consumer Defensive,False,LATAM,high,2.940000057220459
+15,5,fondo_acciones,124,IWD,ETF,65.37,A,Muy buena,3,36.18,True,81.45,True,26.08,True,7.66,Diversificado,False,GLOBAL,high,251.6999969482422
+21,6,fondo_acciones,124,VTV,ETF,63.23,A,Muy buena,3,34.55,True,73.79,True,26.08,True,2.42,Diversificado,False,GLOBAL,high,221.25
+22,7,fondo_acciones,124,EWK,ETF,62.99,A,Muy buena,3,76.83,True,52.82,True,26.08,True,45.97,Diversificado,False,EU,high,26.84000015258789
+24,8,fondo_acciones,124,IWM,ETF,62.62,A,Muy buena,3,65.45,True,70.97,True,26.08,True,54.84,Diversificado,False,GLOBAL,high,284.1000061035156
+26,9,fondo_acciones,124,EWU,ETF,61.82,A,Muy buena,3,66.26,True,48.39,True,26.08,True,25.81,Diversificado,False,EU,high,47.27000045776367
+67,9,accion,268,KO,STOCK,61.47,A,Muy buena,4,31.13,True,77.63,True,100.0,True,9.68,Consumer Defensive,False,US,high,88.25
+27,10,fondo_acciones,124,VFH,ETF,61.17,A,Muy buena,3,70.33,True,43.15,True,100.0,True,27.82,Financial Services,False,US,high,136.32000732421875
+28,11,fondo_acciones,124,XLF,ETF,60.31,A,Muy buena,3,68.7,True,42.34,True,100.0,True,27.42,Financial Services,False,US,high,55.86000061035156
+35,12,fondo_acciones,124,VYM,ETF,56.98,A,Muy buena,3,36.99,True,52.42,True,26.08,True,1.21,Diversificado,False,GLOBAL,high,159.25999450683594
+3,1,accion,268,SHEL,STOCK,79.19,B,Buena,4,77.04,True,72.74,True,93.24,True,7.39,Energy,False,EU,high,94.54000091552734
+5,2,accion,268,E,STOCK,77.34,B,Buena,4,70.69,True,85.15,True,93.24,True,22.73,Energy,False,EU,high,54.619998931884766
+1,1,fondo_acciones,124,EPU,ETF,75.97,B,Buena,3,98.78,True,86.29,True,26.08,True,79.44,Diversificado,False,LATAM,high,90.75
+6,3,accion,268,TTE,STOCK,75.86,B,Buena,4,68.73,True,75.56,True,93.24,True,11.21,Energy,False,EU,high,90.81999969482422
+4,2,fondo_acciones,124,XOP,ETF,75.19,B,Buena,3,91.46,True,89.11,True,93.24,True,74.19,Energy,False,US,high,190.61000061035156
+7,4,accion,268,MO,STOCK,74.49,B,Buena,4,93.31,True,50.75,True,100.0,True,22.82,Consumer Defensive,False,US,high,69.5199966430664
+9,5,accion,268,KOF,STOCK,73.93,B,Buena,4,76.32,True,67.48,True,100.0,True,20.57,Consumer Defensive,False,LATAM,high,110.12000274658203
+11,6,accion,268,PFGRUPSURA.CL,STOCK,73.06,B,Buena,4,91.96,True,68.42,True,100.0,True,53.07,Financial Services,False,COL,high,55500.0
+12,7,accion,268,TGT,STOCK,72.85,B,Buena,4,76.35,True,94.92,True,100.0,True,66.39,Consumer Defensive,False,US,high,158.19000244140625
+13,8,accion,268,ECOPETROL.CL,STOCK,72.4,B,Buena,4,68.66,True,84.96,True,93.24,True,39.91,Energy,False,COL,high,2805.0
+6,3,fondo_acciones,124,EWO,ETF,72.36,B,Buena,3,83.33,True,87.1,True,26.08,True,68.95,Diversificado,False,EU,high,43.060001373291016
+15,9,accion,268,PAM,STOCK,71.82,B,Buena,4,95.43,True,53.76,True,100.0,True,42.42,Industrials,False,LATAM,high,81.55000305175781
+16,10,accion,268,FDX,STOCK,71.38,B,Buena,4,82.08,True,80.64,True,100.0,True,61.23,Industrials,False,US,high,303.6499938964844
+19,11,accion,268,EOG,STOCK,71.08,B,Buena,4,65.41,True,75.75,True,93.24,True,25.98,Energy,False,US,high,144.22999572753906
+8,4,fondo_acciones,124,VLUE,ETF,70.72,B,Buena,3,60.57,True,96.37,True,26.08,True,50.0,Diversificado,False,GLOBAL,high,199.86000061035156
+9,5,fondo_acciones,124,DXJ,ETF,70.54,B,Buena,3,63.01,True,82.26,True,26.08,True,33.87,Diversificado,False,ASIA,high,178.4600067138672
+10,6,fondo_acciones,124,EMXC,ETF,70.48,B,Buena,3,74.39,True,87.9,True,26.08,True,62.5,Diversificado,False,GLOBAL,high,99.23999786376953
+21,12,accion,268,MU,STOCK,70.39,B,Buena,4,80.08,True,99.62,True,100.0,True,90.42,Technology,False,US,high,1015.7999877929688
+22,13,accion,268,EQNR,STOCK,69.52,B,Buena,4,50.55,True,94.36,True,93.24,True,34.52,Energy,False,EU,high,44.09000015258789
+23,14,accion,268,GSK,STOCK,69.26,B,Buena,4,85.76,True,48.5,True,100.0,True,28.49,Healthcare,False,EU,high,50.220001220703125
+12,7,fondo_acciones,124,EPOL,ETF,69.13,B,Buena,3,82.52,True,88.31,True,26.08,True,83.06,Diversificado,False,EU,high,44.40999984741211
+24,15,accion,268,BHP,STOCK,69.12,B,Buena,4,62.92,True,90.6,True,100.0,True,52.25,Basic Materials,False,GLOBAL,high,86.2699966430664
+25,16,accion,268,BBVA,STOCK,69.0,B,Buena,4,64.55,True,90.6,True,100.0,True,55.63,Financial Services,False,EU,high,28.360000610351562
+26,17,accion,268,MINEROS.CL,STOCK,69.0,B,Buena,4,95.0,True,75.19,True,100.0,True,85.8,Basic Materials,False,COL,high,21940.0
+13,8,fondo_acciones,124,EWI,ETF,68.74,B,Buena,3,77.64,True,77.82,True,26.08,True,60.48,Diversificado,False,EU,high,60.04999923706055
+28,18,accion,268,ENIC,STOCK,67.98,B,Buena,4,87.78,True,55.64,True,100.0,True,48.14,Utilities,False,LATAM,high,4.190000057220459
+14,9,fondo_acciones,124,EWM,ETF,67.91,B,Buena,3,99.59,True,22.18,True,26.08,True,18.95,Diversificado,False,ASIA,high,27.299999237060547
+29,19,accion,268,CSCO,STOCK,67.84,B,Buena,4,60.31,True,92.11,True,100.0,True,55.36,Technology,False,US,high,109.51000213623047
+32,20,accion,268,LYG,STOCK,67.27,B,Buena,4,70.92,True,73.5,True,100.0,True,48.48,Financial Services,False,EU,high,5.809999942779541
+33,21,accion,268,BSAC,STOCK,67.09,B,Buena,4,61.04,True,70.86,True,100.0,True,27.99,Financial Services,False,LATAM,high,33.84000015258789
+35,22,accion,268,ING,STOCK,66.89,B,Buena,4,59.73,True,85.9,True,100.0,True,49.11,Financial Services,False,EU,high,36.400001525878906
+37,23,accion,268,GD,STOCK,66.81,B,Buena,4,62.21,True,57.89,True,100.0,True,11.75,Industrials,False,US,high,353.04998779296875
+38,24,accion,268,PROMIGAS.CL,STOCK,66.18,B,Buena,4,88.85,True,35.53,True,100.0,True,27.48,Utilities,False,COL,high,5780.0
+39,25,accion,268,HSBC,STOCK,66.1,B,Buena,4,45.19,True,88.72,True,100.0,True,31.21,Financial Services,False,EU,high,101.83000183105469
+40,26,accion,268,SAN,STOCK,65.97,B,Buena,4,63.6,True,83.46,True,100.0,True,56.12,Financial Services,False,EU,high,14.3100004196167
+41,27,accion,268,CSX,STOCK,65.74,B,Buena,4,47.71,True,87.97,True,100.0,True,36.05,Industrials,False,US,high,47.099998474121094
+43,28,accion,268,SFTBY,STOCK,65.2,B,Buena,4,96.15,True,58.46,True,100.0,True,78.86,Communication Services,False,ASIA,high,20.3700008392334
+44,29,accion,268,ISA.CL,STOCK,65.04,B,Buena,4,77.17,True,59.59,True,100.0,True,48.03,Utilities,False,COL,high,28500.0
+45,30,accion,268,BAC,STOCK,64.87,B,Buena,4,68.58,True,69.92,True,100.0,True,49.21,Financial Services,False,US,high,57.72999954223633
+46,31,accion,268,ITUB,STOCK,64.84,B,Buena,4,81.76,True,38.91,True,100.0,True,25.87,Financial Services,False,LATAM,high,8.199999809265137
+16,10,fondo_acciones,124,XLE,ETF,64.76,B,Buena,3,52.44,True,88.71,True,93.24,True,49.6,Energy,False,US,high,64.30999755859375
+47,32,accion,268,VZ,STOCK,64.6,B,Buena,4,65.77,True,55.45,True,100.0,True,23.73,Communication Services,False,US,high,48.09000015258789
+17,11,fondo_acciones,124,THD,ETF,64.52,B,Buena,3,78.46,True,72.98,True,26.08,True,72.58,Diversificado,False,ASIA,high,72.26000213623047
+48,33,accion,268,UBS,STOCK,64.35,B,Buena,4,50.63,True,79.14,True,100.0,True,33.83,Financial Services,False,EU,high,50.689998626708984
+18,12,fondo_acciones,124,EEM,ETF,64.28,B,Buena,3,80.08,True,67.74,True,26.08,True,68.55,Diversificado,False,GLOBAL,high,67.02999877929688
+19,13,fondo_acciones,124,IEMG,ETF,64.1,B,Buena,3,81.71,True,63.71,True,26.08,True,66.13,Diversificado,False,GLOBAL,high,81.66000366210938
+50,34,accion,268,UNP,STOCK,64.0,B,Buena,4,47.5,True,81.2,True,100.0,True,32.93,Industrials,False,US,high,279.3699951171875
+51,35,accion,268,ALIZY,STOCK,63.95,B,Buena,4,49.97,True,75.19,True,100.0,True,28.45,Financial Services,False,EU,high,50.70000076293945
+20,14,fondo_acciones,124,ILF,ETF,63.66,B,Buena,3,92.28,True,45.56,True,26.08,True,59.27,Diversificado,False,LATAM,high,35.040000915527344
+55,36,accion,268,PFDAVVNDA.CL,STOCK,63.34,B,Buena,4,97.19,True,34.59,True,100.0,True,52.78,Financial Services,False,COL,high,25080.0
+56,37,accion,268,NVS,STOCK,62.73,B,Buena,4,60.61,True,55.08,True,100.0,True,22.07,Healthcare,False,EU,high,140.3699951171875
+23,15,fondo_acciones,124,EWS,ETF,62.67,B,Buena,3,50.81,True,77.42,True,26.08,True,38.71,Diversificado,False,ASIA,high,32.79999923706055
+58,38,accion,268,PFAVAL.CL,STOCK,62.45,B,Buena,4,80.21,True,55.64,True,100.0,True,58.42,Financial Services,False,COL,high,828.0
+59,39,accion,268,C,STOCK,62.16,B,Buena,4,68.44,True,66.92,True,100.0,True,55.98,Financial Services,False,US,high,131.77000427246094
+61,40,accion,268,JNJ,STOCK,62.05,B,Buena,4,24.22,True,84.77,True,100.0,True,5.81,Healthcare,False,US,high,269.989990234375
+62,41,accion,268,VLVLY,STOCK,61.99,B,Buena,4,72.92,True,58.83,True,100.0,True,52.42,Industrials,False,EU,high,33.82500076293945
+65,42,accion,268,REGN,STOCK,61.68,B,Buena,4,66.52,True,62.78,True,100.0,True,48.42,Healthcare,False,US,high,784.8499755859375
+66,43,accion,268,SPG,STOCK,61.56,B,Buena,4,62.78,True,67.67,True,100.0,True,49.77,Real Estate,False,US,high,205.32000732421875
+68,44,accion,268,BCH,STOCK,61.44,B,Buena,4,42.89,True,71.62,True,100.0,True,21.36,Financial Services,False,LATAM,high,40.79999923706055
+69,45,accion,268,BUD,STOCK,61.4,B,Buena,4,50.58,True,68.42,True,100.0,True,30.2,Consumer Defensive,False,EU,high,77.7300033569336
+71,46,accion,268,MPC,STOCK,60.58,B,Buena,4,36.48,True,97.18,True,93.24,True,52.14,Energy,False,US,high,424.8900146484375
+30,16,fondo_acciones,124,EWC,ETF,59.71,B,Buena,3,46.75,True,63.31,True,26.08,True,22.98,Diversificado,False,GLOBAL,high,60.220001220703125
+31,17,fondo_acciones,124,KRE,ETF,59.61,B,Buena,3,86.59,True,55.24,True,100.0,True,81.05,Financial Services,False,US,high,72.75
+78,47,accion,268,MUFG,STOCK,59.2,B,Buena,4,30.15,True,83.83,True,100.0,True,26.91,Financial Services,False,ASIA,high,23.1299991607666
+79,48,accion,268,CVX,STOCK,59.19,B,Buena,4,35.78,True,72.18,True,93.24,True,19.32,Energy,False,US,high,209.50999450683594
+81,49,accion,268,TSM,STOCK,59.09,B,Buena,4,60.51,True,82.52,True,100.0,True,78.53,Technology,False,ASIA,high,434.6700134277344
+82,50,accion,268,PSX,STOCK,58.94,B,Buena,4,32.39,True,96.05,True,93.24,True,50.26,Energy,False,US,high,273.1300048828125
+84,51,accion,268,XOM,STOCK,58.6,B,Buena,4,25.93,True,76.5,True,93.24,True,11.08,Energy,False,US,high,163.5399932861328
+32,18,fondo_acciones,124,EWW,ETF,58.43,B,Buena,3,89.84,True,33.87,True,26.08,True,59.68,Diversificado,False,LATAM,high,73.33999633789062
+85,52,accion,268,HON,STOCK,58.27,B,Buena,4,74.52,True,34.21,True,100.0,True,34.07,Industrials,False,US,high,206.4600067138672
+86,53,accion,268,SMFG,STOCK,58.16,B,Buena,4,26.34,True,86.47,True,100.0,True,28.6,Financial Services,False,ASIA,high,26.239999771118164
+87,54,accion,268,ADP,STOCK,58.06,B,Buena,4,58.41,True,59.59,True,100.0,True,44.85,Technology,False,US,high,271.2200012207031
+88,55,accion,268,ADI,STOCK,57.85,B,Buena,4,54.36,True,71.8,True,100.0,True,56.98,Technology,False,US,high,375.7200012207031
+89,56,accion,268,PSA,STOCK,57.82,B,Buena,4,56.72,True,56.77,True,100.0,True,38.7,Real Estate,False,US,high,296.30999755859375
+91,57,accion,268,PM,STOCK,57.79,B,Buena,4,41.96,True,63.35,True,100.0,True,22.83,Consumer Defensive,False,US,high,188.6199951171875
+33,19,fondo_acciones,124,RSP,ETF,57.36,B,Buena,3,37.8,True,57.66,True,26.08,True,8.87,Diversificado,False,GLOBAL,high,212.2899932861328
+93,58,accion,268,RHHBY,STOCK,57.26,B,Buena,4,46.81,True,65.79,True,100.0,True,37.25,Healthcare,False,EU,high,54.150001525878906
+36,20,fondo_acciones,124,TUR,ETF,56.85,B,Buena,3,84.96,True,39.11,True,26.08,True,65.73,Diversificado,False,GLOBAL,high,37.279998779296875
+37,21,fondo_acciones,124,VXUS,ETF,56.81,B,Buena,3,57.32,True,54.84,True,26.08,True,41.13,Diversificado,False,GLOBAL,high,85.87999725341797
+97,59,accion,268,ROST,STOCK,56.67,B,Buena,4,32.96,True,83.83,True,100.0,True,42.6,Consumer Cyclical,False,US,high,226.61000061035156
+38,22,fondo_acciones,124,VEU,ETF,56.52,B,Buena,3,54.88,True,56.85,True,26.08,True,41.13,Diversificado,False,GLOBAL,high,83.86000061035156
+101,60,accion,268,PG,STOCK,56.11,B,Buena,4,62.04,True,28.38,True,100.0,True,12.68,Consumer Defensive,False,US,high,146.38999938964844
+102,61,accion,268,JPM,STOCK,56.08,B,Buena,4,45.64,True,65.23,True,100.0,True,39.39,Financial Services,False,US,high,349.6700134277344
+103,62,accion,268,PGR,STOCK,56.07,B,Buena,4,57.52,True,38.16,True,100.0,True,19.59,Financial Services,False,US,high,213.47999572753906
+106,63,accion,268,TXN,STOCK,55.97,B,Buena,4,41.98,True,85.34,True,100.0,True,63.61,Technology,False,US,high,266.6400146484375
+39,23,fondo_acciones,124,COPX,ETF,55.9,B,Buena,3,69.51,True,68.95,True,100.0,True,87.5,Basic Materials,False,US,high,87.27999877929688
+40,24,fondo_acciones,124,VEA,ETF,55.84,B,Buena,3,51.63,True,60.89,True,26.08,True,44.35,Diversificado,False,GLOBAL,high,71.37999725341797
+42,25,fondo_acciones,124,EWZ,ETF,55.46,B,Buena,3,93.9,True,25.0,True,26.08,True,66.13,Diversificado,False,LATAM,high,37.52000045776367
+44,26,fondo_acciones,124,VDE,ETF,55.15,B,Buena,3,30.49,True,87.9,True,93.24,True,50.81,Energy,False,US,high,180.30999755859375
+45,27,fondo_acciones,124,VGK,ETF,55.02,B,Buena,3,62.2,True,47.58,True,26.08,True,46.37,Diversificado,False,EU,high,88.20999908447266
+116,64,accion,268,BASFY,STOCK,54.83,B,Buena,4,53.12,True,55.83,True,100.0,True,43.67,Basic Materials,False,EU,high,14.850000381469727
+46,28,fondo_acciones,124,IEV,ETF,54.68,B,Buena,3,59.76,True,47.58,True,26.08,True,43.55,Diversificado,False,EU,high,72.41999816894531
+48,29,fondo_acciones,124,ARGT,ETF,54.45,B,Buena,3,75.2,True,52.82,True,26.08,True,79.44,Diversificado,False,LATAM,high,92.43000030517578
+50,30,fondo_acciones,124,SPGM,ETF,54.28,B,Buena,3,40.24,True,57.66,True,26.08,True,26.21,Diversificado,False,GLOBAL,high,86.86000061035156
+51,31,fondo_acciones,124,IEFA,ETF,54.1,B,Buena,3,56.5,True,47.58,True,26.08,True,40.32,Diversificado,False,GLOBAL,high,97.98999786376953
+124,65,accion,268,MSFT,STOCK,53.81,B,Buena,4,64.48,True,47.56,True,100.0,True,55.48,Technology,False,US,high,493.7799987792969
+52,32,fondo_acciones,124,SPEM,ETF,53.68,B,Buena,3,72.76,True,31.45,True,26.08,True,46.37,Diversificado,False,GLOBAL,high,52.400001525878906
+53,33,fondo_acciones,124,EFA,ETF,53.38,B,Buena,3,53.25,True,48.79,True,26.08,True,39.52,Diversificado,False,GLOBAL,high,104.97000122070312
+127,66,accion,268,AAPL,STOCK,53.36,B,Buena,4,30.93,True,74.81,True,100.0,True,39.57,Technology,False,US,high,336.1300048828125
+54,34,fondo_acciones,124,EWH,ETF,53.15,B,Buena,3,85.77,True,20.97,True,26.08,True,55.65,Diversificado,False,ASIA,high,22.450000762939453
+55,35,fondo_acciones,124,EWN,ETF,52.94,B,Buena,3,50.0,True,75.81,True,26.08,True,76.21,Diversificado,False,EU,high,67.01000213623047
+56,36,fondo_acciones,124,EZU,ETF,52.26,B,Buena,3,58.13,True,52.02,True,26.08,True,57.66,Diversificado,False,EU,high,68.16000366210938
+131,67,accion,268,VRTX,STOCK,52.17,B,Buena,4,20.93,True,73.12,True,100.0,True,24.6,Healthcare,False,US,high,508.3399963378906
+132,68,accion,268,BRK-B,STOCK,51.93,B,Buena,4,44.49,True,40.41,True,100.0,True,17.8,Financial Services,False,US,high,509.7699890136719
+57,37,fondo_acciones,124,JETS,ETF,51.76,B,Buena,3,80.89,True,40.73,True,100.0,True,82.66,Industrials,False,US,high,28.219999313354492
+134,69,accion,268,PH,STOCK,51.47,B,Buena,4,37.01,True,62.03,True,100.0,True,39.06,Industrials,False,US,high,943.5399780273438
+58,38,fondo_acciones,124,VHT,ETF,51.43,B,Buena,3,10.16,True,79.84,True,100.0,True,18.95,Healthcare,False,US,high,315.8500061035156
+59,39,fondo_acciones,124,FEZ,ETF,51.35,B,Buena,3,55.69,True,52.82,True,26.08,True,58.47,Diversificado,False,EU,high,68.18000030517578
+60,40,fondo_acciones,124,EWJ,ETF,51.31,B,Buena,3,45.93,True,64.92,True,26.08,True,59.68,Diversificado,False,ASIA,high,97.0
+137,70,accion,268,PLD,STOCK,51.17,B,Buena,4,49.34,True,53.38,True,100.0,True,48.95,Real Estate,False,US,high,134.83999633789062
+61,41,fondo_acciones,124,DIA,ETF,50.71,B,Buena,3,35.37,True,42.74,True,26.08,True,10.48,Diversificado,False,GLOBAL,high,515.8800048828125
+62,42,fondo_acciones,124,VB,ETF,50.3,B,Buena,3,39.43,True,55.65,True,26.08,True,38.71,Diversificado,False,GLOBAL,high,289.6099853515625
+144,71,accion,268,MSI,STOCK,50.21,B,Buena,4,41.92,True,48.31,True,100.0,True,32.44,Technology,False,US,high,458.6700134277344
+63,43,fondo_acciones,124,SIZE,ETF,50.18,B,Buena,3,32.11,True,47.98,True,26.08,True,14.92,Diversificado,False,GLOBAL,high,176.36000061035156
+146,72,accion,268,BOGOTA.CL,STOCK,50.09,B,Buena,4,60.97,True,43.05,True,100.0,True,58.39,Financial Services,False,COL,high,37500.0
+64,44,fondo_acciones,124,VWO,ETF,49.96,B,Buena,3,67.07,True,27.82,True,26.08,True,46.77,Diversificado,False,GLOBAL,high,60.0099983215332
+65,45,fondo_acciones,124,SCHE,ETF,49.92,B,Buena,3,67.89,True,29.44,True,26.08,True,50.81,Diversificado,False,GLOBAL,high,36.84000015258789
+66,46,fondo_acciones,124,EWD,ETF,49.81,B,Buena,3,79.27,True,29.84,True,26.08,True,71.77,Diversificado,False,EU,high,51.029998779296875
+67,47,fondo_acciones,124,ACWI,ETF,49.04,B,Buena,3,33.74,True,51.21,True,26.08,True,27.42,Diversificado,False,GLOBAL,high,159.2899932861328
+68,48,fondo_acciones,124,XLV,ETF,48.87,B,Buena,3,8.54,True,75.81,True,100.0,True,20.97,Healthcare,False,US,high,168.38999938964844
+69,49,fondo_acciones,124,MDY,ETF,48.68,B,Buena,3,38.62,True,42.34,True,26.08,True,24.19,Diversificado,False,GLOBAL,high,666.6799926757812
+162,73,accion,268,SCHW,STOCK,48.4,B,Buena,4,30.79,True,63.53,True,100.0,True,43.48,Financial Services,False,US,high,105.25
+166,74,accion,268,NVDA,STOCK,48.03,B,Buena,4,54.43,True,62.78,True,100.0,True,85.28,Technology,False,US,high,222.27000427246094
+71,50,fondo_acciones,124,EWQ,ETF,47.49,B,Buena,3,64.63,True,23.39,True,26.08,True,46.37,Diversificado,False,EU,high,43.709999084472656
+72,51,fondo_acciones,124,NOBL,ETF,47.28,B,Buena,3,29.67,True,37.5,True,26.08,True,7.26,Diversificado,False,GLOBAL,high,55.65999984741211
+73,52,fondo_acciones,124,URTH,ETF,47.27,B,Buena,3,28.86,True,50.0,True,26.08,True,24.6,Diversificado,False,GLOBAL,high,206.77000427246094
+176,75,accion,268,TMO,STOCK,47.21,B,Buena,4,24.72,True,71.43,True,100.0,True,49.74,Healthcare,False,US,high,651.4500122070312
+177,76,accion,268,EADSY,STOCK,47.16,B,Buena,4,38.06,True,53.95,True,100.0,True,47.11,Industrials,False,EU,high,55.5
+74,53,fondo_acciones,124,SPLV,ETF,47.13,B,Buena,3,42.68,True,19.76,True,26.08,True,4.03,Diversificado,False,GLOBAL,high,72.58000183105469
+75,54,fondo_acciones,124,IVV,ETF,46.96,B,Buena,3,21.54,True,52.82,True,26.08,True,17.34,Diversificado,False,GLOBAL,high,764.9199829101562
+181,77,accion,268,LLY,STOCK,46.5,B,Buena,4,7.65,True,85.15,True,100.0,True,43.5,Healthcare,False,US,high,1152.9300537109375
+182,78,accion,268,LIN,STOCK,46.41,B,Buena,4,32.18,True,39.47,True,100.0,True,18.3,Basic Materials,False,EU,high,460.3999938964844
+76,55,fondo_acciones,124,SPY,ETF,46.34,B,Buena,3,20.73,True,51.21,True,26.08,True,16.13,Diversificado,False,GLOBAL,high,761.6900024414062
+77,56,fondo_acciones,124,OIH,ETF,46.23,B,Buena,3,43.5,True,69.76,True,93.24,True,84.27,Energy,False,US,high,398.7099914550781
+79,57,fondo_acciones,124,VOO,ETF,45.67,B,Buena,3,17.48,True,52.82,True,26.08,True,15.73,Diversificado,False,GLOBAL,high,701.780029296875
+80,58,fondo_acciones,124,IWB,ETF,45.55,B,Buena,3,23.17,True,48.79,True,26.08,True,20.16,Diversificado,False,GLOBAL,high,416.0199890136719
+186,79,accion,268,IBDRY,STOCK,45.35,B,Buena,4,16.16,True,53.76,True,100.0,True,16.18,Utilities,False,EU,high,93.26000213623047
+81,59,fondo_acciones,124,EIS,ETF,45.22,B,Buena,3,54.07,True,49.19,True,26.08,True,76.21,Diversificado,False,GLOBAL,high,124.76000213623047
+82,60,fondo_acciones,124,VTI,ETF,45.15,B,Buena,3,19.11,True,53.23,True,26.08,True,21.37,Diversificado,False,GLOBAL,high,375.42999267578125
+85,61,fondo_acciones,124,VO,ETF,44.27,B,Buena,3,25.61,True,44.76,True,26.08,True,23.79,Diversificado,False,GLOBAL,high,80.0
+86,62,fondo_acciones,124,ASHR,ETF,43.77,B,Buena,3,73.58,True,17.74,True,26.08,True,69.35,Diversificado,False,ASIA,high,33.77000045776367
+197,80,accion,268,AMZN,STOCK,43.47,B,Buena,4,44.39,True,54.14,True,100.0,True,74.13,Consumer Cyclical,False,US,high,253.7100067138672
+89,63,fondo_acciones,124,EWA,ETF,43.04,B,Buena,3,41.06,True,31.85,True,26.08,True,36.69,Diversificado,False,GLOBAL,high,28.75
+91,64,fondo_acciones,124,USMV,ETF,42.33,B,Buena,3,26.42,True,25.4,True,26.08,True,4.44,Diversificado,False,GLOBAL,high,98.38999938964844
+92,65,fondo_acciones,124,QUAL,ETF,42.25,B,Buena,3,15.85,True,50.4,True,26.08,True,23.79,Diversificado,False,GLOBAL,high,219.17999267578125
+206,81,accion,268,ABBNY,STOCK,41.33,B,Buena,4,9.37,True,72.74,True,100.0,True,49.85,Industrials,False,EU,high,97.69000244140625
+106,66,fondo_acciones,124,XLP,ETF,36.95,B,Buena,3,19.92,True,22.58,True,100.0,True,11.69,Consumer Defensive,False,US,high,82.80000305175781
+109,67,fondo_acciones,124,VDC,ETF,35.62,B,Buena,3,18.29,True,19.35,True,100.0,True,9.68,Consumer Defensive,False,US,high,223.5500030517578
+236,82,accion,268,GOOGL,STOCK,35.38,B,Buena,4,15.48,True,57.33,True,100.0,True,62.74,Communication Services,False,US,high,349.5400085449219
+238,83,accion,268,GE,STOCK,34.55,B,Buena,4,13.89,True,59.59,True,100.0,True,66.87,Industrials,False,US,high,314.2699890136719
+2,1,fondo_acciones,124,EWY,ETF,75.62,C,Normal,3,94.72,True,97.58,True,26.08,True,90.73,Diversificado,False,ASIA,high,181.30999755859375
+1,1,renta_fija,31,FLOT,ETF,75.24,C,Normal,2,50.0,False,96.77,True,100.0,True,12.9,Renta fija,False,US,medium,51.0
+8,1,accion,268,BAYRY,STOCK,74.15,C,Normal,4,87.93,True,90.79,True,100.0,True,74.93,Healthcare,False,EU,high,13.760000228881836
+2,2,renta_fija,31,MINT,ETF,74.1,C,Normal,2,50.0,False,93.55,True,100.0,True,12.9,Renta fija,False,US,medium,100.66000366210938
+3,3,renta_fija,31,SGOV,ETF,73.91,C,Normal,2,50.0,False,85.48,True,100.0,True,1.61,Renta fija,False,US,medium,100.58999633789062
+14,2,accion,268,VOD,STOCK,72.37,C,Normal,4,76.67,True,78.2,True,100.0,True,43.89,Communication Services,False,EU,high,16.950000762939453
+4,4,renta_fija,31,BIL,ETF,71.63,C,Normal,2,50.0,False,82.26,True,100.0,True,6.45,Renta fija,False,US,medium,91.55000305175781
+5,5,renta_fija,31,SHV,ETF,69.92,C,Normal,2,50.0,False,77.42,True,100.0,True,6.45,Renta fija,False,US,medium,110.20999908447266
+30,3,accion,268,PFGRUPOARG.CL,STOCK,67.78,C,Normal,4,62.31,True,81.95,True,100.0,True,43.92,Basic Materials,False,COL,high,16200.0
+34,4,accion,268,CI,STOCK,67.03,C,Normal,4,96.15,True,33.08,True,100.0,True,32.99,Healthcare,False,US,high,275.2799987792969
+36,5,accion,268,ELV,STOCK,66.86,C,Normal,4,78.93,True,69.55,True,100.0,True,58.28,Healthcare,False,US,high,410.95001220703125
+42,6,accion,268,GGB,STOCK,65.36,C,Normal,4,68.12,True,82.14,True,100.0,True,64.65,Basic Materials,False,LATAM,high,4.940000057220459
+49,7,accion,268,PFE,STOCK,64.14,C,Normal,4,74.43,True,52.82,True,100.0,True,36.88,Healthcare,False,US,high,27.65999984741211
+52,8,accion,268,SNY,STOCK,63.95,C,Normal,4,81.55,True,31.95,True,100.0,True,18.84,Healthcare,False,EU,high,42.47999954223633
+53,9,accion,268,AMGN,STOCK,63.71,C,Normal,4,38.74,True,86.47,True,100.0,True,26.71,Healthcare,False,US,high,385.6499938964844
+54,10,accion,268,CORFICOLCF.CL,STOCK,63.58,C,Normal,4,68.64,True,69.92,True,100.0,True,54.81,Financial Services,False,COL,high,23180.0
+1,1,materias_primas,20,PDBC,ETF,63.24,C,Normal,2,50.0,False,72.5,True,100.0,True,27.5,Materias primas,False,GLOBAL,medium,19.65999984741211
+2,2,materias_primas,20,GSG,ETF,62.65,C,Normal,2,50.0,False,82.5,True,100.0,True,45.0,Materias primas,False,GLOBAL,medium,36.310001373291016
+3,3,materias_primas,20,USO,ETF,62.65,C,Normal,2,50.0,False,97.5,True,100.0,True,67.5,Materias primas,False,GLOBAL,medium,153.82000732421875
+57,11,accion,268,O,STOCK,62.46,C,Normal,4,70.74,True,44.74,True,100.0,True,25.44,Real Estate,False,US,high,56.65999984741211
+25,2,fondo_acciones,124,ECH,ETF,62.14,C,Normal,3,90.65,True,39.11,True,26.08,True,53.23,Diversificado,False,LATAM,high,39.45000076293945
+60,12,accion,268,MRK,STOCK,62.07,C,Normal,4,34.19,True,93.23,True,100.0,True,35.89,Healthcare,False,US,high,146.8699951171875
+4,4,materias_primas,20,BNO,ETF,62.06,C,Normal,2,50.0,False,92.5,True,100.0,True,62.5,Materias primas,False,GLOBAL,medium,60.56999969482422
+63,13,accion,268,MDLZ,STOCK,61.86,C,Normal,4,62.67,True,48.87,True,100.0,True,20.07,Consumer Defensive,False,US,high,60.849998474121094
+64,14,accion,268,GM,STOCK,61.76,C,Normal,4,76.04,True,70.11,True,100.0,True,75.77,Consumer Cyclical,False,US,high,82.19999694824219
+6,6,renta_fija,31,STIP,ETF,61.76,C,Normal,2,50.0,False,62.9,True,100.0,True,19.35,Renta fija,False,US,medium,99.93000030517578
+5,5,materias_primas,20,DBC,ETF,61.47,C,Normal,2,50.0,False,67.5,True,100.0,True,27.5,Materias primas,False,GLOBAL,medium,32.93000030517578
+6,6,materias_primas,20,DJP,ETF,61.47,C,Normal,2,50.0,False,67.5,True,100.0,True,27.5,Materias primas,False,GLOBAL,medium,52.70000076293945
+70,15,accion,268,CIG,STOCK,61.35,C,Normal,4,86.36,True,27.82,True,100.0,True,32.14,Utilities,False,LATAM,high,2.140000104904175
+7,7,renta_fija,31,SJNK,ETF,61.2,C,Normal,2,50.0,False,74.19,True,100.0,True,38.71,Renta fija,False,US,medium,24.600000381469727
+8,8,renta_fija,31,VTIP,ETF,61.01,C,Normal,2,50.0,False,62.9,True,100.0,True,22.58,Renta fija,False,US,medium,49.310001373291016
+72,16,accion,268,VLO,STOCK,60.51,C,Normal,4,35.44,True,97.74,True,93.24,True,51.45,Energy,False,US,high,413.2799987792969
+73,17,accion,268,BBD,STOCK,60.14,C,Normal,4,95.09,True,24.25,True,100.0,True,47.17,Financial Services,False,LATAM,high,3.430000066757202
+74,18,accion,268,RTX,STOCK,59.93,C,Normal,4,40.54,True,69.74,True,100.0,True,20.84,Industrials,False,US,high,194.0
+9,9,renta_fija,31,USHY,ETF,59.87,C,Normal,2,50.0,False,82.26,True,100.0,True,56.45,Renta fija,False,US,medium,36.349998474121094
+75,19,accion,268,DUK,STOCK,59.74,C,Normal,4,62.17,True,37.59,True,100.0,True,11.31,Utilities,False,US,high,117.52999877929688
+29,3,fondo_acciones,124,EZA,ETF,59.74,C,Normal,3,97.97,True,39.92,True,26.08,True,77.42,Diversificado,False,GLOBAL,high,68.48999786376953
+76,20,accion,268,PEP,STOCK,59.22,C,Normal,4,72.36,True,28.01,True,100.0,True,16.95,Consumer Defensive,False,US,high,129.75
+77,21,accion,268,OMAB,STOCK,59.21,C,Normal,4,85.48,True,26.69,True,100.0,True,38.01,Industrials,False,LATAM,high,97.44999694824219
+80,22,accion,268,AMX,STOCK,59.09,C,Normal,4,64.36,True,43.23,True,100.0,True,26.36,Communication Services,False,LATAM,high,22.43000030517578
+83,23,accion,268,AVB,STOCK,58.7,C,Normal,2,72.63,True,50.0,False,100.0,True,52.62,Real Estate,False,US,medium,184.06
+10,10,renta_fija,31,SHY,ETF,58.54,C,Normal,2,50.0,False,54.84,True,100.0,True,20.97,Renta fija,False,US,medium,81.23999786376953
+11,11,renta_fija,31,JNK,ETF,57.97,C,Normal,2,50.0,False,82.26,True,100.0,True,64.52,Renta fija,False,US,medium,94.55000305175781
+90,24,accion,268,UPS,STOCK,57.82,C,Normal,4,74.01,True,53.57,True,100.0,True,64.13,Industrials,False,US,high,99.05999755859375
+92,25,accion,268,ASR,STOCK,57.58,C,Normal,4,89.12,True,8.08,True,100.0,True,23.36,Industrials,False,LATAM,high,243.32000732421875
+7,7,materias_primas,20,COMT,ETF,57.35,C,Normal,2,50.0,False,62.5,True,100.0,True,37.5,Materias primas,False,GLOBAL,medium,37.380001068115234
+34,4,fondo_acciones,124,XBI,ETF,57.21,C,Normal,2,50.0,False,95.97,True,100.0,True,88.31,Healthcare,False,US,medium,156.72000122070312
+12,12,renta_fija,31,VCSH,ETF,57.02,C,Normal,2,50.0,False,54.84,True,100.0,True,27.42,Renta fija,False,US,medium,77.66999816894531
+95,26,accion,268,ERIC,STOCK,56.99,C,Normal,4,83.81,True,39.66,True,100.0,True,63.93,Technology,False,EU,high,10.170000076293945
+96,27,accion,268,EQR,STOCK,56.71,C,Normal,2,66.19,True,50.0,False,100.0,True,49.81,Real Estate,False,US,medium,63.66
+98,28,accion,268,YPF,STOCK,56.6,C,Normal,4,27.7,True,94.92,True,93.24,True,50.31,Energy,False,LATAM,high,54.959999084472656
+99,29,accion,268,VALE,STOCK,56.57,C,Normal,4,69.38,True,49.44,True,100.0,True,55.14,Basic Materials,False,LATAM,high,14.210000038146973
+100,30,accion,268,FMX,STOCK,56.46,C,Normal,4,35.45,True,68.42,True,100.0,True,24.74,Consumer Defensive,False,LATAM,high,118.72000122070312
+104,31,accion,268,LMT,STOCK,56.01,C,Normal,4,53.11,True,43.98,True,100.0,True,20.86,Industrials,False,US,high,533.3800048828125
+105,32,accion,268,UL,STOCK,55.98,C,Normal,4,62.21,True,32.33,True,100.0,True,19.44,Consumer Defensive,False,EU,high,61.81999969482422
+107,33,accion,268,TM,STOCK,55.94,C,Normal,4,76.06,True,21.99,True,100.0,True,28.35,Consumer Cyclical,False,ASIA,high,191.52999877929688
+108,34,accion,268,PRNDY,STOCK,55.53,C,Normal,4,97.3,True,14.85,True,100.0,True,56.54,Consumer Defensive,False,EU,high,13.5600004196167
+41,5,fondo_acciones,124,VT,ETF,55.5,C,Normal,2,50.0,False,50.0,True,26.08,True,26.61,Diversificado,False,GLOBAL,medium,158.5500030517578
+109,35,accion,268,ABBV,STOCK,55.46,C,Normal,4,25.94,True,69.92,True,100.0,True,14.58,Healthcare,False,US,high,263.9599914550781
+110,36,accion,268,GILD,STOCK,55.43,C,Normal,4,40.7,True,56.95,True,100.0,True,21.08,Healthcare,False,US,high,150.11000061035156
+111,37,accion,268,MBGYY,STOCK,55.38,C,Normal,4,83.9,True,17.67,True,100.0,True,37.98,Consumer Cyclical,False,EU,high,12.609999656677246
+112,38,accion,268,LTM,STOCK,55.37,C,Normal,4,80.87,True,33.46,True,100.0,True,56.38,Industrials,False,LATAM,high,51.150001525878906
+43,6,fondo_acciones,124,GDX,ETF,55.25,C,Normal,3,89.02,True,47.58,True,100.0,True,92.34,Basic Materials,False,US,high,95.4800033569336
+113,39,accion,268,SO,STOCK,55.07,C,Normal,4,50.52,True,36.47,True,100.0,True,9.06,Utilities,False,US,high,85.5199966430664
+8,8,materias_primas,20,DBA,ETF,55.0,C,Normal,2,50.0,False,32.5,True,100.0,True,2.5,Materias primas,False,GLOBAL,medium,28.149999618530273
+114,40,accion,268,NOC,STOCK,54.98,C,Normal,4,68.97,True,23.31,True,100.0,True,21.99,Industrials,False,US,high,527.3900146484375
+115,41,accion,268,OXY,STOCK,54.88,C,Normal,4,41.46,True,71.24,True,93.24,True,46.17,Energy,False,US,high,58.84000015258789
+117,42,accion,268,MDT,STOCK,54.6,C,Normal,4,67.2,True,34.02,True,100.0,True,36.6,Healthcare,False,EU,high,92.12999725341797
+47,7,fondo_acciones,124,GDXJ,ETF,54.49,C,Normal,3,88.21,True,47.98,True,100.0,True,94.76,Basic Materials,False,US,high,124.44000244140625
+49,8,fondo_acciones,124,RING,ETF,54.38,C,Normal,3,84.15,True,51.61,True,100.0,True,93.55,Basic Materials,False,US,high,84.08999633789062
+119,43,accion,268,T,STOCK,54.35,C,Normal,4,68.94,True,23.5,True,100.0,True,24.9,Communication Services,False,US,high,25.399999618530273
+120,44,accion,268,DTEGY,STOCK,54.28,C,Normal,4,62.82,True,29.89,True,100.0,True,24.09,Communication Services,False,EU,high,31.270000457763672
+121,45,accion,268,NVO,STOCK,54.14,C,Normal,4,87.87,True,29.51,True,100.0,True,67.95,Healthcare,False,EU,high,43.2400016784668
+122,46,accion,268,JD,STOCK,54.05,C,Normal,4,78.0,True,33.08,True,100.0,True,56.42,Consumer Cyclical,False,ASIA,high,26.920000076293945
+123,47,accion,268,BMA,STOCK,54.01,C,Normal,4,58.12,True,65.6,True,100.0,True,70.57,Financial Services,False,LATAM,high,75.05999755859375
+13,13,renta_fija,31,HYG,ETF,53.8,C,Normal,2,50.0,False,69.35,True,100.0,True,62.9,Renta fija,False,US,medium,78.52999877929688
+125,48,accion,268,UNH,STOCK,53.49,C,Normal,4,47.89,True,70.86,True,100.0,True,62.79,Healthcare,False,US,high,376.8999938964844
+126,49,accion,268,CMCSA,STOCK,53.45,C,Normal,4,86.91,True,20.3,True,100.0,True,55.4,Communication Services,False,US,high,22.739999771118164
+129,50,accion,268,F,STOCK,52.86,C,Normal,4,67.19,True,58.65,True,100.0,True,80.89,Consumer Cyclical,False,US,high,13.210000038146973
+130,51,accion,268,BP,STOCK,52.64,C,Normal,4,23.83,True,68.05,True,93.24,True,20.05,Energy,False,EU,high,44.58000183105469
+14,14,renta_fija,31,EMB,ETF,52.47,C,Normal,2,50.0,False,80.65,True,100.0,True,85.48,Renta fija,False,GLOBAL,medium,93.37999725341797
+9,9,materias_primas,20,GLDM,ETF,52.35,C,Normal,2,50.0,False,45.0,True,100.0,True,32.5,Materias primas,False,GLOBAL,medium,86.58999633789062
+133,52,accion,268,PYPL,STOCK,51.9,C,Normal,4,73.89,True,53.38,True,100.0,True,88.8,Financial Services,False,US,high,52.40999984741211
+135,53,accion,268,WELL,STOCK,51.42,C,Normal,4,17.52,True,82.89,True,100.0,True,36.47,Real Estate,False,US,high,228.8699951171875
+136,54,accion,268,VWAGY,STOCK,51.19,C,Normal,4,96.56,True,9.96,True,100.0,True,66.39,Consumer Cyclical,False,EU,high,8.880000114440918
+10,10,materias_primas,20,SGOL,ETF,51.18,C,Normal,2,50.0,False,40.0,True,100.0,True,30.0,Materias primas,False,GLOBAL,medium,41.63999938964844
+11,11,materias_primas,20,SOYB,ETF,51.18,C,Normal,2,50.0,False,40.0,True,100.0,True,30.0,Materias primas,False,GLOBAL,medium,27.68000030517578
+138,55,accion,268,PANW,STOCK,50.95,C,Normal,4,19.24,True,95.68,True,100.0,True,60.63,Technology,False,US,high,363.5799865722656
+139,56,accion,268,MCK,STOCK,50.66,C,Normal,4,37.69,True,50.38,True,100.0,True,26.23,Healthcare,False,US,high,874.6500244140625
+140,57,accion,268,NSRGY,STOCK,50.65,C,Normal,4,45.69,True,43.42,True,100.0,True,29.84,Consumer Defensive,False,EU,high,92.7300033569336
+141,58,accion,268,BKNG,STOCK,50.57,C,Normal,4,65.79,True,41.54,True,100.0,True,62.5,Consumer Cyclical,False,US,high,167.89999389648438
+15,15,renta_fija,31,VTEB,ETF,50.38,C,Normal,2,50.0,False,40.32,True,100.0,True,33.87,Renta fija,False,US,medium,48.27000045776367
+142,59,accion,268,WM,STOCK,50.37,C,Normal,4,40.04,True,38.16,True,100.0,True,13.24,Industrials,False,US,high,211.10000610351562
+143,60,accion,268,VTR,STOCK,50.27,C,Normal,4,21.88,True,74.06,True,100.0,True,35.72,Real Estate,False,US,high,86.69000244140625
+145,61,accion,268,EQIX,STOCK,50.2,C,Normal,4,27.75,True,72.18,True,100.0,True,43.46,Real Estate,False,US,high,1021.3400268554688
+16,16,renta_fija,31,MUB,ETF,50.0,C,Normal,2,50.0,False,40.32,True,100.0,True,35.48,Renta fija,False,US,medium,102.87999725341797
+147,62,accion,268,CONCONCRET.CL,STOCK,49.95,C,Normal,4,61.83,True,33.83,True,100.0,True,46.67,Industrials,False,COL,high,481.0
+17,17,renta_fija,31,VWOB,ETF,49.81,C,Normal,2,50.0,False,70.97,True,100.0,True,82.26,Renta fija,False,GLOBAL,medium,64.91000366210938
+148,63,accion,268,WIT,STOCK,49.66,C,Normal,4,96.53,True,4.7,True,100.0,True,64.94,Technology,False,ASIA,high,1.659999966621399
+149,64,accion,268,AMT,STOCK,49.3,C,Normal,4,66.76,True,25.94,True,100.0,True,46.23,Real Estate,False,US,high,173.97999572753906
+150,65,accion,268,AZN,STOCK,49.3,C,Normal,4,50.17,True,27.63,True,100.0,True,19.72,Healthcare,False,EU,high,166.0800018310547
+153,66,accion,268,CL,STOCK,49.19,C,Normal,4,29.58,True,49.25,True,100.0,True,16.57,Consumer Defensive,False,US,high,87.47000122070312
+154,67,accion,268,SBS,STOCK,49.08,C,Normal,4,64.65,True,19.74,True,100.0,True,34.14,Utilities,False,LATAM,high,5.309999942779541
+18,18,renta_fija,31,SCHP,ETF,49.05,C,Normal,2,50.0,False,41.94,True,100.0,True,41.94,Renta fija,False,US,medium,25.440000534057617
+155,68,accion,268,SONY,STOCK,48.98,C,Normal,4,69.6,True,26.32,True,100.0,True,53.13,Technology,False,ASIA,high,23.459999084472656
+156,69,accion,268,LOW,STOCK,48.83,C,Normal,4,72.49,True,12.59,True,100.0,True,38.21,Consumer Cyclical,False,US,high,192.49000549316406
+157,70,accion,268,LRCX,STOCK,48.83,C,Normal,4,30.4,True,94.74,True,100.0,True,87.79,Technology,False,US,high,288.1099853515625
+12,12,materias_primas,20,WEAT,ETF,48.82,C,Normal,2,50.0,False,55.0,True,100.0,True,62.5,Materias primas,False,GLOBAL,medium,25.860000610351562
+158,71,accion,268,PDD,STOCK,48.76,C,Normal,4,84.88,True,6.58,True,100.0,True,51.18,Consumer Cyclical,False,EU,high,78.9000015258789
+159,72,accion,268,PHG,STOCK,48.65,C,Normal,4,71.58,True,30.08,True,100.0,True,63.64,Healthcare,False,EU,high,24.68000030517578
+160,73,accion,268,CRM,STOCK,48.6,C,Normal,4,79.99,True,31.58,True,100.0,True,80.79,Technology,False,US,high,237.9199981689453
+161,74,accion,268,ASML,STOCK,48.49,C,Normal,4,28.47,True,92.29,True,100.0,True,82.16,Technology,False,EU,high,1679.9200439453125
+19,19,renta_fija,31,TIP,ETF,48.29,C,Normal,2,50.0,False,41.94,True,100.0,True,45.16,Renta fija,False,US,medium,105.2699966430664
+13,13,materias_primas,20,IAU,ETF,48.24,C,Normal,2,50.0,False,35.0,True,100.0,True,35.0,Materias primas,False,GLOBAL,medium,82.2300033569336
+163,75,accion,268,MCD,STOCK,48.21,C,Normal,4,53.09,True,17.86,True,100.0,True,14.81,Consumer Cyclical,False,US,high,248.24000549316406
+164,76,accion,268,ITW,STOCK,48.12,C,Normal,4,34.19,True,50.38,True,100.0,True,30.86,Industrials,False,US,high,269.4200134277344
+165,77,accion,268,CELSIA.CL,STOCK,48.08,C,Normal,4,56.47,True,34.21,True,100.0,True,45.79,Utilities,False,COL,high,5100.0
+168,78,accion,268,SIEGY,STOCK,47.76,C,Normal,4,47.39,True,58.46,True,100.0,True,67.62,Industrials,False,EU,high,152.05999755859375
+169,79,accion,268,QCOM,STOCK,47.75,C,Normal,4,76.92,True,32.14,True,100.0,True,79.89,Technology,False,US,high,177.72000122070312
+170,80,accion,268,CFRUY,STOCK,47.72,C,Normal,4,33.85,True,66.54,True,100.0,True,56.23,Consumer Cyclical,False,EU,high,20.530000686645508
+171,81,accion,268,NTTYY,STOCK,47.72,C,Normal,4,30.51,True,37.41,True,100.0,True,6.7,Communication Services,False,ASIA,high,28.149999618530273
+70,9,fondo_acciones,124,FXI,ETF,47.69,C,Normal,3,97.15,True,5.65,True,26.08,True,75.81,Diversificado,False,ASIA,high,34.31999969482422
+172,82,accion,268,IBN,STOCK,47.64,C,Normal,4,34.26,True,35.9,True,100.0,True,11.32,Financial Services,False,ASIA,high,28.149999618530273
+173,83,accion,268,ENLAY,STOCK,47.42,C,Normal,4,42.93,True,48.68,True,100.0,True,46.6,Utilities,False,EU,high,10.109999656677246
+174,84,accion,268,DE,STOCK,47.41,C,Normal,4,23.51,True,71.8,True,100.0,True,47.35,Industrials,False,US,high,683.989990234375
+175,85,accion,268,KLAC,STOCK,47.32,C,Normal,4,28.92,True,87.03,True,100.0,True,80.02,Technology,False,US,high,176.99000549316406
+178,86,accion,268,IBM,STOCK,46.96,C,Normal,4,74.99,True,16.92,True,100.0,True,57.02,Technology,False,US,high,229.5500030517578
+179,87,accion,268,TGS,STOCK,46.71,C,Normal,4,40.28,True,47.56,True,93.24,True,43.3,Energy,False,LATAM,high,28.31999969482422
+180,88,accion,268,WDAY,STOCK,46.69,C,Normal,4,61.27,True,49.25,True,100.0,True,82.67,Technology,False,US,high,193.8699951171875
+183,89,accion,268,INFY,STOCK,46.13,C,Normal,4,78.97,True,6.2,True,100.0,True,51.43,Technology,False,ASIA,high,10.819999694824219
+78,10,fondo_acciones,124,IBB,ETF,45.81,C,Normal,3,16.67,True,89.92,True,100.0,True,69.35,Healthcare,False,US,high,204.55999755859375
+184,90,accion,268,PAC,STOCK,45.66,C,Normal,4,67.29,True,11.28,True,100.0,True,40.64,Industrials,False,LATAM,high,202.77999877929688
+20,20,renta_fija,31,IEI,ETF,45.64,C,Normal,2,50.0,False,29.03,True,100.0,True,37.1,Renta fija,False,US,medium,114.23999786376953
+185,91,accion,268,ABNB,STOCK,45.5,C,Normal,4,19.8,True,88.16,True,100.0,True,73.52,Consumer Cyclical,False,US,high,166.22000122070312
+187,92,accion,268,UBER,STOCK,45.23,C,Normal,4,78.84,True,18.23,True,100.0,True,73.08,Technology,False,US,high,70.5
+188,93,accion,268,CAT,STOCK,45.19,C,Normal,4,21.94,True,79.51,True,100.0,True,65.61,Industrials,False,US,high,808.989990234375
+189,94,accion,268,ACN,STOCK,45.15,C,Normal,4,93.24,True,7.52,True,100.0,True,82.55,Technology,False,EU,high,181.2899932861328
+190,95,accion,268,NEE,STOCK,45.09,C,Normal,4,38.2,True,40.41,True,100.0,True,35.85,Utilities,False,US,high,80.47000122070312
+83,11,fondo_acciones,124,MCHI,ETF,44.83,C,Normal,3,93.09,True,2.82,True,26.08,True,76.61,Diversificado,False,ASIA,high,53.06999969482422
+191,96,accion,268,ADBE,STOCK,44.77,C,Normal,4,88.73,True,14.1,True,100.0,True,86.16,Technology,False,US,high,248.9199981689453
+14,14,materias_primas,20,GLD,ETF,44.71,C,Normal,2,50.0,False,30.0,True,100.0,True,42.5,Materias primas,False,GLOBAL,medium,401.1700134277344
+192,97,accion,268,AMD,STOCK,44.66,C,Normal,4,20.17,True,98.87,True,100.0,True,93.8,Technology,False,US,high,559.8200073242188
+84,12,fondo_acciones,124,EWT,ETF,44.52,C,Normal,3,12.6,True,97.98,True,26.08,True,79.84,Diversificado,False,ASIA,high,111.63999938964844
+193,98,accion,268,V,STOCK,44.29,C,Normal,4,11.01,True,60.34,True,100.0,True,21.55,Financial Services,False,US,high,368.2900085449219
+15,15,materias_primas,20,CORN,ETF,43.82,C,Normal,2,50.0,False,27.5,True,100.0,True,42.5,Materias primas,False,GLOBAL,medium,19.700000762939453
+194,99,accion,268,TJX,STOCK,43.77,C,Normal,4,37.26,True,27.26,True,100.0,True,20.06,Consumer Cyclical,False,US,high,127.23999786376953
+21,21,renta_fija,31,BNDX,ETF,43.36,C,Normal,2,50.0,False,32.26,True,100.0,True,51.61,Renta fija,False,GLOBAL,medium,47.04999923706055
+90,13,fondo_acciones,124,XLC,ETF,42.44,C,Normal,3,71.95,True,8.06,True,100.0,True,57.66,Communication Services,False,US,high,110.80999755859375
+22,22,renta_fija,31,PCY,ETF,42.41,C,Normal,2,50.0,False,56.45,True,100.0,True,91.94,Renta fija,False,GLOBAL,medium,20.760000228881836
+200,100,accion,268,INTU,STOCK,42.26,C,Normal,4,90.37,True,2.26,True,100.0,True,81.93,Technology,False,US,high,303.19000244140625
+201,101,accion,268,SBUX,STOCK,42.14,C,Normal,4,18.93,True,62.97,True,100.0,True,48.47,Consumer Cyclical,False,US,high,95.83000183105469
+202,102,accion,268,ADDYY,STOCK,42.01,C,Normal,4,63.83,True,30.26,True,100.0,True,78.53,Consumer Cyclical,False,EU,high,81.44999694824219
+93,14,fondo_acciones,124,XLU,ETF,41.89,C,Normal,3,49.19,True,12.9,True,100.0,True,27.42,Utilities,False,US,high,41.099998474121094
+94,15,fondo_acciones,124,EWG,ETF,41.83,C,Normal,3,61.38,True,21.37,True,26.08,True,61.69,Diversificado,False,EU,high,42.150001525878906
+203,103,accion,268,CME,STOCK,41.77,C,Normal,4,26.97,True,31.77,True,100.0,True,17.34,Financial Services,False,US,high,276.010009765625
+204,104,accion,268,SLB,STOCK,41.76,C,Normal,4,16.95,True,71.8,True,93.24,True,59.9,Energy,False,US,high,51.119998931884766
+95,16,fondo_acciones,124,VPU,ETF,41.5,C,Normal,3,48.37,True,11.69,True,100.0,True,25.81,Utilities,False,US,high,177.97999572753906
+205,105,accion,268,ANET,STOCK,41.4,C,Normal,4,24.33,True,77.44,True,100.0,True,82.78,Technology,False,US,high,199.38999938964844
+207,106,accion,268,LULU,STOCK,40.99,C,Normal,4,84.42,True,3.95,True,100.0,True,79.44,Consumer Cyclical,False,GLOBAL,high,98.05999755859375
+208,107,accion,268,BLK,STOCK,40.74,C,Normal,4,36.53,True,45.86,True,100.0,True,59.6,Financial Services,False,US,high,1069.780029296875
+209,108,accion,268,DLR,STOCK,40.59,C,Normal,4,28.31,True,51.88,True,100.0,True,54.86,Real Estate,False,US,high,182.1199951171875
+23,23,renta_fija,31,BND,ETF,40.13,C,Normal,2,50.0,False,30.65,True,100.0,True,62.9,Renta fija,False,US,medium,71.19999694824219
+213,109,accion,268,SAP,STOCK,40.09,C,Normal,4,56.31,True,25.0,True,100.0,True,65.66,Technology,False,EU,high,209.4499969482422
+214,110,accion,268,WMT,STOCK,39.99,C,Normal,4,32.11,True,25.38,True,100.0,True,24.32,Consumer Defensive,False,US,high,106.7300033569336
+96,17,fondo_acciones,124,XLI,ETF,39.92,C,Normal,3,15.04,True,47.18,True,100.0,True,27.42,Industrials,False,US,high,169.75
+215,111,accion,268,DDOG,STOCK,39.69,C,Normal,4,10.97,True,94.36,True,100.0,True,92.05,Technology,False,US,high,229.9199981689453
+97,18,fondo_acciones,124,XLK,ETF,39.65,C,Normal,3,3.66,True,87.9,True,100.0,True,69.76,Technology,False,US,high,189.60000610351562
+217,112,accion,268,ABT,STOCK,39.56,C,Normal,4,34.85,True,29.51,True,100.0,True,37.1,Healthcare,False,US,high,102.61000061035156
+218,113,accion,268,AVGO,STOCK,39.55,C,Normal,4,43.63,True,44.17,True,100.0,True,74.51,Technology,False,US,high,357.6099853515625
+219,114,accion,268,ETN,STOCK,39.24,C,Normal,4,22.44,True,59.4,True,100.0,True,61.62,Industrials,False,EU,high,424.7699890136719
+220,115,accion,268,NPSNY,STOCK,39.24,C,Normal,4,66.38,True,8.27,True,100.0,True,61.79,Consumer Cyclical,False,GLOBAL,high,8.890000343322754
+221,116,accion,268,DEO,STOCK,38.92,C,Normal,4,32.33,True,42.67,True,100.0,True,55.17,Consumer Defensive,False,EU,high,85.58999633789062
+222,117,accion,268,APH,STOCK,38.89,C,Normal,4,48.75,True,43.42,True,100.0,True,85.17,Technology,False,US,high,77.55000305175781
+24,24,renta_fija,31,AGG,ETF,38.61,C,Normal,2,50.0,False,27.42,True,100.0,True,64.52,Renta fija,False,US,medium,95.95999908447266
+25,25,renta_fija,31,GOVT,ETF,38.61,C,Normal,2,50.0,False,20.97,True,100.0,True,54.84,Renta fija,False,US,medium,22.1299991607666
+224,118,accion,268,MDB,STOCK,38.59,C,Normal,4,28.18,True,72.74,True,100.0,True,94.43,Technology,False,US,high,383.55999755859375
+99,19,fondo_acciones,124,MTUM,ETF,38.35,C,Normal,3,13.41,True,71.77,True,26.08,True,68.15,Diversificado,False,GLOBAL,high,309.6199951171875
+225,119,accion,268,DHR,STOCK,38.27,C,Normal,4,29.81,True,41.73,True,100.0,True,52.12,Healthcare,False,US,high,211.80999755859375
+226,120,accion,268,MA,STOCK,38.23,C,Normal,4,9.15,True,47.18,True,100.0,True,24.31,Financial Services,False,US,high,565.239990234375
+100,20,fondo_acciones,124,VGT,ETF,38.22,C,Normal,3,2.03,True,86.29,True,100.0,True,70.56,Technology,False,US,high,122.30999755859375
+101,21,fondo_acciones,124,INDY,ETF,38.11,C,Normal,3,41.87,True,5.65,True,26.08,True,19.76,Diversificado,False,ASIA,high,42.029998779296875
+102,22,fondo_acciones,124,XLB,ETF,37.86,C,Normal,3,23.98,True,36.29,True,100.0,True,35.48,Basic Materials,False,US,high,49.9900016784668
+227,121,accion,268,ICE,STOCK,37.81,C,Normal,4,33.99,True,25.94,True,100.0,True,37.7,Financial Services,False,US,high,155.47000122070312
+228,122,accion,268,SYK,STOCK,37.8,C,Normal,4,40.5,True,18.98,True,100.0,True,38.72,Healthcare,False,US,high,275.1199951171875
+103,23,fondo_acciones,124,EWL,ETF,37.68,C,Normal,3,24.8,True,37.5,True,26.08,True,39.52,Diversificado,False,EU,high,60.040000915527344
+104,24,fondo_acciones,124,SOXX,ETF,37.65,C,Normal,3,1.22,True,98.79,True,100.0,True,90.32,Technology,False,US,high,533.0700073242188
+229,123,accion,268,AXP,STOCK,37.47,C,Normal,4,28.54,True,33.08,True,100.0,True,40.32,Financial Services,False,US,high,311.55999755859375
+230,124,accion,268,NTES,STOCK,37.22,C,Normal,4,45.64,True,24.62,True,100.0,True,58.64,Communication Services,False,ASIA,high,116.19000244140625
+105,25,fondo_acciones,124,SMH,ETF,37.07,C,Normal,3,0.41,True,97.58,True,100.0,True,89.52,Technology,False,US,high,573.0
+231,125,accion,268,CRWD,STOCK,36.95,C,Normal,4,3.81,True,92.11,True,100.0,True,87.8,Technology,False,US,high,237.64999389648438
+232,126,accion,268,HD,STOCK,36.86,C,Normal,4,39.49,True,17.67,True,100.0,True,38.95,Consumer Cyclical,False,US,high,299.9800109863281
+107,26,fondo_acciones,124,LIT,ETF,36.51,C,Normal,3,45.12,True,46.77,True,100.0,True,93.95,Basic Materials,False,US,high,70.5
+108,27,fondo_acciones,124,QQQ,ETF,36.02,C,Normal,3,11.79,True,64.92,True,26.08,True,64.92,Diversificado,False,GLOBAL,high,721.4500122070312
+235,127,accion,268,RACE,STOCK,35.53,C,Normal,4,15.12,True,49.62,True,100.0,True,49.88,Consumer Cyclical,False,EU,high,406.69000244140625
+110,28,fondo_acciones,124,VIS,ETF,35.37,C,Normal,3,14.23,True,40.32,True,100.0,True,35.08,Industrials,False,US,high,325.5400085449219
+239,128,accion,268,COST,STOCK,34.51,C,Normal,4,18.74,True,27.44,True,100.0,True,27.31,Consumer Defensive,False,US,high,895.3099975585938
+111,29,fondo_acciones,124,VAW,ETF,34.17,C,Normal,3,27.24,True,26.61,True,100.0,True,42.34,Basic Materials,False,US,high,223.49000549316406
+240,129,accion,268,ORCL,STOCK,34.07,C,Normal,4,75.18,True,2.44,True,100.0,True,90.42,Technology,False,US,high,147.61000061035156
+112,30,fondo_acciones,124,INDA,ETF,34.05,C,Normal,3,31.3,True,8.06,True,26.08,True,22.18,Diversificado,False,ASIA,high,48.02000045776367
+26,26,renta_fija,31,VCIT,ETF,33.3,C,Normal,2,50.0,False,17.74,True,100.0,True,72.58,Renta fija,False,US,medium,79.69000244140625
+243,130,accion,268,SHW,STOCK,32.79,C,Normal,4,19.61,True,38.16,True,100.0,True,52.22,Basic Materials,False,US,high,320.7300109863281
+244,131,accion,268,CDNS,STOCK,32.28,C,Normal,4,35.61,True,24.25,True,100.0,True,61.49,Technology,False,US,high,282.8999938964844
+246,132,accion,268,TCEHY,STOCK,31.83,C,Normal,4,46.67,True,9.59,True,100.0,True,60.78,Communication Services,False,ASIA,high,53.900001525878906
+27,27,renta_fija,31,IEF,ETF,31.4,C,Normal,2,50.0,False,14.52,True,100.0,True,75.81,Renta fija,False,US,medium,90.80000305175781
+248,133,accion,268,SPGI,STOCK,30.59,C,Normal,4,27.09,True,26.32,True,100.0,True,56.86,Financial Services,False,US,high,405.32000732421875
+113,31,fondo_acciones,124,VNQ,ETF,29.09,C,Normal,3,9.35,True,31.45,True,100.0,True,39.92,Real Estate,False,US,high,92.91000366210938
+28,28,renta_fija,31,LQD,ETF,28.94,C,Normal,2,50.0,False,9.68,True,100.0,True,79.03,Renta fija,False,US,medium,104.69999694824219
+251,134,accion,268,HDB,STOCK,28.75,C,Normal,4,32.83,True,4.32,True,100.0,True,41.75,Financial Services,False,ASIA,high,23.15999984741211
+114,32,fondo_acciones,124,ITA,ETF,27.6,C,Normal,3,4.47,True,33.47,True,100.0,True,40.73,Industrials,False,US,high,213.83999633789062
+115,33,fondo_acciones,124,XLRE,ETF,27.47,C,Normal,3,7.72,True,29.03,True,100.0,True,40.32,Real Estate,False,US,high,42.529998779296875
+29,29,renta_fija,31,IGOV,ETF,25.52,C,Normal,2,50.0,False,9.68,True,100.0,True,93.55,Renta fija,False,GLOBAL,medium,40.529998779296875
+255,135,accion,268,MC,STOCK,24.87,C,Normal,4,22.66,True,30.45,True,100.0,True,79.64,Financial Services,False,US,high,59.72999954223633
+117,34,fondo_acciones,124,ICLN,ETF,24.75,C,Normal,3,32.93,True,25.81,True,26.08,True,91.13,Diversificado,True,GLOBAL,high,17.559999465942383
+30,30,renta_fija,31,BWX,ETF,24.57,C,Normal,2,50.0,False,4.84,True,100.0,True,90.32,Renta fija,False,GLOBAL,medium,21.479999542236328
+118,35,fondo_acciones,124,VUG,ETF,24.47,C,Normal,3,6.1,True,35.08,True,26.08,True,59.27,Diversificado,False,GLOBAL,high,88.75
+120,36,fondo_acciones,124,VCR,ETF,23.84,C,Normal,3,28.05,True,12.5,True,100.0,True,66.53,Consumer Cyclical,False,US,high,371.9599914550781
+121,37,fondo_acciones,124,IWF,ETF,22.5,C,Normal,3,10.98,True,19.76,True,26.08,True,53.23,Diversificado,False,GLOBAL,high,123.25
+4,1,accion,268,ETB.CL,STOCK,78.53,D,Mala,3,93.75,True,90.6,True,100.0,True,66.21,Communication Services,False,COL,high,120.0
+94,2,accion,268,PFCEMARGOS.CL,STOCK,57.21,D,Mala,3,81.28,True,33.65,True,100.0,True,49.55,Basic Materials,False,COL,high,12780.0
+11,1,cripto,25,NEAR-USD,CRYPTO,54.71,D,Mala,2,50.0,False,82.0,True,100.0,True,78.0,Cripto,False,GLOBAL,medium,4.244100093841553
+118,3,accion,268,HMC,STOCK,54.51,D,Mala,3,50.0,False,49.44,True,100.0,True,29.99,Consumer Cyclical,False,ASIA,medium,32.20000076293945
+128,4,accion,268,CNEC.CL,STOCK,52.92,D,Mala,4,97.3,True,21.8,True,93.24,True,78.06,Energy,False,GLOBAL,high,6240.0
+13,2,cripto,25,ETHA,ETF,52.59,D,Mala,2,50.0,False,56.0,True,100.0,True,48.0,Cripto,False,GLOBAL,medium,19.920000076293945
+151,5,accion,268,CX,STOCK,49.26,D,Mala,4,71.71,True,33.27,True,100.0,True,66.03,Basic Materials,False,LATAM,high,10.0600004196167
+152,6,accion,268,NOK,STOCK,49.23,D,Mala,4,39.49,True,73.12,True,100.0,True,69.55,Technology,False,EU,high,10.680000305175781
+167,7,accion,268,GGAL,STOCK,48.01,D,Mala,4,48.72,True,55.83,True,100.0,True,64.95,Financial Services,False,LATAM,high,41.7599983215332
+195,8,accion,268,NUTRESA.CL,STOCK,43.76,D,Mala,4,11.84,True,73.87,True,100.0,True,45.55,Consumer Defensive,False,COL,high,314000.0
+196,9,accion,268,AZO,STOCK,43.51,D,Mala,4,58.8,True,9.59,True,100.0,True,32.36,Consumer Cyclical,False,US,high,2855.31005859375
+198,10,accion,268,STLA,STOCK,43.28,D,Mala,4,95.45,True,1.13,True,100.0,True,84.81,Consumer Cyclical,False,EU,high,4.820000171661377
+87,1,fondo_acciones,124,SIL,ETF,43.15,D,Mala,3,58.94,True,49.19,True,100.0,True,93.55,Basic Materials,False,US,high,95.19999694824219
+199,11,accion,268,ZTS,STOCK,43.12,D,Mala,4,86.97,True,1.5,True,100.0,True,71.18,Healthcare,False,US,high,71.4000015258789
+88,2,fondo_acciones,124,EIDO,ETF,43.09,D,Mala,3,96.34,True,0.81,True,26.08,True,86.69,Diversificado,False,ASIA,high,12.470000267028809
+16,1,materias_primas,20,SIVR,ETF,40.88,D,Mala,2,50.0,False,47.5,True,100.0,True,85.0,Materias primas,False,GLOBAL,medium,63.0099983215332
+210,12,accion,268,BSX,STOCK,40.58,D,Mala,4,77.6,True,0.94,True,100.0,True,64.74,Healthcare,False,US,high,43.34000015258789
+211,13,accion,268,ORLY,STOCK,40.5,D,Mala,4,36.83,True,18.98,True,100.0,True,20.82,Consumer Cyclical,False,US,high,84.70999908447266
+212,14,accion,268,CCI,STOCK,40.43,D,Mala,4,62.5,True,15.23,True,100.0,True,60.38,Real Estate,False,US,high,73.05999755859375
+17,2,materias_primas,20,PPLT,ETF,40.29,D,Mala,2,50.0,False,37.5,True,100.0,True,72.5,Materias primas,False,GLOBAL,medium,16.309999465942383
+216,15,accion,268,LVMUY,STOCK,39.66,D,Mala,4,59.55,True,14.66,True,100.0,True,57.64,Consumer Cyclical,False,EU,high,91.9000015258789
+98,3,fondo_acciones,124,KWEB,ETF,38.98,D,Mala,3,87.4,True,1.21,True,26.08,True,89.11,Diversificado,False,ASIA,high,24.829999923706055
+18,3,materias_primas,20,SLV,ETF,37.94,D,Mala,2,50.0,False,42.5,True,100.0,True,90.0,Materias primas,False,GLOBAL,medium,59.93000030517578
+233,16,accion,268,DIS,STOCK,35.72,D,Mala,4,42.1,True,27.07,True,100.0,True,62.48,Communication Services,False,US,high,102.66999816894531
+234,17,accion,268,SNOW,STOCK,35.71,D,Mala,4,4.87,True,89.29,True,100.0,True,90.68,Technology,False,US,high,332.42999267578125
+237,18,accion,268,NKE,STOCK,34.7,D,Mala,4,70.99,True,3.01,True,100.0,True,81.29,Consumer Cyclical,False,US,high,35.5099983215332
+241,19,accion,268,BABA,STOCK,34.04,D,Mala,4,54.36,True,10.9,True,100.0,True,66.81,Consumer Cyclical,False,ASIA,high,113.23999786376953
+242,20,accion,268,TEAM,STOCK,33.52,D,Mala,4,18.57,True,68.05,True,100.0,True,92.13,Technology,False,GLOBAL,high,192.02000427246094
+245,21,accion,268,SNPS,STOCK,31.92,D,Mala,4,50.52,True,13.16,True,100.0,True,72.51,Technology,False,US,high,384.9700012207031
+250,22,accion,268,NET,STOCK,29.05,D,Mala,4,1.24,True,77.63,True,100.0,True,95.18,Technology,False,US,high,323.6000061035156
+19,4,materias_primas,20,PALL,ETF,28.82,D,Mala,2,50.0,False,15.0,True,100.0,True,87.5,Materias primas,False,GLOBAL,medium,23.690000534057617
+252,23,accion,268,DASH,STOCK,26.8,D,Mala,4,23.43,True,43.8,True,100.0,True,92.8,Consumer Cyclical,False,US,high,192.94000244140625
+253,24,accion,268,NOW,STOCK,26.49,D,Mala,4,28.59,True,29.32,True,100.0,True,81.43,Technology,False,US,high,135.47000122070312
+116,4,fondo_acciones,124,TAN,ETF,25.6,D,Mala,3,44.31,True,18.15,True,26.08,True,95.97,Diversificado,True,GLOBAL,high,45.65999984741211
+119,5,fondo_acciones,124,XAR,ETF,24.33,D,Mala,3,5.28,True,36.69,True,100.0,True,60.89,Industrials,False,US,high,239.86000061035156
+256,25,accion,268,SHOP,STOCK,23.96,D,Mala,4,21.2,True,40.6,True,100.0,True,96.18,Technology,False,GLOBAL,high,128.5
+31,1,renta_fija,31,TLT,ETF,21.54,D,Mala,2,50.0,False,1.61,True,100.0,True,98.39,Renta fija,False,US,medium,81.25
+122,6,fondo_acciones,124,XLY,ETF,20.92,D,Mala,3,22.36,True,10.89,True,100.0,True,66.53,Consumer Cyclical,False,US,high,111.02999877929688
+258,26,accion,268,BA,STOCK,19.8,D,Mala,4,5.18,True,28.57,True,100.0,True,67.75,Industrials,False,US,high,198.1999969482422
+259,27,accion,268,MELI,STOCK,19.76,D,Mala,4,18.98,True,23.5,True,100.0,True,84.48,Consumer Cyclical,False,LATAM,high,1787.3900146484375
+261,28,accion,268,META,STOCK,18.11,D,Mala,4,22.42,True,14.85,True,100.0,True,84.54,Communication Services,False,US,high,665.75
+262,29,accion,268,HOOD,STOCK,18.08,D,Mala,4,7.44,True,41.17,True,100.0,True,97.93,Financial Services,False,US,high,119.81999969482422
+123,7,fondo_acciones,124,IGV,ETF,17.35,D,Mala,3,2.85,True,37.5,True,100.0,True,87.5,Technology,False,US,high,104.3499984741211
+124,8,fondo_acciones,124,REMX,ETF,16.18,D,Mala,3,6.91,True,35.89,True,100.0,True,97.18,Basic Materials,False,US,high,69.05999755859375
+263,30,accion,268,ISRG,STOCK,13.88,D,Mala,4,10.16,True,10.71,True,100.0,True,74.88,Healthcare,False,US,high,393.3299865722656
+265,31,accion,268,NFLX,STOCK,11.35,D,Mala,4,13.3,True,6.58,True,100.0,True,84.91,Communication Services,False,US,high,71.79000091552734
+1,1,cripto,25,BTC-USD,CRYPTO,68.12,E,Muy mala,2,50.0,False,80.0,True,100.0,True,18.0,Cripto,False,GLOBAL,medium,81116.1328125
+2,2,cripto,25,BITB,ETF,66.47,E,Muy mala,2,50.0,False,70.0,True,100.0,True,10.0,Cripto,False,GLOBAL,medium,44.099998474121094
+3,3,cripto,25,ARKB,ETF,65.06,E,Muy mala,2,50.0,False,66.0,True,100.0,True,10.0,Cripto,False,GLOBAL,medium,26.93000030517578
+4,4,cripto,25,IBIT,ETF,64.82,E,Muy mala,2,50.0,False,68.0,True,100.0,True,14.0,Cripto,False,GLOBAL,medium,46.02000045776367
+5,5,cripto,25,BNB-USD,CRYPTO,64.12,E,Muy mala,2,50.0,False,74.0,True,100.0,True,26.0,Cripto,False,GLOBAL,medium,769.030029296875
+6,6,cripto,25,ETH-USD,CRYPTO,61.06,E,Muy mala,2,50.0,False,72.0,True,100.0,True,36.0,Cripto,False,GLOBAL,medium,2637.919921875
+7,7,cripto,25,FBTC,ETF,61.06,E,Muy mala,2,50.0,False,60.0,True,100.0,True,18.0,Cripto,False,GLOBAL,medium,70.66000366210938
+8,8,cripto,25,LINK-USD,CRYPTO,57.06,E,Muy mala,2,50.0,False,70.0,True,100.0,True,50.0,Cripto,False,GLOBAL,medium,12.491999626159668
+9,9,cripto,25,XLM-USD,CRYPTO,56.59,E,Muy mala,2,50.0,False,70.0,True,100.0,True,52.0,Cripto,False,GLOBAL,medium,0.19666799902915955
+10,10,cripto,25,GBTC,ETF,54.71,E,Muy mala,2,50.0,False,54.0,True,100.0,True,36.0,Cripto,False,GLOBAL,medium,62.810001373291016
+12,11,cripto,25,XRP-USD,CRYPTO,54.47,E,Muy mala,2,50.0,False,52.0,True,100.0,True,34.0,Cripto,False,GLOBAL,medium,1.4062999486923218
+14,12,cripto,25,LTC-USD,CRYPTO,52.35,E,Muy mala,2,50.0,False,50.0,True,100.0,True,40.0,Cripto,False,GLOBAL,medium,58.91699981689453
+15,13,cripto,25,ARB-USD,CRYPTO,52.12,E,Muy mala,2,50.0,False,56.0,True,100.0,True,50.0,Cripto,False,GLOBAL,medium,0.0006290287710726261
+16,14,cripto,25,SOL-USD,CRYPTO,48.35,E,Muy mala,2,50.0,False,52.0,True,100.0,True,60.0,Cripto,False,GLOBAL,medium,110.30000305175781
+17,15,cripto,25,ICP-USD,CRYPTO,45.76,E,Muy mala,2,50.0,False,62.0,True,100.0,True,86.0,Cripto,False,GLOBAL,medium,2.9038000106811523
+18,16,cripto,25,DOGE-USD,CRYPTO,42.71,E,Muy mala,2,50.0,False,28.0,True,100.0,True,48.0,Cripto,False,GLOBAL,medium,0.08716999739408493
+19,17,cripto,25,ATOM-USD,CRYPTO,42.0,E,Muy mala,2,50.0,False,42.0,True,100.0,True,72.0,Cripto,False,GLOBAL,medium,1.7747999429702759
+223,1,accion,268,RIVN,STOCK,38.6,E,Muy mala,3,60.71,True,36.65,True,100.0,True,97.19,Consumer Cyclical,False,US,high,14.989999771118164
+20,18,cripto,25,BCH-USD,CRYPTO,37.53,E,Muy mala,2,50.0,False,20.0,True,100.0,True,58.0,Cripto,False,GLOBAL,medium,250.55999755859375
+21,19,cripto,25,ADA-USD,CRYPTO,33.76,E,Muy mala,2,50.0,False,16.0,True,100.0,True,68.0,Cripto,False,GLOBAL,medium,0.22815999388694763
+22,20,cripto,25,AVAX-USD,CRYPTO,33.29,E,Muy mala,2,50.0,False,16.0,True,100.0,True,70.0,Cripto,False,GLOBAL,medium,11.277000427246094
+247,2,accion,268,DSDVY,STOCK,31.19,E,Muy mala,4,40.58,True,21.05,True,100.0,True,70.03,Industrials,False,EU,high,97.83999633789062
+249,3,accion,268,BIDU,STOCK,29.91,E,Muy mala,4,50.0,True,4.7,True,100.0,True,67.43,Communication Services,False,ASIA,high,89.93000030517578
+23,21,cripto,25,FIL-USD,CRYPTO,29.29,E,Muy mala,2,50.0,False,22.0,True,100.0,True,96.0,Cripto,False,GLOBAL,medium,0.9478999972343445
+24,22,cripto,25,DOT-USD,CRYPTO,26.71,E,Muy mala,2,50.0,False,8.0,True,100.0,True,86.0,Cripto,False,GLOBAL,medium,1.143399953842163
+20,1,materias_primas,20,UNG,ETF,25.88,E,Muy mala,2,50.0,False,10.0,True,100.0,True,92.5,Materias primas,False,GLOBAL,medium,10.40999984741211
+25,23,cripto,25,OP-USD,CRYPTO,25.29,E,Muy mala,2,50.0,False,4.0,True,100.0,True,86.0,Cripto,False,GLOBAL,medium,0.12676000595092773
+254,4,accion,268,TV,STOCK,25.02,E,Muy mala,4,30.0,True,23.5,True,100.0,True,81.42,Communication Services,False,LATAM,high,2.3499999046325684
+257,5,accion,268,LI,STOCK,23.76,E,Muy mala,4,37.88,True,1.5,True,100.0,True,67.56,Consumer Cyclical,False,ASIA,high,12.140000343322754
+260,6,accion,268,ZS,STOCK,19.62,E,Muy mala,4,25.24,True,16.54,True,100.0,True,85.57,Technology,False,US,high,197.30999755859375
+264,7,accion,268,NIO,STOCK,12.15,E,Muy mala,4,16.67,True,4.7,True,100.0,True,84.57,Consumer Cyclical,False,ASIA,high,3.6600000858306885
+266,8,accion,268,TSLA,STOCK,7.67,E,Muy mala,4,4.16,True,10.9,True,100.0,True,91.04,Consumer Cyclical,False,US,high,364.2699890136719
+267,9,accion,268,COIN,STOCK,6.91,E,Muy mala,4,12.64,True,4.14,True,100.0,True,98.94,Financial Services,False,US,high,194.25
+268,10,accion,268,XPEV,STOCK,5.2,E,Muy mala,4,4.55,True,1.88,True,100.0,True,88.69,Consumer Cyclical,False,ASIA,high,10.619999885559082
